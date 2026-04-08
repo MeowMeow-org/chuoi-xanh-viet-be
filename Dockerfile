@@ -26,6 +26,7 @@ RUN npm ci --omit=dev
 RUN npx prisma generate
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/docs ./src/docs
 
 EXPOSE 8000
 
