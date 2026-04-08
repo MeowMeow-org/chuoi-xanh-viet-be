@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chuoi-xanh-api
+    restart: unless-stopped
+    env_file:
+      - .env.api
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+    ports:
+      - '8000:8000'
+    networks:
+      - chuoi-xanh-net
+
+networks:
+  chuoi-xanh-net:
+    name: chuoi-xanh-net

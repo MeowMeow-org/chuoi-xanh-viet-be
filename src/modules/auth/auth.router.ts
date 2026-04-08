@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { wrapAsync } from '~/utils/handler'
 import { loginController } from './auth.controller'
+import { loginValidator } from './auth.middleware'
 
 const authRouter = Router()
 
@@ -9,6 +10,6 @@ const authRouter = Router()
  * @route POST /auth/login
  * @access public
  */
-authRouter.post('/login', wrapAsync(loginController))
+authRouter.post('/login', loginValidator, wrapAsync(loginController))
 
 export default authRouter

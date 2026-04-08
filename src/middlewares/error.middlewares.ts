@@ -1,5 +1,4 @@
 import { NextFunction, Request, Response } from 'express'
-import { omit } from 'lodash'
 import HTTP_STATUS from '~/constants/httpStatus'
 import { ErrorWithStatus } from '~/models/Errors'
 
@@ -8,9 +7,13 @@ export const defaultErrorHandler = (err: any, req: Request, res: Response, next:
   //nếu là errorWithStatus
 
   if (err instanceof ErrorWithStatus) {
-    return res
-      .status(err.status || HTTP_STATUS.INTERNAL_SERVER_ERROR) //
-      .json(omit(err, ['status']))
+    const statusCode = err.status || HTTP_STATUS.INTERNAL_SERVER_ERROR
+    return res.status(statusCode).json({
+      success: false,
+      statusCode,
+      message: err.message,
+      data: 'errors' in err ? (err as any).errors : null
+    })
   }
 
   //nếu là lỗi bất kỳ
@@ -18,7 +21,11 @@ export const defaultErrorHandler = (err: any, req: Request, res: Response, next:
     Object.defineProperty(err, key, { enumerable: true })
   })
 
-  return res
-    .status(err.status || HTTP_STATUS.INTERNAL_SERVER_ERROR) //500
-    .json(omit(err, ['stack']))
+  const statusCode = err?.status || HTTP_STATUS.INTERNAL_SERVER_ERROR
+  return res.status(statusCode).json({
+    success: false,
+    statusCode,
+    message: err?.message || 'Internal server error',
+    data: null
+  })
 }

@@ -1,12 +1,15 @@
+import 'dotenv/config'
 import express from 'express'
 import { defaultErrorHandler } from './middlewares/error.middlewares'
 import { syncResponseMiddleware } from './middlewares/response.middleware'
 import router from './routers'
+import { setupSwagger } from './config/swagger'
 
 const app = express()
-const PORT = 8000
+const PORT = Number(process.env.PORT) || 8000
 
 app.use(express.json())
+setupSwagger(app)
 
 app.get('/', (req, res) => {
   res.send('Hello!')

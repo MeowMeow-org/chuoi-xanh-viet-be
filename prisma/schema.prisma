@@ -1,0 +1,306 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model diary_entries {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id        String           @db.Uuid
+  farm_id          String           @db.Uuid
+  actor_user_id    String           @db.Uuid
+  event_type       diary_event_type
+  event_date       DateTime         @db.Date
+  server_timestamp DateTime         @default(now()) @db.Timestamp(6)
+  description      String?
+  extra_data       Json?
+  created_at       DateTime         @default(now()) @db.Timestamp(6)
+  users            users            @relation(fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_actor")
+  farms            farms            @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_farm")
+  seasons          seasons          @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_season")
+
+  @@index([season_id, event_date], map: "idx_diary_season_event_date")
+  @@index([season_id, server_timestamp], map: "idx_diary_season_server_ts")
+}
+
+model farms {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  owner_user_id String          @db.Uuid
+  name          String          @db.VarChar(180)
+  area_ha       Decimal?        @db.Decimal(10, 2)
+  crop_main     String?         @db.VarChar(120)
+  province      String?         @db.VarChar(100)
+  district      String?         @db.VarChar(100)
+  ward          String?         @db.VarChar(100)
+  address       String?
+  latitude      Decimal?        @db.Decimal(10, 7)
+  longitude     Decimal?        @db.Decimal(10, 7)
+  created_at    DateTime        @default(now()) @db.Timestamp(6)
+  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  diary_entries diary_entries[]
+  users         users           @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
+  seasons       seasons[]
+  shops         shops?
+}
+
+model order_items {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id   String   @db.Uuid
+  product_id String   @db.Uuid
+  qty        Decimal  @db.Decimal(10, 2)
+  unit_price Decimal  @db.Decimal(12, 2)
+  line_total Decimal  @db.Decimal(12, 2)
+  orders     orders   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_order_items_order")
+  products   products @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_order_items_product")
+
+  @@index([order_id, product_id], map: "idx_order_items_order_product")
+}
+
+model orders {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyer_user_id    String         @db.Uuid
+  shop_id          String         @db.Uuid
+  status           order_status   @default(pending)
+  payment_method   payment_method @default(cod)
+  payment_status   payment_status @default(pending)
+  total_amount     Decimal        @default(0) @db.Decimal(12, 2)
+  shipping_name    String?        @db.VarChar(120)
+  shipping_phone   String?        @db.VarChar(20)
+  shipping_address String?
+  note             String?
+  created_at       DateTime       @default(now()) @db.Timestamp(6)
+  updated_at       DateTime       @default(now()) @db.Timestamp(6)
+  order_items      order_items[]
+  users            users          @relation(fields: [buyer_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_buyer")
+  shops            shops          @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_shop")
+  shop_reviews     shop_reviews[]
+
+  @@index([buyer_user_id, status, created_at], map: "idx_orders_buyer_status_created_at")
+  @@index([shop_id, status, created_at], map: "idx_orders_shop_status_created_at")
+}
+
+model products {
+  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id     String        @db.Uuid
+  season_id   String?       @db.Uuid
+  name        String        @db.VarChar(180)
+  description String?
+  price       Decimal       @db.Decimal(12, 2)
+  unit        String?       @default("kg") @db.VarChar(20)
+  stock_qty   Decimal?      @default(0) @db.Decimal(10, 2)
+  is_active   Boolean       @default(true)
+  created_at  DateTime      @default(now()) @db.Timestamp(6)
+  updated_at  DateTime      @default(now()) @db.Timestamp(6)
+  order_items order_items[]
+  seasons     seasons?      @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_season")
+  shops       shops         @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_shop")
+
+  @@index([shop_id, is_active], map: "idx_products_shop_active")
+}
+
+model refresh_tokens {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash String    @unique @db.VarChar(255)
+  device_id  String    @db.VarChar(120)
+  expires_at DateTime  @db.Timestamp(6)
+  revoked_at DateTime? @db.Timestamp(6)
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_refresh_tokens_user")
+
+  @@index([user_id, device_id], map: "idx_refresh_tokens_user_device")
+  @@index([user_id, revoked_at], map: "idx_refresh_tokens_user_revoked_at")
+}
+
+model sale_units {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id   String           @db.Uuid
+  code        String           @unique @db.VarChar(80)
+  quantity    Decimal          @db.Decimal(10, 2)
+  unit        String           @default("kg") @db.VarChar(20)
+  qr_token    String           @unique @db.VarChar(120)
+  qr_url      String
+  short_code  String?          @unique @db.VarChar(30)
+  status      sale_unit_status @default(active)
+  created_at  DateTime         @default(now()) @db.Timestamp(6)
+  seasons     seasons          @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sale_units_season")
+  trace_scans trace_scans[]
+
+  @@index([season_id, status], map: "idx_sale_units_season_status")
+}
+
+model season_anchors {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id     String        @unique @db.Uuid
+  hash_algo     String        @default("SHA-256") @db.VarChar(20)
+  data_hash     String        @db.VarChar(130)
+  chain_network String?       @default("db_only") @db.VarChar(50)
+  tx_hash       String?       @db.VarChar(120)
+  tx_url        String?
+  status        anchor_status @default(pending)
+  anchored_at   DateTime?     @db.Timestamp(6)
+  anchor_meta   Json?
+  created_at    DateTime      @default(now()) @db.Timestamp(6)
+  seasons       seasons       @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anchor_season")
+}
+
+model seasons {
+  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farm_id            String          @db.Uuid
+  code               String          @unique @db.VarChar(80)
+  crop_name          String          @db.VarChar(120)
+  start_date         DateTime        @db.Date
+  harvest_start_date DateTime?       @db.Date
+  harvest_end_date   DateTime?       @db.Date
+  estimated_yield    Decimal?        @db.Decimal(12, 2)
+  actual_yield       Decimal?        @db.Decimal(12, 2)
+  yield_unit         String?         @default("kg") @db.VarChar(20)
+  status             season_status   @default(draft)
+  sealed_at          DateTime?       @db.Timestamp(6)
+  created_by         String          @db.Uuid
+  created_at         DateTime        @default(now()) @db.Timestamp(6)
+  updated_at         DateTime        @default(now()) @db.Timestamp(6)
+  diary_entries      diary_entries[]
+  products           products[]
+  sale_units         sale_units[]
+  season_anchors     season_anchors?
+  users              users           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_created_by")
+  farms              farms           @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_farm")
+
+  @@index([farm_id, status], map: "idx_seasons_farm_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model shop_reviews {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String   @db.Uuid
+  order_id             String   @db.Uuid
+  shop_id              String   @db.Uuid
+  rating               Int
+  comment              String?
+  is_verified_purchase Boolean  @default(true)
+  review_meta          Json?
+  created_at           DateTime @default(now()) @db.Timestamp(6)
+  updated_at           DateTime @default(now()) @db.Timestamp(6)
+  orders               orders   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_order")
+  shops                shops    @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_shop")
+  users                users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_user")
+
+  @@unique([user_id, order_id, shop_id], map: "uq_shop_reviews_user_order_shop")
+  @@index([shop_id, created_at], map: "idx_shop_reviews_shop_created_at")
+}
+
+model shops {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farm_id        String         @unique @db.Uuid
+  name           String         @db.VarChar(180)
+  description    String?
+  status         String         @default("open") @db.VarChar(20)
+  is_verified    Boolean        @default(false)
+  certifications Json?
+  created_at     DateTime       @default(now()) @db.Timestamp(6)
+  updated_at     DateTime       @default(now()) @db.Timestamp(6)
+  orders         orders[]
+  products       products[]
+  shop_reviews   shop_reviews[]
+  farms          farms          @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_shops_farm")
+}
+
+model trace_scans {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sale_unit_id  String     @db.Uuid
+  scanned_at    DateTime   @default(now()) @db.Timestamp(6)
+  ip_address    String?    @db.VarChar(64)
+  user_agent    String?
+  geo_lat       Decimal?   @db.Decimal(10, 7)
+  geo_lng       Decimal?   @db.Decimal(10, 7)
+  result        String     @default("ok") @db.VarChar(20)
+  abnormal_flag Boolean    @default(false)
+  scan_meta     Json?
+  sale_units    sale_units @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_trace_sale_unit")
+
+  @@index([sale_unit_id, scanned_at], map: "idx_trace_scans_sale_unit_scanned_at")
+}
+
+model users {
+  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone                String           @unique @db.VarChar(20)
+  email                String?          @unique @db.VarChar(255)
+  password_hash        String?          @db.VarChar(255)
+  full_name            String           @db.VarChar(120)
+  role                 user_role        @default(farmer)
+  status               account_status   @default(active)
+  reset_password_token String?          @db.VarChar(255)
+  created_at           DateTime         @default(now()) @db.Timestamp(6)
+  updated_at           DateTime         @default(now()) @db.Timestamp(6)
+  diary_entries        diary_entries[]
+  farms                farms[]
+  orders               orders[]
+  refresh_tokens       refresh_tokens[]
+  seasons              seasons[]
+  shop_reviews         shop_reviews[]
+}
+
+enum account_status {
+  active
+  pending
+  suspended
+}
+
+enum anchor_status {
+  pending
+  anchored
+  failed
+}
+
+enum diary_event_type {
+  land_prep
+  sowing
+  fertilizing
+  pesticide
+  irrigation
+  harvesting
+  packing
+  other
+}
+
+enum order_status {
+  pending
+  confirmed
+  shipping
+  delivered
+  cancelled
+}
+
+enum payment_method {
+  cod
+  vnpay
+  payos
+}
+
+enum payment_status {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum sale_unit_status {
+  active
+  sold
+  disabled
+}
+
+enum season_status {
+  draft
+  anchored
+  failed
+}
+
+enum user_role {
+  farmer
+  consumer
+  admin
+}
