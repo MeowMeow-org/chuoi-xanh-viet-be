@@ -5,11 +5,17 @@ services:
       dockerfile: Dockerfile
     container_name: chuoi-xanh-api
     restart: unless-stopped
-    env_file:
-      - .env.api
     environment:
       NODE_ENV: production
-      PORT: 8000
+      PORT: ${PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      JWT_ACCESS_TOKEN_SECRET: ${JWT_ACCESS_TOKEN_SECRET}
+      JWT_ACCESS_TOKEN_EXPIRES_IN: ${JWT_ACCESS_TOKEN_EXPIRES_IN}
+      JWT_REFRESH_TOKEN_SECRET: ${JWT_REFRESH_TOKEN_SECRET}
+      JWT_REFRESH_TOKEN_EXPIRES_IN: ${JWT_REFRESH_TOKEN_EXPIRES_IN}
+      JWT_RESET_PASSWORD_TOKEN_SECRET: ${JWT_RESET_PASSWORD_TOKEN_SECRET}
+      JWT_RESET_PASSWORD_TOKEN_EXPIRES_IN: ${JWT_RESET_PASSWORD_TOKEN_EXPIRES_IN}
+      PASSWORD_HASH_SECRET: ${PASSWORD_HASH_SECRET}
     ports:
       - '8000:8000'
     networks:
