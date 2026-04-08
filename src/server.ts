@@ -6,7 +6,7 @@ import router from './routers'
 import { setupSwagger } from './config/swagger'
 
 const app = express()
-const PORT = 8000
+const PORT = Number(process.env.PORT) || 8000
 
 app.use(express.json())
 setupSwagger(app)

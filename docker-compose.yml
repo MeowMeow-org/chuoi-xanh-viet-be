@@ -1,22 +1,20 @@
 services:
-  postgres:
-    image: postgres:16
-    container_name: chuoi_xanh_postgres
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chuoi-xanh-api
     restart: unless-stopped
+    env_file:
+      - .env.api
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin
-      POSTGRES_DB: chuoi_xanh_viet
+      NODE_ENV: production
+      PORT: 8000
     ports:
-      - '5432:5432'
-    volumes:
-      - pgdata_chuoi_xanh:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U admin -d chuoi_xanh_viet']
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - '8000:8000'
+    networks:
+      - chuoi-xanh-net
 
-volumes:
-  pgdata_chuoi_xanh:
+networks:
+  chuoi-xanh-net:
+    name: chuoi-xanh-net
