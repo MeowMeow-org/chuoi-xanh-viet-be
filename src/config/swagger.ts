@@ -1,4 +1,5 @@
 import type { Express } from 'express'
+import path from 'path'
 import swaggerJsdoc from 'swagger-jsdoc'
 import swaggerUi from 'swagger-ui-express'
 
@@ -19,7 +20,10 @@ const options: swaggerJsdoc.Options = {
       }
     ]
   },
-  apis: ['src/docs/**/*.ts']
+  apis: [
+    path.join(process.cwd(), 'src/docs/**/*.ts'),
+    path.join(process.cwd(), 'dist/docs/**/*.js')
+  ]
 }
 
 const swaggerSpec = swaggerJsdoc(options)
