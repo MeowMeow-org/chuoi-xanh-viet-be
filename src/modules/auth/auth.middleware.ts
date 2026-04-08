@@ -5,9 +5,10 @@ import { validate } from '~/utils/validation'
 export const loginValidator = validate(
   checkSchema(
     {
-      fullName: {
+      email: {
+        isEmail: true,
         notEmpty: {
-          errorMessage: USER_MESSAGES.FULL_NAME_IS_REQUIRED
+          errorMessage: USER_MESSAGES.EMAIL_IS_REQUIRED
         }
       },
       password: {

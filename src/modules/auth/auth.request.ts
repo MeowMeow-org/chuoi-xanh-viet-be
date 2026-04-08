@@ -7,6 +7,6 @@ export interface TokenPayLoad extends JwtPayload {
 }
 
 export interface LoginRequestBody {
-  fullName: string
+  email: string
   password: string
 }

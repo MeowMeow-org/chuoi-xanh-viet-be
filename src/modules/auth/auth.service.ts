@@ -42,17 +42,17 @@ class AuthService {
   }
 
   login = async (payload: LoginRequestBody) => {
-    const { fullName, password } = payload
-    const user = await prisma.users.findUnique({
+    const { email, password } = payload
+    const user = await prisma.users.findFirst({
       where: {
-        full_name: fullName,
+        email,
         password_hash: password //chua decode hash
       }
     })
 
     if (user == null) {
       throw new ErrorWithStatus({
-        message: USER_MESSAGES.INCORRECT_FULLNAME_OR_PASSWORD,
+        message: USER_MESSAGES.INCORRECT_EMAIL_OR_PASSWORD,
         status: HTTP_STATUS.UNAUTHORIZED
       })
     }

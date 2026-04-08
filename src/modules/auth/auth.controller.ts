@@ -17,8 +17,8 @@ export const loginController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.LOGIN_SUCCESS,
     data: {
-      accessToken: '',
-      refreshToken: ''
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token
     }
   })
 }

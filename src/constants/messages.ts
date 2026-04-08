@@ -6,8 +6,8 @@ const USER_MESSAGES = {
   VERIFY_EMAIL_SUCCESS: 'Verify email successfully',
   FORGOT_PASSWORD_SUCCESS: 'Forgot password successfully',
   RESET_PASSWORD_SUCCESS: 'Reset password successfully',
-  INCORRECT_FULLNAME_OR_PASSWORD: 'Incorrect full name or password',
-  FULL_NAME_IS_REQUIRED: 'Full name is required',
+  INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
+  EMAIL_IS_REQUIRED: 'Email is required',
   PASSWORD_IS_REQUIRED: 'Password is required'
 } as const
 
