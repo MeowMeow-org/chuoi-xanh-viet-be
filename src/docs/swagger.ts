@@ -9,7 +9,7 @@
  * @swagger
  * /v1/api/auth/login:
  *   post:
- *     summary: Login with fullname and password
+ *     summary: Login with email and password
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -18,12 +18,13 @@
  *           schema:
  *             type: object
  *             required:
- *               - fullName
+ *               - email
  *               - password
  *             properties:
- *               fullName:
+ *               email:
  *                 type: string
- *                 example: Nguyen Van A
+ *                 format: email
+ *                 example: demo@chuoixanh.vn
  *               password:
  *                 type: string
  *                 example: 123456
