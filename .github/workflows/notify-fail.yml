@@ -1,0 +1,37 @@
+name: Notify Pipeline Failure
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+
+jobs:
+  notify-discord:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      REPO: ${{ github.repository }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+      ACTOR: ${{ github.event.workflow_run.actor.login }}
+      LOG_URL: ${{ github.event.workflow_run.html_url }}
+
+    steps:
+      - name: Send Discord notification
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "DISCORD_WEBHOOK_URL is empty. Skip notify step."
+            exit 0
+          fi
+
+          payload=$(cat <<PAYLOAD
+          {
+            "username": "CI Bot",
+            "content": "CI workflow failed\\nRepo: ${REPO}\\nBranch: ${BRANCH}\\nTriggered by: ${ACTOR}\\nLogs: ${LOG_URL}"
+          }
+          PAYLOAD
+          )
+
+          curl -sS -X POST "$DISCORD_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$payload"

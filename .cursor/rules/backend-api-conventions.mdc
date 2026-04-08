@@ -1,0 +1,69 @@
+---
+description: Backend API conventions for controllers, services, and errors
+alwaysApply: true
+---
+
+# Backend API Conventions
+
+## Module structure
+
+- Organize code by feature module under `src/modules/<module-name>/`.
+- Each module should keep clear boundaries: `*.router.ts`, `*.controller.ts`, `*.service.ts`, request/schema/middleware files when needed.
+- Register new module routers from the central router entry and keep naming consistent (`authRouter`, `userRouter`, etc.).
+
+## Controller pattern
+
+- Controllers must be thin: parse input, call service, return response.
+- Prefer wrapping async controller handlers with `wrapAsync(...)`.
+- Exception: if handler is intentionally sync, or uses a different centralized error strategy, `wrapAsync` is optional.
+- Do not place business logic or database queries directly in controllers.
+
+```typescript
+// Preferred
+router.post('/login', wrapAsync(authController.login))
+
+// Also acceptable when intentionally sync
+router.get('/health', healthController.check)
+```
+
+## Route documentation comments
+
+- Every new route declaration must include a JSDoc-style comment block immediately above it.
+- Use this format for each route:
+
+```typescript
+/**
+ * @desc Login user with email and password
+ * @route POST /auth/login
+ * @access public
+ */
+router.post('/login', wrapAsync(authController.login))
+```
+
+## Service pattern
+
+- Put business logic in service files.
+- Services should throw typed errors (`ErrorWithStatus`, `EntityError`) instead of sending responses.
+
+## Validation and errors
+
+- Validate request input with shared validation utilities.
+- Keep a single error flow through `error.middlewares.ts`.
+- Return consistent status codes using constants from `constants/httpStatus.ts`.
+
+## Imports and aliases
+
+- Use `~/` import alias for internal modules.
+- Keep imports grouped: external packages first, then internal aliases.
+
+## Output constraints for generated changes
+
+- Do not create documentation files by default (`*.md`, `docs/*`, ADR, or notes files) unless explicitly requested.
+- Focus on code-only changes that directly satisfy the current task context.
+- Do not generate extra scaffolding or unrelated files outside the required implementation.
+
+## Service code readability
+
+- When adding or updating service functions, include concise comments for non-obvious logic.
+- Comments should explain intent/business rule and edge-case handling, not restate obvious code.
+- Keep comments simple so new team members can quickly understand the flow.
