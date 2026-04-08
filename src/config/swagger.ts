@@ -13,6 +13,9 @@ const options: swaggerJsdoc.Options = {
     servers: [
       {
         url: 'http://localhost:8000'
+      },
+      {
+        url: 'http://178.128.98.214:8001'
       }
     ]
   },
