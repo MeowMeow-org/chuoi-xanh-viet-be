@@ -17,7 +17,7 @@ services:
       JWT_RESET_PASSWORD_TOKEN_EXPIRES_IN: ${JWT_RESET_PASSWORD_TOKEN_EXPIRES_IN}
       PASSWORD_HASH_SECRET: ${PASSWORD_HASH_SECRET}
     ports:
-      - '8000:8000'
+      - '8001:8000'
     networks:
       - chuoi-xanh-net
 
