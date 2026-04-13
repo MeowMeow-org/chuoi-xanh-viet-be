@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { ActionType, ResourceType } from '~/interfaces/logger.interface'
-import { TokenGoogleVerifyPayload, TokenPayLoad } from '~/models/TokenPayoad'
+import { TokenPayLoad } from './modules/auth/auth.request'
 
 declare global {
   namespace Express {
@@ -18,5 +18,13 @@ declare global {
         metadata?: any
       }) => void
     }
+  }
+}
+
+declare module 'express' {
+  interface Request {
+    decoded_authorization?: TokenPayLoad
+    decoded_refresh_token?: TokenPayLoad
+    decoded_forgot_password_token?: TokenPayLoad
   }
 }

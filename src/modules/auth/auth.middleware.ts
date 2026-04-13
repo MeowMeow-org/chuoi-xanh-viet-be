@@ -1,19 +1,77 @@
+import { Request } from 'express'
 import { checkSchema } from 'express-validator'
+import { JsonWebTokenError } from 'jsonwebtoken'
+import { capitalize } from 'lodash'
+import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
+import { ErrorWithStatus } from '~/models/Errors'
+import { verifyToken } from '~/utils/jwt'
 import { validate } from '~/utils/validation'
+
+const emailSchema = {
+  isEmail: true,
+  notEmpty: {
+    errorMessage: USER_MESSAGES.EMAIL_IS_REQUIRED
+  },
+  trim: true
+}
+
+const passwordSchema = {
+  isString: true,
+  notEmpty: {
+    errorMessage: USER_MESSAGES.PASSWORD_IS_REQUIRED
+  },
+  trim: true
+}
 
 export const loginValidator = validate(
   checkSchema(
     {
-      email: {
-        isEmail: true,
+      email: emailSchema,
+      password: passwordSchema
+    },
+    ['body']
+  )
+)
+
+export const forgotPasswordValidator = validate(
+  checkSchema(
+    {
+      email: emailSchema
+    },
+    ['body']
+  )
+)
+
+export const verifyForgotPasswordValidator = validate(
+  checkSchema(
+    {
+      forgot_password_token: {
+        trim: true,
         notEmpty: {
-          errorMessage: USER_MESSAGES.EMAIL_IS_REQUIRED
+          errorMessage: USER_MESSAGES.FORGOT_PASSWORD_TOKEN_IS_REQUIRED
+        },
+        custom: {
+          options: async (value, { req }) => {
+            //value là forgot_password_token
+
+            try {
+              const decoded_forgot_password_token = await verifyToken({
+                token: value,
+                privateKey: process.env.JWT_RESET_PASSWORD_TOKEN_SECRET as string
+              })
+
+              ;(req as Request).decoded_forgot_password_token = decoded_forgot_password_token
+            } catch (error) {
+              throw new ErrorWithStatus({
+                status: HTTP_STATUS.UNAUTHORIZED,
+                message: capitalize((error as JsonWebTokenError).message)
+              })
+            }
+
+            return true
+          }
         }
-      },
-      password: {
-        isString: true,
-        errorMessage: USER_MESSAGES.PASSWORD_IS_REQUIRED
       }
     },
     ['body']
