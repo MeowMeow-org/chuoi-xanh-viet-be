@@ -77,7 +77,15 @@ class AuthService {
 
     return {
       access_token,
-      refresh_token
+      refresh_token,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        status: user.status
+      }
     }
   }
 

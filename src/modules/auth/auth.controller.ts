@@ -25,7 +25,15 @@ export const loginController = async (
     message: USER_MESSAGES.LOGIN_SUCCESS,
     data: {
       accessToken: response.access_token,
-      refreshToken: response.refresh_token
+      refreshToken: response.refresh_token,
+      user: {
+        id: response.user.id,
+        fullName: response.user.full_name,
+        email: response.user.email,
+        phone: response.user.phone,
+        role: response.user.role,
+        status: response.user.status
+      }
     }
   })
 }

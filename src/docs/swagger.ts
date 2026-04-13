@@ -49,6 +49,29 @@
  *                       type: string
  *                     refreshToken:
  *                       type: string
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                           example: "1"
+ *                         fullName:
+ *                           type: string
+ *                           example: Nguyen Van A
+ *                         email:
+ *                           type: string
+ *                           format: email
+ *                           example: demo@chuoixanh.vn
+ *                         phone:
+ *                           type: string
+ *                           nullable: true
+ *                           example: "0901234567"
+ *                         role:
+ *                           type: string
+ *                           example: FARMER
+ *                         status:
+ *                           type: string
+ *                           example: ACTIVE
  *       422:
  *         description: Validation error
  */
