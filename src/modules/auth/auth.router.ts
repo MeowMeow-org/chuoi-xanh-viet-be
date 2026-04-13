@@ -1,7 +1,17 @@
 import { Router } from 'express'
 import { wrapAsync } from '~/utils/handler'
-import { forgotPasswordController, loginController, verifyForgotPasswordController } from './auth.controller'
-import { forgotPasswordValidator, loginValidator, verifyForgotPasswordValidator } from './auth.middleware'
+import {
+  forgotPasswordController,
+  loginController,
+  resetPasswordController,
+  verifyForgotPasswordController
+} from './auth.controller'
+import {
+  forgotPasswordValidator,
+  loginValidator,
+  resetPasswordValidator,
+  verifyForgotPasswordValidator
+} from './auth.middleware'
 
 const authRouter = Router()
 
@@ -39,4 +49,11 @@ authRouter.post('/verify-forgot-password', verifyForgotPasswordValidator, wrapAs
  * @route POST /auth/reset-password
  * @access public
  */
+authRouter.post(
+  '/reset-password',
+  verifyForgotPasswordValidator,
+  resetPasswordValidator,
+  wrapAsync(resetPasswordController)
+)
+
 export default authRouter

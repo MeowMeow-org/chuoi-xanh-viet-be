@@ -27,12 +27,13 @@ const buildResetPasswordLink = (resetToken: string) => {
 export const sendResetPasswordEmail = async ({ to, resetToken }: SendResetPasswordEmailPayload) => {
   const transporter = createTransporter()
   const resetLink = buildResetPasswordLink(resetToken)
+  const expiresIn = process.env.JWT_RESET_PASSWORD_TOKEN_EXPIRES_IN ?? '1h'
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
     to,
     subject: 'Reset your password',
-    text: `Click this link to reset your password: ${resetLink}`,
+    text: `Click this link to reset your password: ${resetLink}. Link này hết hạn sau ${expiresIn}.`,
     html: `
       <p>Hi,</p>
       <p>You requested to reset your password.</p>
@@ -40,6 +41,7 @@ export const sendResetPasswordEmail = async ({ to, resetToken }: SendResetPasswo
         Click this link to continue:
         <a href="${resetLink}" target="_blank" rel="noopener noreferrer">Reset password</a>
       </p>
+      <p><strong>Link này hết hạn sau ${expiresIn}.</strong></p>
       <p>If you did not request this, please ignore this email.</p>
     `
   })

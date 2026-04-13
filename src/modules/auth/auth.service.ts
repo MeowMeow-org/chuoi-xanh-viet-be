@@ -81,20 +81,23 @@ class AuthService {
     }
   }
 
-  isEmailExisted = async (email: string): Promise<boolean> => {
-    const user = await prisma.users.findUnique({
+  findUserByEmail = async (email: string) => {
+    return await prisma.users.findUnique({
       where: { email }
     })
-
-    return user != null
   }
 
   forgotPassword = async (email: string) => {
-    const user = await prisma.users.findUnique({
-      where: { email }
-    })
+    const user = await this.findUserByEmail(email)
 
-    const user_id = user!.id.toString()
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.EMAIL_IS_NOT_EXISTED,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    const user_id = user.id.toString()
     const reset_password_token = await this.signResetPasswordToken(user_id)
 
     await prisma.users.update({
@@ -122,6 +125,13 @@ class AuthService {
         status: HTTP_STATUS.UNAUTHORIZED
       })
     }
+  }
+
+  resetPassword = async ({ user_id, password }: { user_id: string; password: string }) => {
+    await prisma.users.update({
+      where: { id: user_id },
+      data: { password_hash: password, reset_password_token: null } //chưa hash password
+    })
   }
 }
 

@@ -3,6 +3,7 @@ import type { ParamsDictionary } from 'express-serve-static-core'
 import type {
   ForgotPasswordRequestBody,
   LoginRequestBody,
+  ResetPasswordRequestBody,
   TokenPayLoad,
   VerifyForgotPasswordRequestBody
 } from './auth.request'
@@ -44,14 +45,6 @@ export const forgotPasswordController = async (
   next: NextFunction
 ) => {
   const { email } = req.body
-  const isExisted = await authService.isEmailExisted(email)
-
-  if (!isExisted) {
-    throw new ErrorWithStatus({
-      message: USER_MESSAGES.EMAIL_IS_NOT_EXISTED,
-      status: HTTP_STATUS.NOT_FOUND
-    })
-  }
 
   await authService.forgotPassword(email)
 
@@ -76,6 +69,27 @@ export const verifyForgotPasswordController = async (
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.VERIFY_FORGOT_PASSWORD_TOKEN_SUCCESS,
+    data: null
+  })
+}
+
+// reset password controller
+export const resetPasswordController = async (
+  req: Request<ParamsDictionary, any, ResetPasswordRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { password, forgot_password_token } = req.body
+  const { user_id } = req.decoded_forgot_password_token as TokenPayLoad
+
+  //còn hạn token không
+  await authService.verifyForgotPassword({ user_id, forgot_password_token })
+
+  await authService.resetPassword({ user_id, password })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.RESET_PASSWORD_SUCCESS,
     data: null
   })
 }
