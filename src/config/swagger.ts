@@ -11,6 +11,15 @@ const options: swaggerJsdoc.Options = {
       version: '1.0.0',
       description: 'API documentation for Chuoi Xanh Viet backend'
     },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
     servers: [
       {
         url: 'http://localhost:8000'

@@ -4,9 +4,19 @@ import { defaultErrorHandler } from './middlewares/error.middlewares'
 import { syncResponseMiddleware } from './middlewares/response.middleware'
 import router from './routers'
 import { setupSwagger } from './config/swagger'
+import { corsConfig } from './config/cors'
+import { loggerMiddleware } from './middlewares/logger.middleware'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 8000
+
+app.use(corsConfig)
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups')
+  next()
+})
+
+app.use(loggerMiddleware)
 
 app.use(express.json())
 setupSwagger(app)
