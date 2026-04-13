@@ -36,13 +36,7 @@ const confirmPasswordSchema: ParamSchema = {
     options: (value, { req }) => {
       //value là confirm_password
       if (value !== req.body.password) {
-        throw new EntityError({
-          errors: {
-            confirm_password: {
-              msg: USER_MESSAGES.CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD
-            }
-          }
-        })
+        throw new Error(USER_MESSAGES.CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD)
       }
       return true
     }
