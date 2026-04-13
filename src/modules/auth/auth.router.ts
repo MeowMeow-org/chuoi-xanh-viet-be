@@ -4,6 +4,7 @@ import {
   forgotPasswordController,
   loginController,
   logoutController,
+  registerController,
   resetPasswordController,
   verifyForgotPasswordController
 } from './auth.controller'
@@ -11,6 +12,7 @@ import {
   forgotPasswordValidator,
   loginValidator,
   logoutValidator,
+  registerValidator,
   resetPasswordValidator,
   verifyForgotPasswordValidator
 } from './auth.middleware'
@@ -25,6 +27,12 @@ const authRouter = Router()
 authRouter.post('/login', loginValidator, wrapAsync(loginController))
 
 // register
+/**
+ * @desc Register new user account
+ * @route POST /auth/register
+ * @access public
+ */
+authRouter.post('/register', registerValidator, wrapAsync(registerController))
 
 // refresh token
 

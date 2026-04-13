@@ -54,6 +54,31 @@ export const loginValidator = validate(
   )
 )
 
+export const registerValidator = validate(
+  checkSchema(
+    {
+      email: emailSchema,
+      password: passwordSchema,
+      confirm_password: confirmPasswordSchema,
+      full_name: {
+        isString: true,
+        trim: true,
+        notEmpty: {
+          errorMessage: USER_MESSAGES.FULL_NAME_IS_REQUIRED
+        }
+      },
+      phone: {
+        isString: true,
+        trim: true,
+        notEmpty: {
+          errorMessage: USER_MESSAGES.PHONE_IS_REQUIRED
+        }
+      }
+    },
+    ['body']
+  )
+)
+
 export const logoutValidator = validate(
   checkSchema(
     {

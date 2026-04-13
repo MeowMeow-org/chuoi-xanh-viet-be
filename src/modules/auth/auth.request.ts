@@ -11,6 +11,14 @@ export interface LoginRequestBody {
   password: string
 }
 
+export interface RegisterRequestBody {
+  email: string
+  password: string
+  confirm_password: string
+  full_name: string
+  phone: string
+}
+
 export interface LogoutRequestBody {
   refreshToken: string
 }

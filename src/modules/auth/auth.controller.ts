@@ -4,6 +4,7 @@ import type {
   ForgotPasswordRequestBody,
   LoginRequestBody,
   LogoutRequestBody,
+  RegisterRequestBody,
   ResetPasswordRequestBody,
   TokenPayLoad,
   VerifyForgotPasswordRequestBody
@@ -40,6 +41,30 @@ export const loginController = async (
 }
 
 //register controller
+export const registerController = async (
+  req: Request<ParamsDictionary, any, RegisterRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const response = await authService.register(req.body)
+
+  res.sendResponse({
+    statusCode: HTTP_STATUS.CREATED,
+    message: USER_MESSAGES.REGISTER_SUCCESS,
+    data: {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      user: {
+        id: response.user.id,
+        fullName: response.user.full_name,
+        email: response.user.email,
+        phone: response.user.phone,
+        role: response.user.role,
+        status: response.user.status
+      }
+    }
+  })
+}
 
 //refresh token controller
 

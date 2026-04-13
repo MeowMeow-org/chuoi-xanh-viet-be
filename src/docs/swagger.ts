@@ -78,6 +78,50 @@
 
 /**
  * @swagger
+ * /v1/api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - confirm_password
+ *               - full_name
+ *               - phone
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: demo@chuoixanh.vn
+ *               password:
+ *                 type: string
+ *                 example: 123456
+ *               confirm_password:
+ *                 type: string
+ *                 example: 123456
+ *               full_name:
+ *                 type: string
+ *                 example: Nguyen Van A
+ *               phone:
+ *                 type: string
+ *                 example: "0901234567"
+ *     responses:
+ *       201:
+ *         description: Register successful
+ *       409:
+ *         description: Email or phone already exists
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
  * /v1/api/auth/logout:
  *   post:
  *     summary: Logout and revoke refresh token

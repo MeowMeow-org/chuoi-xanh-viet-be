@@ -1,5 +1,5 @@
 import prisma from '~/lib/prisma'
-import { LoginRequestBody } from './auth.request'
+import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
@@ -72,6 +72,66 @@ class AuthService {
         token_hash: refresh_token, //
         device_id: '',
         expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) //
+      }
+    })
+
+    return {
+      access_token,
+      refresh_token,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        status: user.status
+      }
+    }
+  }
+
+  register = async (payload: RegisterRequestBody) => {
+    const { email, password, full_name, phone } = payload
+
+    const [existingEmail, existingPhone] = await Promise.all([
+      prisma.users.findFirst({ where: { email } }),
+      prisma.users.findFirst({ where: { phone } })
+    ])
+
+    if (existingEmail != null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.EMAIL_ALREADY_EXISTS,
+        status: HTTP_STATUS.CONFLICT
+      })
+    }
+
+    if (existingPhone != null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.PHONE_ALREADY_EXISTS,
+        status: HTTP_STATUS.CONFLICT
+      })
+    }
+
+    const user = await prisma.users.create({
+      data: {
+        email,
+        password_hash: password, // keeping same strategy as current login
+        full_name,
+        phone
+      }
+    })
+
+    const user_id = user.id.toString()
+    const [access_token, refresh_token] = await Promise.all([
+      this.signAccessToken(user_id),
+      this.signRefreshToken(user_id)
+    ])
+
+    await prisma.refresh_tokens.create({
+      data: {
+        user_id,
+        token_hash: refresh_token,
+        device_id: '',
+        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
       }
     })
 

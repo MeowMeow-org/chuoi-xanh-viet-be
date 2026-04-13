@@ -20,7 +20,11 @@ const USER_MESSAGES = {
   CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD: 'Confirm password does not match password',
   REFRESH_TOKEN_IS_REQUIRED: 'Refresh token is required',
   REFRESH_TOKEN_IS_INVALID: 'Refresh token is invalid',
-  REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found'
+  REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found',
+  EMAIL_ALREADY_EXISTS: 'Email already exists',
+  PHONE_ALREADY_EXISTS: 'Phone already exists',
+  FULL_NAME_IS_REQUIRED: 'Full name is required',
+  PHONE_IS_REQUIRED: 'Phone is required'
 } as const
 
 export default USER_MESSAGES
