@@ -78,6 +78,62 @@
 
 /**
  * @swagger
+ * /v1/api/auth/me:
+ *   get:
+ *     summary: Get current authenticated user profile
+ *     tags: [Auth]
+ *     parameters:
+ *       - in: header
+ *         name: Authorization
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Get current user profile successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Get my profile successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: "1"
+ *                     fullName:
+ *                       type: string
+ *                       example: Nguyen Van A
+ *                     email:
+ *                       type: string
+ *                       format: email
+ *                       example: demo@chuoixanh.vn
+ *                     phone:
+ *                       type: string
+ *                       nullable: true
+ *                       example: "0901234567"
+ *                     role:
+ *                       type: string
+ *                       example: FARMER
+ *                     status:
+ *                       type: string
+ *                       example: ACTIVE
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       404:
+ *         description: User not found
+ */
+
+/**
+ * @swagger
  * /v1/api/auth/forgot-password:
  *   post:
  *     summary: Send reset password email

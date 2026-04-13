@@ -89,6 +89,29 @@ class AuthService {
     }
   }
 
+  getMe = async (user_id: string) => {
+    const user = await prisma.users.findUnique({
+      where: { id: user_id },
+      select: {
+        id: true,
+        full_name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true
+      }
+    })
+
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    return user
+  }
+
   findUserByEmail = async (email: string) => {
     return await prisma.users.findUnique({
       where: { email }
