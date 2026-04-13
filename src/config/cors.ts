@@ -13,8 +13,9 @@ export const corsConfig = cors({
 
     const allowedOrigins = [
       process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:4000',
-      'http://178.128.98.214:4000'
+      'http://localhost:3000',
+      'http://178.128.98.214:8001',
+      'http://178.128.98.214:8000'
     ]
 
     // Check if origin is in allowed list
