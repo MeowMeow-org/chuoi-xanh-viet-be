@@ -25,6 +25,10 @@ export const corsConfig = cors({
       if (process.env.NODE_ENV === 'development') {
         callback(null, true)
       } else {
+        console.error('[CORS] Blocked request origin', {
+          origin,
+          allowedOrigins
+        })
         callback(new Error('Not allowed by CORS'))
       }
     }

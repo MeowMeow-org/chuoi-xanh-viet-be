@@ -84,6 +84,8 @@
  *   get:
  *     summary: Get current authenticated user profile
  *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: header
  *         name: Authorization
@@ -275,6 +277,8 @@
  *   get:
  *     summary: Get all farms
  *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: header
  *         name: Authorization
