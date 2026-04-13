@@ -3,12 +3,14 @@ import { wrapAsync } from '~/utils/handler'
 import {
   forgotPasswordController,
   loginController,
+  logoutController,
   resetPasswordController,
   verifyForgotPasswordController
 } from './auth.controller'
 import {
   forgotPasswordValidator,
   loginValidator,
+  logoutValidator,
   resetPasswordValidator,
   verifyForgotPasswordValidator
 } from './auth.middleware'
@@ -26,7 +28,12 @@ authRouter.post('/login', loginValidator, wrapAsync(loginController))
 
 // refresh token
 
-// logout
+/**
+ * @desc Logout (revoke refresh token session)
+ * @route POST /auth/logout
+ * @access public (requires valid refresh token in body)
+ */
+authRouter.post('/logout', logoutValidator, wrapAsync(logoutController))
 
 // login-google
 

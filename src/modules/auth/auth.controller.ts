@@ -3,6 +3,7 @@ import type { ParamsDictionary } from 'express-serve-static-core'
 import type {
   ForgotPasswordRequestBody,
   LoginRequestBody,
+  LogoutRequestBody,
   ResetPasswordRequestBody,
   TokenPayLoad,
   VerifyForgotPasswordRequestBody
@@ -42,7 +43,22 @@ export const loginController = async (
 
 //refresh token controller
 
-//logout controller
+export const logoutController = async (
+  req: Request<ParamsDictionary, any, LogoutRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { refreshToken } = req.body
+  const { user_id } = req.decoded_refresh_token as TokenPayLoad
+
+  await authService.logout({ user_id, refresh_token: refreshToken })
+
+  res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.LOGOUT_SUCCESS,
+    data: null
+  })
+}
 
 //login-google controller
 

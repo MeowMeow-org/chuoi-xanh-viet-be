@@ -89,6 +89,29 @@ class AuthService {
     }
   }
 
+  logout = async ({ user_id, refresh_token }: { user_id: string; refresh_token: string }) => {
+    const row = await prisma.refresh_tokens.findFirst({
+      where: {
+        user_id,
+        token_hash: refresh_token
+      }
+    })
+
+    if (row == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.REFRESH_TOKEN_NOT_FOUND,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
+    if (row.revoked_at == null) {
+      await prisma.refresh_tokens.update({
+        where: { id: row.id },
+        data: { revoked_at: new Date() }
+      })
+    }
+  }
+
   findUserByEmail = async (email: string) => {
     return await prisma.users.findUnique({
       where: { email }

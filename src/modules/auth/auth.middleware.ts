@@ -7,6 +7,7 @@ import USER_MESSAGES from '~/constants/messages'
 import { EntityError, ErrorWithStatus } from '~/models/Errors'
 import { verifyToken } from '~/utils/jwt'
 import { validate } from '~/utils/validation'
+import { TokenType } from '~/constants/enums'
 
 const emailSchema: ParamSchema = {
   isEmail: true,
@@ -48,6 +49,55 @@ export const loginValidator = validate(
     {
       email: emailSchema,
       password: passwordSchema
+    },
+    ['body']
+  )
+)
+
+export const logoutValidator = validate(
+  checkSchema(
+    {
+      refreshToken: {
+        trim: true,
+        notEmpty: {
+          errorMessage: USER_MESSAGES.REFRESH_TOKEN_IS_REQUIRED
+        },
+        custom: {
+          options: async (value, { req }) => {
+            try {
+              const decoded_refresh_token = await verifyToken({
+                token: value,
+                privateKey: process.env.JWT_REFRESH_TOKEN_SECRET as string
+              })
+
+              if (decoded_refresh_token.token_type !== TokenType.RefreshToken) {
+                throw new ErrorWithStatus({
+                  status: HTTP_STATUS.UNAUTHORIZED,
+                  message: USER_MESSAGES.REFRESH_TOKEN_IS_INVALID
+                })
+              }
+
+              ;(req as Request).decoded_refresh_token = decoded_refresh_token
+            } catch (error) {
+              if (error instanceof ErrorWithStatus) {
+                throw error
+              }
+              if (error instanceof TokenExpiredError) {
+                throw new ErrorWithStatus({
+                  status: HTTP_STATUS.UNAUTHORIZED,
+                  message: USER_MESSAGES.REFRESH_TOKEN_IS_INVALID
+                })
+              }
+              throw new ErrorWithStatus({
+                status: HTTP_STATUS.UNAUTHORIZED,
+                message: capitalize((error as JsonWebTokenError).message)
+              })
+            }
+
+            return true
+          }
+        }
+      }
     },
     ['body']
   )
