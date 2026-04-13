@@ -80,6 +80,70 @@
 
 /**
  * @swagger
+ * /v1/api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - confirm_password
+ *               - full_name
+ *               - phone
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: demo@chuoixanh.vn
+ *               password:
+ *                 type: string
+ *                 example: 123456
+ *               confirm_password:
+ *                 type: string
+ *                 example: 123456
+ *               full_name:
+ *                 type: string
+ *                 example: Nguyen Van A
+ *               phone:
+ *                 type: string
+ *                 example: "0901234567"
+ *     responses:
+ *       201:
+ *         description: Register successful
+ *       409:
+ *         description: Email or phone already exists
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/auth/refresh-token:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: JWT refresh token returned from login/register
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Refresh token successful
  * /v1/api/auth/me:
  *   get:
  *     summary: Get current authenticated user profile
@@ -101,11 +165,72 @@
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
  *                 statusCode:
  *                   type: number
  *                   example: 200
  *                 message:
  *                   type: string
+ *                   example: Refresh token successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *       401:
+ *         description: Invalid, expired, revoked, or unknown refresh token
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/auth/logout:
+ *   post:
+ *     summary: Logout and revoke refresh token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 description: JWT refresh token returned from login
+ *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Logout successfully
+ *                 data:
+ *                   type: object
+ *                   nullable: true
+ *                   example: null
+ *       401:
+ *         description: Invalid, expired, or unknown refresh token
+ *       422:
+ *         description: Validation error
  *                   example: Get my profile successfully
  *                 data:
  *                   type: object
