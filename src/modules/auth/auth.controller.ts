@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express'
 import type { ParamsDictionary } from 'express-serve-static-core'
 import type {
   ForgotPasswordRequestBody,
+  RefreshTokenRequestBody,
   LoginRequestBody,
   LogoutRequestBody,
   RegisterRequestBody,
@@ -67,6 +68,24 @@ export const registerController = async (
 }
 
 //refresh token controller
+export const refreshTokenController = async (
+  req: Request<ParamsDictionary, any, RefreshTokenRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { refreshToken } = req.body
+  const { user_id } = req.decoded_refresh_token as TokenPayLoad
+  const response = await authService.refreshToken({ user_id, refresh_token: refreshToken })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.REFRESH_TOKEN_SUCCESS,
+    data: {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token
+    }
+  })
+}
 
 export const logoutController = async (
   req: Request<ParamsDictionary, any, LogoutRequestBody>,

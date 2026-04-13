@@ -6,9 +6,23 @@ import USER_MESSAGES from '~/constants/messages'
 import { TokenType } from '~/constants/enums'
 import { signToken } from '~/utils/jwt'
 import { sendResetPasswordEmail } from '~/utils/email'
-import { StringValue } from 'ms'
+import ms, { StringValue } from 'ms'
 
 class AuthService {
+  private getRefreshTokenExpiresAt() {
+    const refreshTokenExpiresIn = process.env.JWT_REFRESH_TOKEN_EXPIRES_IN as StringValue
+    const ttl = ms(refreshTokenExpiresIn)
+
+    if (typeof ttl !== 'number') {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.REFRESH_TOKEN_IS_INVALID,
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR
+      })
+    }
+
+    return new Date(Date.now() + ttl)
+  }
+
   private signAccessToken(user_id: string) {
     return signToken({
       privateKey: process.env.JWT_ACCESS_TOKEN_SECRET as string,
@@ -71,7 +85,7 @@ class AuthService {
         user_id,
         token_hash: refresh_token, //
         device_id: '',
-        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30) //
+        expires_at: this.getRefreshTokenExpiresAt()
       }
     })
 
@@ -131,7 +145,7 @@ class AuthService {
         user_id,
         token_hash: refresh_token,
         device_id: '',
-        expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)
+        expires_at: this.getRefreshTokenExpiresAt()
       }
     })
 
@@ -169,6 +183,54 @@ class AuthService {
         where: { id: row.id },
         data: { revoked_at: new Date() }
       })
+    }
+  }
+
+  refreshToken = async ({ user_id, refresh_token }: { user_id: string; refresh_token: string }) => {
+    const tokenRow = await prisma.refresh_tokens.findFirst({
+      where: {
+        user_id,
+        token_hash: refresh_token
+      }
+    })
+
+    if (tokenRow == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.REFRESH_TOKEN_NOT_FOUND,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
+    if (tokenRow.revoked_at != null || tokenRow.expires_at.getTime() <= Date.now()) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.REFRESH_TOKEN_IS_INVALID,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
+    const [access_token, new_refresh_token] = await Promise.all([
+      this.signAccessToken(user_id),
+      this.signRefreshToken(user_id)
+    ])
+
+    await prisma.$transaction([
+      prisma.refresh_tokens.update({
+        where: { id: tokenRow.id },
+        data: { revoked_at: new Date() }
+      }),
+      prisma.refresh_tokens.create({
+        data: {
+          user_id,
+          token_hash: new_refresh_token,
+          device_id: tokenRow.device_id || '',
+          expires_at: this.getRefreshTokenExpiresAt()
+        }
+      })
+    ])
+
+    return {
+      access_token,
+      refresh_token: new_refresh_token
     }
   }
 

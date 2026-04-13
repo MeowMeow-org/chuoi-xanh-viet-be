@@ -128,6 +128,8 @@ export const logoutValidator = validate(
   )
 )
 
+export const refreshTokenValidator = logoutValidator
+
 export const forgotPasswordValidator = validate(
   checkSchema(
     {

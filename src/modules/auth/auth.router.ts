@@ -4,6 +4,7 @@ import {
   forgotPasswordController,
   loginController,
   logoutController,
+  refreshTokenController,
   registerController,
   resetPasswordController,
   verifyForgotPasswordController
@@ -12,6 +13,7 @@ import {
   forgotPasswordValidator,
   loginValidator,
   logoutValidator,
+  refreshTokenValidator,
   registerValidator,
   resetPasswordValidator,
   verifyForgotPasswordValidator
@@ -35,6 +37,12 @@ authRouter.post('/login', loginValidator, wrapAsync(loginController))
 authRouter.post('/register', registerValidator, wrapAsync(registerController))
 
 // refresh token
+/**
+ * @desc Refresh access token using refresh token
+ * @route POST /auth/refresh-token
+ * @access public (requires valid refresh token in body)
+ */
+authRouter.post('/refresh-token', refreshTokenValidator, wrapAsync(refreshTokenController))
 
 /**
  * @desc Logout (revoke refresh token session)
