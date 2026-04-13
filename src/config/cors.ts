@@ -2,24 +2,8 @@ import cors from 'cors'
 
 /**
  * CORS configuration
- * Allows frontend, Swagger UI, and same-origin/no-origin requests
+ * Allows frontend, Swagger UI, and same-origin requests
  */
-const normalizeOrigin = (origin: string) => origin.trim().replace(/\/$/, '').toLowerCase()
-
-const configuredOrigins = [
-  process.env.CORS_ORIGIN ?? '',
-  process.env.NEXT_PUBLIC_APP_URL ?? '',
-  process.env.APP_URL ?? ''
-]
-  .join(',')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean)
-
-const defaultLocalOrigins = ['http://localhost:3000', 'http://localhost:8000']
-
-const allowedOrigins = new Set([...defaultLocalOrigins, ...configuredOrigins].map(normalizeOrigin))
-
 export const corsConfig = cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, Postman, same-origin)
@@ -27,11 +11,22 @@ export const corsConfig = cors({
       return callback(null, true)
     }
 
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:4000',
+      'http://178.128.98.214:4000'
+    ]
+
     // Check if origin is in allowed list
-    if (allowedOrigins.has(normalizeOrigin(origin))) {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true)
     } else {
-      callback(new Error('Not allowed by CORS'))
+      // In development, allow all origins for easier testing
+      if (process.env.NODE_ENV === 'development') {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
     }
   },
   credentials: true,
