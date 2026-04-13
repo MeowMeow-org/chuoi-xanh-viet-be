@@ -232,6 +232,8 @@ class AuthService {
       access_token,
       refresh_token: new_refresh_token
     }
+  }
+
   getMe = async (user_id: string) => {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
