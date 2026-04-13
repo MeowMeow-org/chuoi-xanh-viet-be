@@ -8,7 +8,16 @@ const USER_MESSAGES = {
   RESET_PASSWORD_SUCCESS: 'Reset password successfully',
   INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
   EMAIL_IS_REQUIRED: 'Email is required',
-  PASSWORD_IS_REQUIRED: 'Password is required'
+  PASSWORD_IS_REQUIRED: 'Password is required',
+  EMAIL_IS_NOT_EXISTED: 'Email is not existed',
+  CHECK_YOUR_EMAIL_TO_RESET_PASSWORD: 'Check your email to reset password',
+  FORGOT_PASSWORD_TOKEN_IS_REQUIRED: 'Forgot password token is required',
+  VERIFY_FORGOT_PASSWORD_IS_INVALID: 'Verify forgot password is invalid',
+  VERIFY_FORGOT_PASSWORD_IS_EXPIRED: 'Verify forgot password is expired',
+  VERIFY_FORGOT_PASSWORD_TOKEN_SUCCESS: 'Verify forgot password token successfully',
+  CONFIRM_PASSWORD_IS_REQUIRED: 'Confirm password is required',
+  CONFIRM_PASSWORD_MUST_BE_A_STRING: 'Confirm password must be a string',
+  CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD: 'Confirm password does not match password'
 } as const
 
 export default USER_MESSAGES

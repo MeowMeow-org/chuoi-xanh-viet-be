@@ -5,6 +5,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { TokenType } from '~/constants/enums'
 import { signToken } from '~/utils/jwt'
+import { sendResetPasswordEmail } from '~/utils/email'
 import { StringValue } from 'ms'
 
 class AuthService {
@@ -76,8 +77,69 @@ class AuthService {
 
     return {
       access_token,
-      refresh_token
+      refresh_token,
+      user: {
+        id: user.id,
+        full_name: user.full_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        status: user.status
+      }
     }
+  }
+
+  findUserByEmail = async (email: string) => {
+    return await prisma.users.findUnique({
+      where: { email }
+    })
+  }
+
+  forgotPassword = async (email: string) => {
+    const user = await this.findUserByEmail(email)
+
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.EMAIL_IS_NOT_EXISTED,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    const user_id = user.id.toString()
+    const reset_password_token = await this.signResetPasswordToken(user_id)
+
+    await prisma.users.update({
+      where: { id: user_id },
+      data: { reset_password_token }
+    })
+
+    await sendResetPasswordEmail({ to: email, resetToken: reset_password_token })
+  }
+
+  verifyForgotPassword = async ({
+    user_id,
+    forgot_password_token
+  }: {
+    user_id: string
+    forgot_password_token: string
+  }) => {
+    const user = await prisma.users.findUnique({
+      where: { id: user_id, reset_password_token: forgot_password_token }
+    })
+
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.VERIFY_FORGOT_PASSWORD_IS_INVALID,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+  }
+
+  resetPassword = async ({ user_id, password }: { user_id: string; password: string }) => {
+    await prisma.users.update({
+      where: { id: user_id },
+      data: { password_hash: password, reset_password_token: null } //chưa hash password
+    })
   }
 }
 
