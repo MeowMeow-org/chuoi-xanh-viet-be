@@ -53,6 +53,44 @@ export const loginValidator = validate(
   )
 )
 
+export const accessTokenValidator = validate(
+  checkSchema(
+    {
+      Authorization: {
+        notEmpty: {
+          errorMessage: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+        },
+        custom: {
+          options: async (value, { req }) => {
+            const accessToken = value?.split(' ')[1]
+            if (!accessToken) {
+              throw new ErrorWithStatus({
+                status: HTTP_STATUS.UNAUTHORIZED,
+                message: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+              })
+            }
+
+            try {
+              const decoded_authorization = await verifyToken({
+                token: accessToken,
+                privateKey: process.env.JWT_ACCESS_TOKEN_SECRET as string
+              })
+              ;(req as Request).decoded_authorization = decoded_authorization
+            } catch (error) {
+              throw new ErrorWithStatus({
+                status: HTTP_STATUS.UNAUTHORIZED,
+                message: capitalize((error as JsonWebTokenError).message)
+              })
+            }
+            return true
+          }
+        }
+      }
+    },
+    ['headers']
+  )
+)
+
 export const forgotPasswordValidator = validate(
   checkSchema(
     {

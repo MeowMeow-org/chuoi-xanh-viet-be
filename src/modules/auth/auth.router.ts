@@ -2,11 +2,13 @@ import { Router } from 'express'
 import { wrapAsync } from '~/utils/handler'
 import {
   forgotPasswordController,
+  getMeController,
   loginController,
   resetPasswordController,
   verifyForgotPasswordController
 } from './auth.controller'
 import {
+  accessTokenValidator,
   forgotPasswordValidator,
   loginValidator,
   resetPasswordValidator,
@@ -21,6 +23,13 @@ const authRouter = Router()
  * @access public
  */
 authRouter.post('/login', loginValidator, wrapAsync(loginController))
+
+/**
+ * @desc Get current user profile
+ * @route GET /auth/me
+ * @access private
+ */
+authRouter.get('/me', accessTokenValidator, wrapAsync(getMeController))
 
 // register
 

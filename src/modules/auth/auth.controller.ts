@@ -38,6 +38,24 @@ export const loginController = async (
   })
 }
 
+export const getMeController = async (req: Request, res: Response, next: NextFunction) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const user = await authService.getMe(user_id)
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_ME_SUCCESS,
+    data: {
+      id: user.id,
+      fullName: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status
+    }
+  })
+}
+
 //register controller
 
 //refresh token controller
