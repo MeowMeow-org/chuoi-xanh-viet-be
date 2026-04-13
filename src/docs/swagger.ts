@@ -3,6 +3,8 @@
  * tags:
  *   - name: Auth
  *     description: Authentication endpoints
+ *   - name: Farm
+ *     description: Farm endpoints
  */
 
 /**
@@ -265,5 +267,88 @@
  *         description: Token error messages - "Link đặt lại mật khẩu đã hết hạn" or "Link đặt lại mật khẩu không hợp lệ"
  *       422:
  *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/farm:
+ *   get:
+ *     summary: Get all farms
+ *     tags: [Farm]
+ *     parameters:
+ *       - in: header
+ *         name: Authorization
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *     responses:
+ *       200:
+ *         description: Get farms successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Get farms successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         example: 4fdc09f4-2f69-4f1f-b631-8dc7fd50b52b
+ *                       ownerUserId:
+ *                         type: string
+ *                         example: 9d0f27f6-8e3f-4fe0-8a0c-d9d141b4999c
+ *                       name:
+ *                         type: string
+ *                         example: Farm Chuoi Xanh
+ *                       areaHa:
+ *                         type: number
+ *                         nullable: true
+ *                         example: 12.5
+ *                       cropMain:
+ *                         type: string
+ *                         nullable: true
+ *                         example: Banana
+ *                       province:
+ *                         type: string
+ *                         nullable: true
+ *                         example: Lam Dong
+ *                       district:
+ *                         type: string
+ *                         nullable: true
+ *                         example: Duc Trong
+ *                       ward:
+ *                         type: string
+ *                         nullable: true
+ *                         example: Hiep An
+ *                       address:
+ *                         type: string
+ *                         nullable: true
+ *                         example: 123 Village Road
+ *                       latitude:
+ *                         type: number
+ *                         nullable: true
+ *                         example: 11.94042
+ *                       longitude:
+ *                         type: number
+ *                         nullable: true
+ *                         example: 108.45831
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         description: Access token is invalid, expired, or missing
  */
 export {}

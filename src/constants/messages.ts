@@ -8,6 +8,7 @@ const USER_MESSAGES = {
   RESET_PASSWORD_SUCCESS: 'Reset password successfully',
   INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
   GET_ME_SUCCESS: 'Get my profile successfully',
+  GET_FARMS_SUCCESS: 'Get farms successfully',
   EMAIL_IS_REQUIRED: 'Email is required',
   ACCESS_TOKEN_IS_REQUIRED: 'Access token is required',
   PASSWORD_IS_REQUIRED: 'Password is required',
