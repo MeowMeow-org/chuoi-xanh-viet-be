@@ -40,10 +40,34 @@ model farms {
   in_cooperative Boolean         @default(false)
   created_at     DateTime        @default(now()) @db.Timestamp(6)
   updated_at     DateTime        @default(now()) @db.Timestamp(6)
+  cooperative_members cooperative_members[]
   diary_entries diary_entries[]
   users         users           @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
   seasons       seasons[]
   shops         shops?
+}
+
+model cooperative_members {
+  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cooperative_user_id String                    @db.Uuid
+  farmer_user_id      String                    @db.Uuid
+  farm_id             String                    @db.Uuid
+  status              cooperative_member_status @default(pending)
+  requested_by        String?                   @db.Uuid
+  verified_by         String?                   @db.Uuid
+  verified_at         DateTime?                 @db.Timestamp(6)
+  note                String?
+  created_at          DateTime                  @default(now()) @db.Timestamp(6)
+  updated_at          DateTime                  @default(now()) @db.Timestamp(6)
+  farms               farms                     @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_farm")
+  cooperative_user    users                     @relation("cooperative_user_members", fields: [cooperative_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_cooperative_user")
+  farmer_user         users                     @relation("farmer_user_members", fields: [farmer_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_farmer_user")
+  requester           users?                    @relation("requested_by_members", fields: [requested_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_requested_by")
+  verifier            users?                    @relation("verified_by_members", fields: [verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_verified_by")
+
+  @@index([farm_id, status], map: "idx_coop_members_farm_status")
+  @@index([cooperative_user_id, status], map: "idx_coop_members_cooperative_status")
+  @@index([farmer_user_id, status], map: "idx_coop_members_farmer_status")
 }
 
 model order_items {
@@ -237,6 +261,10 @@ model users {
   created_at           DateTime         @default(now()) @db.Timestamp(6)
   updated_at           DateTime         @default(now()) @db.Timestamp(6)
   diary_entries        diary_entries[]
+  cooperative_members_as_cooperative cooperative_members[] @relation("cooperative_user_members")
+  cooperative_members_as_farmer      cooperative_members[] @relation("farmer_user_members")
+  cooperative_members_as_requester   cooperative_members[] @relation("requested_by_members")
+  cooperative_members_as_verifier    cooperative_members[] @relation("verified_by_members")
   farms                farms[]
   orders               orders[]
   refresh_tokens       refresh_tokens[]
@@ -288,6 +316,13 @@ enum payment_status {
   refunded
 }
 
+enum cooperative_member_status {
+  pending
+  approved
+  rejected
+  removed
+}
+
 enum sale_unit_status {
   active
   sold
@@ -295,8 +330,10 @@ enum sale_unit_status {
 }
 
 enum season_status {
-  draft
+  draft 
+  ready_to_anchor
   anchored
+  amended
   failed
 }
 
