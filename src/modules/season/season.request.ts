@@ -1,0 +1,34 @@
+export interface SeasonParams {
+  season_id: string
+}
+
+export interface CreateSeasonRequestBody {
+  farmId: string
+  code: string
+  cropName: string
+  startDate: string
+  harvestStartDate?: string
+  harvestEndDate?: string
+  estimatedYield?: number
+  actualYield?: number
+  yieldUnit?: string
+}
+
+export interface UpdateSeasonRequestBody {
+  code?: string
+  cropName?: string
+  startDate?: string
+  harvestStartDate?: string | null
+  harvestEndDate?: string | null
+  estimatedYield?: number | null
+  actualYield?: number | null
+  yieldUnit?: string | null
+}
+
+export interface GetSeasonsQuery {
+  page?: string
+  limit?: string
+  searchTerm?: string
+  status?: 'draft' | 'ready_to_anchor' | 'anchored' | 'amended' | 'failed'
+  farmId?: string
+}

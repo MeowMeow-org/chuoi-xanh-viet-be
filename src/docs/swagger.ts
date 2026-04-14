@@ -5,6 +5,8 @@
  *     description: Authentication endpoints
  *   - name: Farm
  *     description: Farm endpoints
+ *   - name: Season
+ *     description: Season endpoints
  */
 
 /**
@@ -400,5 +402,142 @@
  *         description: Access token is invalid, expired, or missing
  *       422:
  *         description: Validation error (invalid page or limit)
+ */
+
+/**
+ * @swagger
+ * /v1/api/season:
+ *   post:
+ *     summary: Create season
+ *     tags: [Season]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [farmId, code, cropName, startDate]
+ *             properties:
+ *               farmId: { type: string, format: uuid }
+ *               code: { type: string, example: SSN-2026-001 }
+ *               cropName: { type: string, example: Chuoi Nam My }
+ *               startDate: { type: string, format: date, example: '2026-04-15' }
+ *               harvestStartDate: { type: string, format: date, nullable: true }
+ *               harvestEndDate: { type: string, format: date, nullable: true }
+ *               estimatedYield: { type: number, nullable: true, example: 1500 }
+ *               actualYield: { type: number, nullable: true, example: 1400 }
+ *               yieldUnit: { type: string, nullable: true, example: kg }
+ *     responses:
+ *       201:
+ *         description: Create season successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Farm not found or forbidden
+ *       422:
+ *         description: Validation error
+ *   get:
+ *     summary: Get seasons (with pagination)
+ *     tags: [Season]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+ *       - in: query
+ *         name: searchTerm
+ *         schema: { type: string }
+ *       - in: query
+ *         name: status
+ *         schema: { type: string, enum: [draft, ready_to_anchor, anchored, amended, failed] }
+ *       - in: query
+ *         name: farmId
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Get seasons successfully
+ *       401:
+ *         description: Unauthorized
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/season/{season_id}:
+ *   get:
+ *     summary: Get season detail
+ *     tags: [Season]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Get season detail successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *   patch:
+ *     summary: Update season
+ *     tags: [Season]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               code: { type: string }
+ *               cropName: { type: string }
+ *               startDate: { type: string, format: date }
+ *               harvestStartDate: { type: string, format: date, nullable: true }
+ *               harvestEndDate: { type: string, format: date, nullable: true }
+ *               estimatedYield: { type: number, nullable: true }
+ *               actualYield: { type: number, nullable: true }
+ *               yieldUnit: { type: string, nullable: true }
+ *     responses:
+ *       200:
+ *         description: Update season successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *   delete:
+ *     summary: Delete season
+ *     tags: [Season]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Delete season successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *       409:
+ *         description: Season has related data, cannot be deleted
  */
 export {}

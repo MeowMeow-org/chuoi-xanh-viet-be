@@ -21,7 +21,15 @@ const USER_MESSAGES = {
   VERIFY_FORGOT_PASSWORD_TOKEN_SUCCESS: 'Verify forgot password token successfully',
   CONFIRM_PASSWORD_IS_REQUIRED: 'Confirm password is required',
   CONFIRM_PASSWORD_MUST_BE_A_STRING: 'Confirm password must be a string',
-  CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD: 'Confirm password does not match password'
+  CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD: 'Confirm password does not match password',
+  CREATE_SEASON_SUCCESS: 'Create season successfully',
+  GET_SEASONS_SUCCESS: 'Get seasons successfully',
+  GET_SEASON_DETAIL_SUCCESS: 'Get season detail successfully',
+  UPDATE_SEASON_SUCCESS: 'Update season successfully',
+  DELETE_SEASON_SUCCESS: 'Delete season successfully',
+  SEASON_NOT_FOUND: 'Season not found',
+  FARM_NOT_FOUND_OR_FORBIDDEN: 'Farm not found or you do not have permission',
+  SEASON_HAS_RELATED_DATA: 'Season has related data, cannot be deleted'
 } as const
 
 export default USER_MESSAGES
