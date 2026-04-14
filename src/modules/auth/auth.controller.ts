@@ -2,7 +2,10 @@ import { NextFunction, Request, Response } from 'express'
 import type { ParamsDictionary } from 'express-serve-static-core'
 import type {
   ForgotPasswordRequestBody,
+  RefreshTokenRequestBody,
   LoginRequestBody,
+  LogoutRequestBody,
+  RegisterRequestBody,
   ResetPasswordRequestBody,
   TokenPayLoad,
   VerifyForgotPasswordRequestBody
@@ -57,10 +60,67 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
 }
 
 //register controller
+export const registerController = async (
+  req: Request<ParamsDictionary, any, RegisterRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const response = await authService.register(req.body)
+
+  res.sendResponse({
+    statusCode: HTTP_STATUS.CREATED,
+    message: USER_MESSAGES.REGISTER_SUCCESS,
+    data: {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      user: {
+        id: response.user.id,
+        fullName: response.user.full_name,
+        email: response.user.email,
+        phone: response.user.phone,
+        role: response.user.role,
+        status: response.user.status
+      }
+    }
+  })
+}
 
 //refresh token controller
+export const refreshTokenController = async (
+  req: Request<ParamsDictionary, any, RefreshTokenRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { refreshToken } = req.body
+  const { user_id } = req.decoded_refresh_token as TokenPayLoad
+  const response = await authService.refreshToken({ user_id, refresh_token: refreshToken })
 
-//logout controller
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.REFRESH_TOKEN_SUCCESS,
+    data: {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token
+    }
+  })
+}
+
+export const logoutController = async (
+  req: Request<ParamsDictionary, any, LogoutRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { refreshToken } = req.body
+  const { user_id } = req.decoded_refresh_token as TokenPayLoad
+
+  await authService.logout({ user_id, refresh_token: refreshToken })
+
+  res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.LOGOUT_SUCCESS,
+    data: null
+  })
+}
 
 //login-google controller
 

@@ -4,6 +4,9 @@ import {
   forgotPasswordController,
   getMeController,
   loginController,
+  logoutController,
+  refreshTokenController,
+  registerController,
   resetPasswordController,
   verifyForgotPasswordController
 } from './auth.controller'
@@ -11,6 +14,9 @@ import {
   accessTokenValidator,
   forgotPasswordValidator,
   loginValidator,
+  logoutValidator,
+  refreshTokenValidator,
+  registerValidator,
   resetPasswordValidator,
   verifyForgotPasswordValidator
 } from './auth.middleware'
@@ -32,10 +38,27 @@ authRouter.post('/login', loginValidator, wrapAsync(loginController))
 authRouter.get('/me', accessTokenValidator, wrapAsync(getMeController))
 
 // register
+/**
+ * @desc Register new user account
+ * @route POST /auth/register
+ * @access public
+ */
+authRouter.post('/register', registerValidator, wrapAsync(registerController))
 
 // refresh token
+/**
+ * @desc Refresh access token using refresh token
+ * @route POST /auth/refresh-token
+ * @access public (requires valid refresh token in body)
+ */
+authRouter.post('/refresh-token', refreshTokenValidator, wrapAsync(refreshTokenController))
 
-// logout
+/**
+ * @desc Logout (revoke refresh token session)
+ * @route POST /auth/logout
+ * @access public (requires valid refresh token in body)
+ */
+authRouter.post('/logout', logoutValidator, wrapAsync(logoutController))
 
 // login-google
 
