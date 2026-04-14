@@ -1,3 +1,5 @@
+import type { season_status } from '@prisma/client'
+
 export interface SeasonParams {
   season_id: string
 }
@@ -25,10 +27,14 @@ export interface UpdateSeasonRequestBody {
   yieldUnit?: string | null
 }
 
+export interface ChangeSeasonStatusRequestBody {
+  status: season_status
+}
+
 export interface GetSeasonsQuery {
   page?: string
   limit?: string
   searchTerm?: string
-  status?: 'draft' | 'ready_to_anchor' | 'anchored' | 'amended' | 'failed'
+  status?: season_status
   farmId?: string
 }

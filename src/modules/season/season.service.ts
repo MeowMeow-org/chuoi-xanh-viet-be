@@ -24,6 +24,14 @@ const seasonSelect = {
 } as const
 
 class SeasonService {
+  private readonly statusTransitions: Record<season_status, season_status[]> = {
+    draft: ['ready_to_anchor', 'failed'],
+    ready_to_anchor: ['anchored', 'failed'],
+    anchored: ['amended', 'failed'],
+    amended: ['ready_to_anchor', 'failed'],
+    failed: ['draft']
+  }
+
   private async ensureFarmOwner(farmId: string, userId: string) {
     const farm = await prisma.farms.findFirst({
       where: {
@@ -74,7 +82,7 @@ class SeasonService {
         owner_user_id: userId
       },
       ...(query.farmId ? { farm_id: query.farmId } : {}),
-      ...(query.status ? { status: query.status as season_status } : {}),
+      ...(query.status ? { status: query.status } : {}),
       ...(term && term.length > 0
         ? {
             OR: [
@@ -134,6 +142,30 @@ class SeasonService {
     return season
   }
 
+  private async getOwnedSeasonStatus(userId: string, seasonId: string) {
+    const season = await prisma.seasons.findFirst({
+      where: {
+        id: seasonId,
+        farms: {
+          owner_user_id: userId
+        }
+      },
+      select: {
+        id: true,
+        status: true
+      }
+    })
+
+    if (season == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.SEASON_NOT_FOUND
+      })
+    }
+
+    return season
+  }
+
   updateSeason = async ({
     userId,
     seasonId,
@@ -143,7 +175,13 @@ class SeasonService {
     seasonId: string
     payload: UpdateSeasonRequestBody
   }) => {
-    await this.getSeasonDetail({ userId, seasonId })
+    const season = await this.getOwnedSeasonStatus(userId, seasonId)
+    if (season.status === 'anchored') {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.SEASON_IS_ANCHORED_CANNOT_UPDATE
+      })
+    }
 
     const data: Prisma.seasonsUncheckedUpdateInput = {}
     if (payload.code !== undefined) data.code = payload.code
@@ -182,6 +220,7 @@ class SeasonService {
       },
       select: {
         id: true,
+        status: true,
         _count: {
           select: {
             diary_entries: true,
@@ -199,6 +238,13 @@ class SeasonService {
       })
     }
 
+    if (season.status === 'anchored') {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.SEASON_IS_ANCHORED_CANNOT_DELETE
+      })
+    }
+
     const relatedCount = season._count.diary_entries + season._count.products + season._count.sale_units
 
     if (relatedCount > 0) {
@@ -210,6 +256,35 @@ class SeasonService {
 
     await prisma.seasons.delete({
       where: { id: seasonId }
+    })
+  }
+
+  changeSeasonStatus = async ({
+    userId,
+    seasonId,
+    status
+  }: {
+    userId: string
+    seasonId: string
+    status: season_status
+  }) => {
+    const current = await this.getOwnedSeasonStatus(userId, seasonId)
+    const allowed = this.statusTransitions[current.status]
+
+    if (!allowed.includes(status)) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.INVALID_SEASON_STATUS_TRANSITION
+      })
+    }
+
+    return prisma.seasons.update({
+      where: { id: seasonId },
+      data: {
+        status,
+        sealed_at: status === 'anchored' ? new Date() : null
+      },
+      select: seasonSelect
     })
   }
 }

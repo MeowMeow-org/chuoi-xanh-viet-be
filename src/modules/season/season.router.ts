@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { accessTokenValidator, requireFarmer } from '../auth/auth.middleware'
 import { wrapAsync } from '~/utils/handler'
 import {
+  changeSeasonStatusController,
   createSeasonController,
   deleteSeasonController,
   getSeasonDetailController,
@@ -9,6 +10,7 @@ import {
   updateSeasonController
 } from './season.controller'
 import {
+  changeSeasonStatusValidator,
   createSeasonValidator,
   getSeasonsQueryValidator,
   seasonIdValidator,
@@ -68,6 +70,20 @@ seasonRouter.patch(
   seasonIdValidator,
   updateSeasonValidator,
   wrapAsync(updateSeasonController)
+)
+
+/**
+ * @desc Change season status
+ * @route PATCH /season/:season_id/status
+ * @access private (farmer)
+ */
+seasonRouter.patch(
+  '/:season_id/status',
+  accessTokenValidator,
+  requireFarmer,
+  seasonIdValidator,
+  changeSeasonStatusValidator,
+  wrapAsync(changeSeasonStatusController)
 )
 
 /**

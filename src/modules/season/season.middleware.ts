@@ -169,3 +169,16 @@ export const getSeasonsQueryValidator = validate(
     ['query']
   )
 )
+
+export const changeSeasonStatusValidator = validate(
+  checkSchema(
+    {
+      status: {
+        notEmpty: true,
+        isIn: { options: [seasonStatusValues] },
+        errorMessage: `status must be one of: ${seasonStatusValues.join(', ')}`
+      }
+    },
+    ['body']
+  )
+)

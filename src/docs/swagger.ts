@@ -645,6 +645,8 @@
  *         description: Unauthorized
  *       404:
  *         description: Season not found
+ *       409:
+ *         description: Season is anchored, cannot update base information
  *   delete:
  *     summary: Delete season
  *     tags: [Season]
@@ -664,5 +666,43 @@
  *         description: Season not found
  *       409:
  *         description: Season has related data, cannot be deleted
+ */
+
+/**
+ * @swagger
+ * /v1/api/season/{season_id}/status:
+ *   patch:
+ *     summary: Change season status
+ *     tags: [Season]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [status]
+ *             properties:
+ *               status:
+ *                 type: string
+ *                 enum: [draft, ready_to_anchor, anchored, amended, failed]
+ *                 example: ready_to_anchor
+ *     responses:
+ *       200:
+ *         description: Change season status successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *       409:
+ *         description: Invalid season status transition
+ *       422:
+ *         description: Validation error
  */
 export {}

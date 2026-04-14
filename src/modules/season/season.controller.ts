@@ -3,7 +3,12 @@ import type { ParamsDictionary } from 'express-serve-static-core'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
-import type { CreateSeasonRequestBody, GetSeasonsQuery, UpdateSeasonRequestBody } from './season.request'
+import type {
+  ChangeSeasonStatusRequestBody,
+  CreateSeasonRequestBody,
+  GetSeasonsQuery,
+  UpdateSeasonRequestBody
+} from './season.request'
 import seasonService from './season.service'
 
 const mapSeasonRow = (season: {
@@ -117,5 +122,24 @@ export const deleteSeasonController = async (req: Request<ParamsDictionary>, res
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.DELETE_SEASON_SUCCESS,
     data: null
+  })
+}
+
+export const changeSeasonStatusController = async (
+  req: Request<ParamsDictionary, unknown, ChangeSeasonStatusRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const season = await seasonService.changeSeasonStatus({
+    userId: user_id,
+    seasonId: req.params.season_id as string,
+    status: req.body.status
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.CHANGE_SEASON_STATUS_SUCCESS,
+    data: mapSeasonRow(season)
   })
 }
