@@ -1,9 +1,12 @@
 import { JwtPayload } from 'jsonwebtoken'
+import type { account_status, user_role } from '@prisma/client'
 import { TokenType } from '~/constants/enums'
 
 export interface TokenPayLoad extends JwtPayload {
   user_id: string
   token_type: TokenType
+  role?: user_role
+  status?: account_status
 }
 
 export interface LoginRequestBody {

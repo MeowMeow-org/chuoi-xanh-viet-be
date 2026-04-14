@@ -3,11 +3,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
-import type {
-  CreateSeasonRequestBody,
-  GetSeasonsQuery,
-  UpdateSeasonRequestBody
-} from './season.request'
+import type { CreateSeasonRequestBody, GetSeasonsQuery, UpdateSeasonRequestBody } from './season.request'
 
 const seasonSelect = {
   id: true,
@@ -203,8 +199,7 @@ class SeasonService {
       })
     }
 
-    const relatedCount =
-      season._count.diary_entries + season._count.products + season._count.sale_units
+    const relatedCount = season._count.diary_entries + season._count.products + season._count.sale_units
 
     if (relatedCount > 0) {
       throw new ErrorWithStatus({

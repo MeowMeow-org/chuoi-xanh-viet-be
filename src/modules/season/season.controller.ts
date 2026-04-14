@@ -3,11 +3,7 @@ import type { ParamsDictionary } from 'express-serve-static-core'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
-import type {
-  CreateSeasonRequestBody,
-  GetSeasonsQuery,
-  UpdateSeasonRequestBody
-} from './season.request'
+import type { CreateSeasonRequestBody, GetSeasonsQuery, UpdateSeasonRequestBody } from './season.request'
 import seasonService from './season.service'
 
 const mapSeasonRow = (season: {
@@ -77,11 +73,7 @@ export const getSeasonsController = async (
   })
 }
 
-export const getSeasonDetailController = async (
-  req: Request<ParamsDictionary>,
-  res: Response,
-  next: NextFunction
-) => {
+export const getSeasonDetailController = async (req: Request<ParamsDictionary>, res: Response, next: NextFunction) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   const season = await seasonService.getSeasonDetail({
     userId: user_id,
@@ -114,11 +106,7 @@ export const updateSeasonController = async (
   })
 }
 
-export const deleteSeasonController = async (
-  req: Request<ParamsDictionary>,
-  res: Response,
-  next: NextFunction
-) => {
+export const deleteSeasonController = async (req: Request<ParamsDictionary>, res: Response, next: NextFunction) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   await seasonService.deleteSeason({
     userId: user_id,

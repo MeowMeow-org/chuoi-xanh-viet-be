@@ -1,3 +1,4 @@
+import type { account_status, user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import { LoginRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
@@ -9,11 +10,21 @@ import { sendResetPasswordEmail } from '~/utils/email'
 import { StringValue } from 'ms'
 
 class AuthService {
-  private signAccessToken(user_id: string) {
+  private signAccessToken({
+    user_id,
+    role,
+    status
+  }: {
+    user_id: string
+    role: user_role
+    status: account_status
+  }) {
     return signToken({
       privateKey: process.env.JWT_ACCESS_TOKEN_SECRET as string,
       payload: {
         user_id,
+        role,
+        status,
         token_type: TokenType.AccessToken
       },
       options: { expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN as StringValue }
@@ -62,7 +73,11 @@ class AuthService {
 
     //sign token
     const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
+      this.signAccessToken({
+        user_id,
+        role: user.role,
+        status: user.status
+      }),
       this.signRefreshToken(user_id)
     ])
 
