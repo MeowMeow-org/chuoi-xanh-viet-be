@@ -34,11 +34,12 @@ model farms {
   province      String?         @db.VarChar(100)
   district      String?         @db.VarChar(100)
   ward          String?         @db.VarChar(100)
-  address       String?
-  latitude      Decimal?        @db.Decimal(10, 7)
-  longitude     Decimal?        @db.Decimal(10, 7)
-  created_at    DateTime        @default(now()) @db.Timestamp(6)
-  updated_at    DateTime        @default(now()) @db.Timestamp(6)
+  address        String?
+  latitude       Decimal?        @db.Decimal(10, 7)
+  longitude      Decimal?        @db.Decimal(10, 7)
+  in_cooperative Boolean         @default(false)
+  created_at     DateTime        @default(now()) @db.Timestamp(6)
+  updated_at     DateTime        @default(now()) @db.Timestamp(6)
   diary_entries diary_entries[]
   users         users           @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
   seasons       seasons[]
@@ -300,7 +301,8 @@ enum season_status {
 }
 
 enum user_role {
-  farmer
   consumer
+  farmer
+  cooperative
   admin
 }

@@ -70,7 +70,8 @@
  *                           example: "0901234567"
  *                         role:
  *                           type: string
- *                           example: FARMER
+ *                           enum: [consumer, farmer, cooperative, admin]
+ *                           example: farmer
  *                         status:
  *                           type: string
  *                           example: ACTIVE
@@ -150,13 +151,6 @@
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: header
- *         name: Authorization
- *         required: true
- *         schema:
- *           type: string
- *           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
  *     responses:
  *       200:
  *         description: Get current user profile successful
@@ -251,7 +245,8 @@
  *                       example: "0901234567"
  *                     role:
  *                       type: string
- *                       example: FARMER
+ *                       enum: [consumer, farmer, cooperative, admin]
+ *                       example: farmer
  *                     status:
  *                       type: string
  *                       example: ACTIVE
@@ -405,12 +400,29 @@
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: header
- *         name: Authorization
- *         required: true
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number (1-based)
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Page size
+ *       - in: query
+ *         name: searchTerm
+ *         required: false
  *         schema:
  *           type: string
- *           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *         description: Search in name, crop, province, district, address (case-insensitive)
  *     responses:
  *       200:
  *         description: Get farms successfully
@@ -426,58 +438,92 @@
  *                   type: string
  *                   example: Get farms successfully
  *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                         example: 4fdc09f4-2f69-4f1f-b631-8dc7fd50b52b
- *                       ownerUserId:
- *                         type: string
- *                         example: 9d0f27f6-8e3f-4fe0-8a0c-d9d141b4999c
- *                       name:
- *                         type: string
- *                         example: Farm Chuoi Xanh
- *                       areaHa:
- *                         type: number
- *                         nullable: true
- *                         example: 12.5
- *                       cropMain:
- *                         type: string
- *                         nullable: true
- *                         example: Banana
- *                       province:
- *                         type: string
- *                         nullable: true
- *                         example: Lam Dong
- *                       district:
- *                         type: string
- *                         nullable: true
- *                         example: Duc Trong
- *                       ward:
- *                         type: string
- *                         nullable: true
- *                         example: Hiep An
- *                       address:
- *                         type: string
- *                         nullable: true
- *                         example: 123 Village Road
- *                       latitude:
- *                         type: number
- *                         nullable: true
- *                         example: 11.94042
- *                       longitude:
- *                         type: number
- *                         nullable: true
- *                         example: 108.45831
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
+ *                   type: object
+ *                   properties:
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             example: 4fdc09f4-2f69-4f1f-b631-8dc7fd50b52b
+ *                           ownerUserId:
+ *                             type: string
+ *                             example: 9d0f27f6-8e3f-4fe0-8a0c-d9d141b4999c
+ *                           name:
+ *                             type: string
+ *                             example: Farm Chuoi Xanh
+ *                           areaHa:
+ *                             type: number
+ *                             nullable: true
+ *                             example: 12.5
+ *                           cropMain:
+ *                             type: string
+ *                             nullable: true
+ *                             example: Banana
+ *                           province:
+ *                             type: string
+ *                             nullable: true
+ *                             example: Lam Dong
+ *                           district:
+ *                             type: string
+ *                             nullable: true
+ *                             example: Duc Trong
+ *                           ward:
+ *                             type: string
+ *                             nullable: true
+ *                             example: Hiep An
+ *                           address:
+ *                             type: string
+ *                             nullable: true
+ *                             example: 123 Village Road
+ *                           latitude:
+ *                             type: number
+ *                             nullable: true
+ *                             example: 11.94042
+ *                           longitude:
+ *                             type: number
+ *                             nullable: true
+ *                             example: 108.45831
+ *                           inCooperative:
+ *                             type: boolean
+ *                             example: false
+ *                             description: Whether the farm is a cooperative member (hop tac xa)
+ *                           createdAt:
+ *                             type: string
+ *                             format: date-time
+ *                           updatedAt:
+ *                             type: string
+ *                             format: date-time
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 10
+ *                         total:
+ *                           type: integer
+ *                           example: 42
+ *                         totalPages:
+ *                           type: integer
+ *                           example: 5
+ *                         previousPage:
+ *                           type: integer
+ *                           nullable: true
+ *                           example: null
+ *                           description: Previous page number (1-based), null if none
+ *                         nextPage:
+ *                           type: integer
+ *                           nullable: true
+ *                           example: 2
+ *                           description: Next page number (1-based), null if none
  *       401:
  *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error (invalid page or limit)
  */
 export {}

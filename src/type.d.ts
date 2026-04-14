@@ -14,8 +14,15 @@ declare global {
       }: {
         statusCode: number
         message: string
-        data: any
-        metadata?: any
+        data?: any | null
+        metadata?: {
+          totalItems?: number
+          totalPages?: number
+          currentPage?: number
+          itemsPerPage?: number
+          hasPreviousPage?: boolean
+          hasNextPage?: boolean
+        }
       }) => void
     }
   }
