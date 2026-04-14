@@ -98,7 +98,7 @@ export const logoutValidator = validate(
 export const accessTokenValidator = validate(
   checkSchema(
     {
-      Authorization: {
+      authorization: {
         notEmpty: {
           errorMessage: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
         },
