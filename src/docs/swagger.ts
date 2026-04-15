@@ -9,6 +9,8 @@
  *     description: Season endpoints
  *   - name: Diary
  *     description: Diary endpoints
+ *   - name: Anchor
+ *     description: Canonical payload and anchoring endpoints
  */
 
 /**
@@ -781,5 +783,31 @@
  *         description: Delete diary successfully
  *       409:
  *         description: Season is anchored, cannot delete diary
+ */
+
+/**
+ * @swagger
+ * /v1/api/anchor/season/{season_id}/canonical-payload:
+ *   get:
+ *     summary: Preview canonical payload and SHA-256 hash for season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Canonical payload preview generated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (role mismatch)
+ *       404:
+ *         description: Season not found
+ *       422:
+ *         description: Validation error
  */
 export {}
