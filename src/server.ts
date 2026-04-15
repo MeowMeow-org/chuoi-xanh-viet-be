@@ -6,6 +6,7 @@ import router from './routers'
 import { setupSwagger } from './config/swagger'
 import { corsConfig } from './config/cors'
 import { loggerMiddleware } from './middlewares/logger.middleware'
+import { registerAnchorEventListeners } from './modules/anchor/anchor.listeners'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 8000
@@ -19,6 +20,7 @@ app.use((req, res, next) => {
 app.use(loggerMiddleware)
 
 app.use(express.json())
+registerAnchorEventListeners()
 setupSwagger(app)
 
 app.get('/', (req, res) => {
