@@ -1,8 +1,10 @@
 import crypto from 'crypto'
+import { Prisma } from '@prisma/client'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
+import type { CreateCheckpointRequestBody } from './anchor.request'
 
 // Chuẩn hóa JSON đệ quy để payload luôn có cấu trúc ổn định:
 // - key của object được sort theo alphabet
@@ -166,6 +168,115 @@ class AnchorService {
       canonicalPayload,
       canonicalJson,
       payloadHash
+    }
+  }
+
+  createCheckpointAnchor = async ({
+    userId,
+    seasonId,
+    payload
+  }: {
+    userId: string
+    seasonId: string
+    payload: CreateCheckpointRequestBody
+  }) => {
+    const season = await this.getOwnedSeason(userId, seasonId)
+    // Kiểm tra trạng thái của season có phải là ready_to_anchor hoặc amended không
+    if (season.status !== 'ready_to_anchor' && season.status !== 'amended') {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.SEASON_MUST_BE_READY_OR_AMENDED_FOR_ANCHOR
+      })
+    }
+
+    const canonical = await this.buildCanonicalPayload({ userId, seasonId })
+    const diaryCount = season.diary_entries.length
+    const attachmentCount = season.diary_entries.reduce((sum, item) => sum + item.diary_attachments.length, 0)
+
+    const record = await prisma.$transaction(async (tx) => {
+      const latest = await tx.season_anchors.findFirst({
+        where: { season_id: seasonId },
+        orderBy: { checkpoint_no: 'desc' },
+        select: { checkpoint_no: true }
+      })
+      const nextCheckpointNo = (latest?.checkpoint_no ?? 0) + 1
+
+      return tx.season_anchors.create({
+        data: {
+          season_id: seasonId,
+          checkpoint_no: nextCheckpointNo,
+          checkpoint_type: payload.checkpointType ?? 'manual',
+          is_final: payload.isFinal ?? false,
+          payload_range: payload.payloadRange ?? Prisma.DbNull,
+          hash_algo: 'SHA-256',
+          data_hash: canonical.payloadHash,
+          chain_network: 'db_only',
+          status: 'anchored',
+          anchored_at: new Date(),
+          anchor_meta: {
+            canonicalSchemaVersion: 1,
+            diaryCount,
+            attachmentCount,
+            trigger: 'manual'
+          }
+        }
+      })
+    })
+
+    return {
+      anchor: record,
+      canonicalPayload: canonical.canonicalPayload,
+      canonicalJson: canonical.canonicalJson,
+      payloadHash: canonical.payloadHash
+    }
+  }
+
+  listCheckpointAnchors = async ({ userId, seasonId }: { userId: string; seasonId: string }) => {
+    await this.getOwnedSeason(userId, seasonId)
+
+    return prisma.season_anchors.findMany({
+      where: {
+        season_id: seasonId
+      },
+      orderBy: {
+        checkpoint_no: 'asc'
+      }
+    })
+  }
+
+  verifyCheckpointAnchor = async ({
+    userId,
+    seasonId,
+    checkpointNo
+  }: {
+    userId: string
+    seasonId: string
+    checkpointNo: number
+  }) => {
+    await this.getOwnedSeason(userId, seasonId)
+
+    const checkpoint = await prisma.season_anchors.findFirst({
+      where: {
+        season_id: seasonId,
+        checkpoint_no: checkpointNo
+      }
+    })
+
+    if (checkpoint == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.CHECKPOINT_ANCHOR_NOT_FOUND
+      })
+    }
+
+    const canonical = await this.buildCanonicalPayload({ userId, seasonId })
+    const matched = canonical.payloadHash === checkpoint.data_hash
+
+    return {
+      checkpoint,
+      currentPayloadHash: canonical.payloadHash,
+      anchoredDataHash: checkpoint.data_hash,
+      matched
     }
   }
 }

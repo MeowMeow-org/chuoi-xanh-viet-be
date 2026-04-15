@@ -810,4 +810,82 @@
  *       422:
  *         description: Validation error
  */
+
+/**
+ * @swagger
+ * /v1/api/anchor/season/{season_id}/checkpoints:
+ *   post:
+ *     summary: Create new checkpoint anchor for season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               checkpointType: { type: string, maxLength: 30, default: manual }
+ *               isFinal: { type: boolean, default: false }
+ *               payloadRange: { type: object, nullable: true }
+ *     responses:
+ *       201:
+ *         description: Checkpoint anchor created successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *       409:
+ *         description: Season status is not ready_to_anchor/amended
+ *       422:
+ *         description: Validation error
+ *   get:
+ *     summary: Get checkpoint anchors of season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Checkpoint anchors retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *
+ * /v1/api/anchor/season/{season_id}/checkpoints/{checkpoint_no}/verify:
+ *   get:
+ *     summary: Verify one checkpoint anchor by current canonical hash
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: checkpoint_no
+ *         required: true
+ *         schema: { type: integer, minimum: 1 }
+ *     responses:
+ *       200:
+ *         description: Checkpoint anchor verification result
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Checkpoint anchor not found
+ *       422:
+ *         description: Validation error
+ */
 export {}
