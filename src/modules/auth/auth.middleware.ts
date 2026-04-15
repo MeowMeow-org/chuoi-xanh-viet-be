@@ -128,7 +128,7 @@ export const accessTokenValidator = validate(
         }
       }
     },
-    ['body']
+    ['headers']
   )
 )
 

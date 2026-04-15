@@ -5,6 +5,8 @@
  *     description: Authentication endpoints
  *   - name: Farm
  *     description: Farm endpoints
+ *   - name: Chatbot
+ *     description: AI chatbot endpoints (farming advice, disease diagnosis, market prices)
  */
 
 /**
@@ -526,4 +528,187 @@
  *       422:
  *         description: Validation error (invalid page or limit)
  */
+/**
+ * @swagger
+ * /v1/api/chatbot/chat:
+ *   post:
+ *     summary: Chat with farming assistant (VietGAP/GlobalGAP, pests, cultivation techniques)
+ *     tags: [Chatbot]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 example: Cây chuối bị vàng lá, cần xử lý thế nào?
+ *               conversationHistory:
+ *                 type: array
+ *                 description: Previous messages for multi-turn conversation
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                       enum: [user, assistant]
+ *                     content:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Chat response successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Chatbot trả lời thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     reply:
+ *                       type: string
+ *                     usage:
+ *                       type: object
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/chatbot/diagnose:
+ *   post:
+ *     summary: Diagnose plant disease via image (Vision Language Model)
+ *     tags: [Chatbot]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Plant image to diagnose
+ *               note:
+ *                 type: string
+ *                 description: Optional additional note about the plant condition
+ *                 example: Lá bắt đầu vàng từ 3 ngày trước
+ *     responses:
+ *       200:
+ *         description: Diagnosis successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Diagnose successful
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     diagnosis:
+ *                       type: string
+ *                     usage:
+ *                       type: object
+ *       400:
+ *         description: Missing image file
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ */
+
+/**
+ * @swagger
+ * /v1/api/chatbot/market:
+ *   post:
+ *     summary: Query agricultural market prices
+ *     tags: [Chatbot]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - crop
+ *             properties:
+ *               crop:
+ *                 type: string
+ *                 example: chuối
+ *               region:
+ *                 type: string
+ *                 description: Optional region/province to narrow down market data
+ *                 example: Lâm Đồng
+ *               conversationHistory:
+ *                 type: array
+ *                 description: Previous messages for multi-turn conversation
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                       enum: [user, assistant]
+ *                     content:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Market query successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Tư vấn thị trường thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     advice:
+ *                       type: string
+ *                     crop:
+ *                       type: string
+ *                       example: chuối
+ *                     region:
+ *                       type: string
+ *                       nullable: true
+ *                       example: Lâm Đồng
+ *                     sources:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     usage:
+ *                       type: object
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error
+ */
+
 export {}
