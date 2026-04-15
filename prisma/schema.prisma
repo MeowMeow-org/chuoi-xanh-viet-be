@@ -172,7 +172,11 @@ model sale_units {
 
 model season_anchors {
   id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  season_id     String        @unique @db.Uuid
+  season_id     String        @db.Uuid
+  checkpoint_no Int
+  checkpoint_type String      @default("manual") @db.VarChar(30)
+  is_final      Boolean       @default(false)
+  payload_range Json?
   hash_algo     String        @default("SHA-256") @db.VarChar(20)
   data_hash     String        @db.VarChar(130)
   chain_network String?       @default("db_only") @db.VarChar(50)
@@ -183,6 +187,9 @@ model season_anchors {
   anchor_meta   Json?
   created_at    DateTime      @default(now()) @db.Timestamp(6)
   seasons       seasons       @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anchor_season")
+
+  @@unique([season_id, checkpoint_no], map: "uq_season_anchor_checkpoint")
+  @@index([season_id, created_at], map: "idx_season_anchors_season_created_at")
 }
 
 model seasons {
@@ -204,7 +211,7 @@ model seasons {
   diary_entries      diary_entries[]
   products           products[]
   sale_units         sale_units[]
-  season_anchors     season_anchors?
+  season_anchors     season_anchors[]
   users              users           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_created_by")
   farms              farms           @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_farm")
 
