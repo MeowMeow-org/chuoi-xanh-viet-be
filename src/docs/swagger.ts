@@ -7,6 +7,8 @@
  *     description: Farm endpoints
  *   - name: Season
  *     description: Season endpoints
+ *   - name: Diary
+ *     description: Diary endpoints
  */
 
 /**
@@ -21,71 +23,22 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *               - password
+ *             required: [email, password]
  *             properties:
  *               email:
  *                 type: string
  *                 format: email
- *                 example: demo@chuoixanh.vn
  *               password:
  *                 type: string
- *                 example: 123456
  *     responses:
  *       200:
  *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 message:
- *                   type: string
- *                   example: Login successful
- *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                     refreshToken:
- *                       type: string
- *                     user:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: string
- *                           example: "1"
- *                         fullName:
- *                           type: string
- *                           example: Nguyen Van A
- *                         email:
- *                           type: string
- *                           format: email
- *                           example: demo@chuoixanh.vn
- *                         phone:
- *                           type: string
- *                           nullable: true
- *                           example: "0901234567"
- *                         role:
- *                           type: string
- *                           enum: [consumer, farmer, cooperative, admin]
- *                           example: farmer
- *                         status:
- *                           type: string
- *                           example: ACTIVE
  *       422:
  *         description: Validation error
- */
-
-/**
- * @swagger
+ *
  * /v1/api/auth/register:
  *   post:
- *     summary: Register a new user
+ *     summary: Register user
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -93,40 +46,19 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *               - password
- *               - confirm_password
- *               - full_name
- *               - phone
+ *             required: [email, password, confirm_password, full_name, phone]
  *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 example: demo@chuoixanh.vn
- *               password:
- *                 type: string
- *                 example: 123456
- *               confirm_password:
- *                 type: string
- *                 example: 123456
- *               full_name:
- *                 type: string
- *                 example: Nguyen Van A
- *               phone:
- *                 type: string
- *                 example: "0901234567"
+ *               email: { type: string, format: email }
+ *               password: { type: string }
+ *               confirm_password: { type: string }
+ *               full_name: { type: string }
+ *               phone: { type: string }
  *     responses:
  *       201:
  *         description: Register successful
  *       409:
  *         description: Email or phone already exists
- *       422:
- *         description: Validation error
- */
-
-/**
- * @swagger
+ *
  * /v1/api/auth/refresh-token:
  *   post:
  *     summary: Refresh access token
@@ -137,57 +69,18 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - refreshToken
+ *             required: [refreshToken]
  *             properties:
- *               refreshToken:
- *                 type: string
- *                 description: JWT refresh token returned from login/register
- *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *               refreshToken: { type: string }
  *     responses:
  *       200:
  *         description: Refresh token successful
- * /v1/api/auth/me:
- *   get:
- *     summary: Get current authenticated user profile
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Get current user profile successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 message:
- *                   type: string
- *                   example: Refresh token successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                     refreshToken:
- *                       type: string
  *       401:
- *         description: Invalid, expired, revoked, or unknown refresh token
- *       422:
- *         description: Validation error
- */
-
-/**
- * @swagger
+ *         description: Invalid refresh token
+ *
  * /v1/api/auth/logout:
  *   post:
- *     summary: Logout and revoke refresh token
+ *     summary: Logout
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -195,67 +88,79 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - refreshToken
+ *             required: [refreshToken]
  *             properties:
- *               refreshToken:
- *                 type: string
- *                 description: JWT refresh token returned from login
- *                 example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *               refreshToken: { type: string }
  *     responses:
  *       200:
  *         description: Logout successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 statusCode:
- *                   type: number
- *                   example: 200
- *                 message:
- *                   type: string
- *                   example: Logout successfully
- *                 data:
- *                   type: object
- *                   nullable: true
- *                   example: null
+ *
+ * /v1/api/auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Get profile successful
  *       401:
- *         description: Invalid, expired, or unknown refresh token
- *       422:
- *         description: Validation error
- *                   example: Get my profile successfully
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       example: "1"
- *                     fullName:
- *                       type: string
- *                       example: Nguyen Van A
- *                     email:
- *                       type: string
- *                       format: email
- *                       example: demo@chuoixanh.vn
- *                     phone:
- *                       type: string
- *                       nullable: true
- *                       example: "0901234567"
- *                     role:
- *                       type: string
- *                       enum: [consumer, farmer, cooperative, admin]
- *                       example: farmer
- *                     status:
- *                       type: string
- *                       example: ACTIVE
+ *         description: Unauthorized
+ *
+ * /v1/api/auth/forgot-password:
+ *   post:
+ *     summary: Send reset password email
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, format: email }
+ *     responses:
+ *       200:
+ *         description: Email sent
+ *
+ * /v1/api/auth/verify-forgot-password:
+ *   post:
+ *     summary: Verify forgot password token
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [forgot_password_token]
+ *             properties:
+ *               forgot_password_token: { type: string }
+ *     responses:
+ *       200:
+ *         description: Token valid
  *       401:
- *         description: Access token is invalid, expired, or missing
- *       404:
- *         description: User not found
+ *         description: Invalid or expired token
+ *
+ * /v1/api/auth/reset-password:
+ *   post:
+ *     summary: Reset password
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [forgot_password_token, password, confirm_password]
+ *             properties:
+ *               forgot_password_token: { type: string }
+ *               password: { type: string }
+ *               confirm_password: { type: string }
+ *     responses:
+ *       200:
+ *         description: Reset password successful
  */
 
 /**
@@ -704,5 +609,177 @@
  *         description: Invalid season status transition
  *       422:
  *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/diary:
+ *   post:
+ *     summary: Create diary entry
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [seasonId, farmId, eventType, eventDate]
+ *             properties:
+ *               seasonId: { type: string, format: uuid }
+ *               farmId: { type: string, format: uuid }
+ *               eventType: { type: string, enum: [land_prep, sowing, fertilizing, pesticide, irrigation, harvesting, packing, other] }
+ *               eventDate: { type: string, format: date }
+ *               description: { type: string, nullable: true }
+ *               extraData: { type: object, nullable: true }
+ *     responses:
+ *       201:
+ *         description: Create diary successfully
+ *   get:
+ *     summary: Get diary entries
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: seasonId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: farmId
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: eventType
+ *         schema: { type: string, enum: [land_prep, sowing, fertilizing, pesticide, irrigation, harvesting, packing, other] }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+ *     responses:
+ *       200:
+ *         description: Get diaries successfully
+ */
+
+/**
+ * @swagger
+ * /v1/api/diary/{diary_id}/attachments:
+ *   post:
+ *     summary: Add diary attachment (file URL after client upload)
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: diary_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [fileUrl]
+ *             properties:
+ *               fileUrl: { type: string, maxLength: 4096, example: 'https://cdn.example.com/evidence/photo.jpg' }
+ *               mimeType: { type: string, nullable: true, example: 'image/jpeg' }
+ *               sortOrder: { type: integer, minimum: 0, default: 0 }
+ *               meta: { type: object, nullable: true }
+ *     responses:
+ *       201:
+ *         description: Attachment created
+ *       409:
+ *         description: Season is anchored, cannot modify diary
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/diary/{diary_id}/attachments/{attachment_id}:
+ *   delete:
+ *     summary: Delete diary attachment
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: diary_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: attachment_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Attachment deleted
+ *       404:
+ *         description: Attachment not found
+ *       409:
+ *         description: Season is anchored, cannot modify diary
+ */
+
+/**
+ * @swagger
+ * /v1/api/diary/{diary_id}:
+ *   get:
+ *     summary: Get diary detail
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: diary_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Get diary detail successfully (includes attachments array)
+ *       404:
+ *         description: Diary not found
+ *   patch:
+ *     summary: Update diary entry
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: diary_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               eventType: { type: string, enum: [land_prep, sowing, fertilizing, pesticide, irrigation, harvesting, packing, other] }
+ *               eventDate: { type: string, format: date }
+ *               description: { type: string, nullable: true }
+ *               extraData: { type: object, nullable: true }
+ *     responses:
+ *       200:
+ *         description: Update diary successfully
+ *       409:
+ *         description: Season is anchored, cannot update diary
+ *   delete:
+ *     summary: Delete diary entry
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: diary_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Delete diary successfully
+ *       409:
+ *         description: Season is anchored, cannot delete diary
  */
 export {}
