@@ -105,7 +105,20 @@ const USER_MESSAGES = {
   CHAT_MESSAGE_SENT: 'Message sent',
   CHAT_PEER_INVALID: 'Peer must be another active user (not yourself)',
   CHAT_CONVERSATION_NOT_FOUND: 'Chat conversation not found',
-  CHAT_FORBIDDEN: 'You are not a participant in this conversation'
+  CHAT_FORBIDDEN: 'You are not a participant in this conversation',
+  SHOP_SUGGEST_SUCCESS: 'Shop suggestion generated successfully',
+  CREATE_SHOP_SUCCESS: 'Create shop successfully',
+  UPDATE_SHOP_SUCCESS: 'Update shop successfully',
+  GET_SHOP_SUCCESS: 'Get shop successfully',
+  GET_MY_SHOP_SUCCESS: 'Get my shop successfully',
+  GET_SHOPS_SUCCESS: 'Get shops successfully',
+  SHOP_NOT_FOUND_OR_FORBIDDEN: 'Shop not found or you do not have permission',
+  SHOP_ALREADY_EXISTS_FOR_FARM: 'This farm already has a shop',
+  AI_GENERATION_FAILED: 'AI generation failed. Please try again later',
+  GET_AVAILABLE_SEASONS_SUCCESS: 'Get available seasons successfully',
+  ADD_PRODUCT_SUCCESS: 'Add product successfully',
+  GET_PRODUCTS_SUCCESS: 'Get products successfully',
+  SEASON_NOT_OWNED_BY_FARMER: 'Season does not belong to your farm'
 } as const
 
 export default USER_MESSAGES

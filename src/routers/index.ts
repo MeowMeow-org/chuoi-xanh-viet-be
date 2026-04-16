@@ -5,6 +5,7 @@ import cooperativeRouter from '~/modules/cooperative/cooperative.router'
 import diaryRouter from '~/modules/diary/diary.router'
 import farmRouter from '~/modules/farm/farm.router'
 import forumRouter from '~/modules/forum/forum.router'
+import shopRouter from '~/modules/shop/shop.router'
 import chatRouter from '~/modules/chat/chat.router'
 import seasonRouter from '~/modules/season/season.router'
 import uploadRouter from '~/modules/upload/upload.router'
@@ -24,6 +25,7 @@ router.use('/anchor', anchorRouter)
 
 router.use('/forum', forumRouter)
 
+router.use('/shop', shopRouter)
 router.use('/chat', chatRouter)
 
 router.use('/upload', uploadRouter)
