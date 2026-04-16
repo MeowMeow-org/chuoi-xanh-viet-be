@@ -60,6 +60,34 @@ export const getFarmsController = async (
   })
 }
 
+export const getMyFarmsController = async (
+  req: Request<ParamsDictionary, unknown, unknown, GetFarmsQuery>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const page = req.query.page !== undefined ? Number(req.query.page) : undefined
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
+  const searchTerm =
+    typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
+
+  const { items, meta } = await farmService.getFarmsByOwnerUserId({
+    ownerUserId: user_id,
+    page,
+    limit,
+    searchTerm
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_MY_FARMS_SUCCESS,
+    data: {
+      items: items.map(mapFarmRow),
+      meta
+    }
+  })
+}
+
 export const createFarmController = async (
   req: Request<ParamsDictionary, unknown, CreateFarmRequestBody>,
   res: Response,

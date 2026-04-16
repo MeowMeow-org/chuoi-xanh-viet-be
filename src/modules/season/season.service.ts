@@ -1,6 +1,7 @@
 import type { Prisma, season_status } from '@prisma/client'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
+import { domainEvents, DomainEventName } from '~/events/domain-events'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
 import type { CreateSeasonRequestBody, GetSeasonsQuery, UpdateSeasonRequestBody } from './season.request'
@@ -203,11 +204,14 @@ class SeasonService {
       data.yield_unit = payload.yieldUnit
     }
 
-    return prisma.seasons.update({
+    const updated = await prisma.seasons.update({
       where: { id: seasonId },
       data,
       select: seasonSelect
     })
+
+    domainEvents.emit(DomainEventName.SEASON_UPDATED, { seasonId: updated.id })
+    return updated
   }
 
   deleteSeason = async ({ userId, seasonId }: { userId: string; seasonId: string }) => {

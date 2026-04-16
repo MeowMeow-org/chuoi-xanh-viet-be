@@ -39,6 +39,47 @@ model diary_attachments {
   @@index([diary_entry_id, sort_order], map: "idx_diary_attachments_entry_sort")
 }
 
+model forum_posts {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_user_id String             @db.Uuid
+  title          String             @db.VarChar(220)
+  content        String
+  status         forum_post_status  @default(active)
+  created_at     DateTime           @default(now()) @db.Timestamp(6)
+  updated_at     DateTime           @default(now()) @db.Timestamp(6)
+  forum_comments forum_comments[]
+  forum_post_labels forum_post_labels[]
+  users          users              @relation(fields: [author_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_forum_posts_author")
+
+  @@index([author_user_id, created_at], map: "idx_forum_posts_author_created")
+  @@index([status, created_at], map: "idx_forum_posts_status_created")
+}
+
+model forum_comments {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id        String      @db.Uuid
+  author_user_id String      @db.Uuid
+  content        String
+  created_at     DateTime    @default(now()) @db.Timestamp(6)
+  updated_at     DateTime    @default(now()) @db.Timestamp(6)
+  forum_posts    forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_forum_comments_post")
+  users          users       @relation(fields: [author_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_forum_comments_author")
+
+  @@index([post_id, created_at], map: "idx_forum_comments_post_created")
+  @@index([author_user_id, created_at], map: "idx_forum_comments_author_created")
+}
+
+model forum_post_labels {
+  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id    String      @db.Uuid
+  label      String      @db.VarChar(80)
+  created_at DateTime    @default(now()) @db.Timestamp(6)
+  forum_posts forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_forum_labels_post")
+
+  @@unique([post_id, label], map: "uq_forum_post_label")
+  @@index([label, created_at], map: "idx_forum_labels_label_created")
+}
+
 model farms {
   id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   owner_user_id String          @db.Uuid
@@ -172,7 +213,11 @@ model sale_units {
 
 model season_anchors {
   id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  season_id     String        @unique @db.Uuid
+  season_id     String        @db.Uuid
+  checkpoint_no Int
+  checkpoint_type String      @default("manual") @db.VarChar(30)
+  is_final      Boolean       @default(false)
+  payload_range Json?
   hash_algo     String        @default("SHA-256") @db.VarChar(20)
   data_hash     String        @db.VarChar(130)
   chain_network String?       @default("db_only") @db.VarChar(50)
@@ -183,6 +228,9 @@ model season_anchors {
   anchor_meta   Json?
   created_at    DateTime      @default(now()) @db.Timestamp(6)
   seasons       seasons       @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anchor_season")
+
+  @@unique([season_id, checkpoint_no], map: "uq_season_anchor_checkpoint")
+  @@index([season_id, created_at], map: "idx_season_anchors_season_created_at")
 }
 
 model seasons {
@@ -204,7 +252,7 @@ model seasons {
   diary_entries      diary_entries[]
   products           products[]
   sale_units         sale_units[]
-  season_anchors     season_anchors?
+  season_anchors     season_anchors[]
   users              users           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_created_by")
   farms              farms           @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_farm")
 
@@ -267,6 +315,8 @@ model users {
   id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phone                String           @unique @db.VarChar(20)
   email                String?          @unique @db.VarChar(255)
+  forum_comments       forum_comments[]
+  forum_posts          forum_posts[]
   password_hash        String?          @db.VarChar(255)
   full_name            String           @db.VarChar(120)
   role                 user_role        @default(farmer)
@@ -307,6 +357,12 @@ enum diary_event_type {
   harvesting
   packing
   other
+}
+
+enum forum_post_status {
+  active
+  hidden
+  locked
 }
 
 enum order_status {

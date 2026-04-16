@@ -11,6 +11,10 @@
  *     description: Season endpoints
  *   - name: Diary
  *     description: Diary endpoints
+ *   - name: Anchor
+ *     description: Canonical payload and anchoring endpoints
+ *   - name: Forum
+ *     description: Q&A forum posts and comments (labels whitelist)
  */
 
 /**
@@ -206,6 +210,97 @@
  *         description: Email is not existed
  *       422:
  *         description: Validation error
+ *
+ * /v1/api/farm:
+ *   post:
+ *     summary: Create new farm (farmer only)
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name: { type: string, maxLength: 180, example: Farm Chuoi Xanh }
+ *               area_ha: { type: number, example: 2.5 }
+ *               crop_main: { type: string, maxLength: 120, example: Banana }
+ *               province: { type: string, maxLength: 100, example: Lam Dong }
+ *               district: { type: string, maxLength: 100, example: Duc Trong }
+ *               ward: { type: string, maxLength: 100, example: Hiep An }
+ *               address: { type: string, example: 123 Village Road }
+ *               latitude: { type: number, minimum: -90, maximum: 90, example: 11.94042 }
+ *               longitude: { type: number, minimum: -180, maximum: 180, example: 108.45831 }
+ *               in_cooperative: { type: boolean, example: false }
+ *     responses:
+ *       201:
+ *         description: Farm created successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       403:
+ *         description: Only farmer accounts can perform this action
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/farm/{farm_id}:
+ *   patch:
+ *     summary: Update farm (farmer only)
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farm_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string, maxLength: 180 }
+ *               area_ha: { type: number }
+ *               crop_main: { type: string, maxLength: 120 }
+ *               province: { type: string, maxLength: 100 }
+ *               district: { type: string, maxLength: 100 }
+ *               ward: { type: string, maxLength: 100 }
+ *               address: { type: string }
+ *               latitude: { type: number, minimum: -90, maximum: 90 }
+ *               longitude: { type: number, minimum: -180, maximum: 180 }
+ *               in_cooperative: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Farm updated successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       403:
+ *         description: Farm not found or forbidden
+ *       422:
+ *         description: Validation error
+ *   delete:
+ *     summary: Delete farm (farmer only)
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farm_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Farm deleted successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       403:
+ *         description: Farm not found or forbidden
+ *       409:
+ *         description: Farm has related data and cannot be deleted
  */
 
 /**
@@ -434,132 +529,42 @@
  *         description: Access token is invalid, expired, or missing
  *       422:
  *         description: Validation error (invalid page or limit)
- *   post:
- *     summary: Create new farm (farmer only)
- *     tags: [Farm]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - name
- *             properties:
- *               name:
- *                 type: string
- *                 maxLength: 180
- *                 example: Farm Chuoi Xanh
- *               area_ha:
- *                 type: number
- *                 example: 2.5
- *               crop_main:
- *                 type: string
- *                 maxLength: 120
- *                 example: Banana
- *               province:
- *                 type: string
- *                 maxLength: 100
- *                 example: Lam Dong
- *               district:
- *                 type: string
- *                 maxLength: 100
- *                 example: Duc Trong
- *               ward:
- *                 type: string
- *                 maxLength: 100
- *                 example: Hiep An
- *               address:
- *                 type: string
- *                 example: 123 Village Road
- *               latitude:
- *                 type: number
- *                 minimum: -90
- *                 maximum: 90
- *                 example: 11.94042
- *               longitude:
- *                 type: number
- *                 minimum: -180
- *                 maximum: 180
- *                 example: 108.45831
- *               in_cooperative:
- *                 type: boolean
- *                 example: false
- *     responses:
- *       201:
- *         description: Farm created successfully
- *       401:
- *         description: Access token is invalid, expired, or missing
- *       403:
- *         description: Only farmer accounts can perform this action
- *       422:
- *         description: Validation error
- */
-
-/**
- * @swagger
- * /v1/api/farm/{farm_id}:
- *   patch:
- *     summary: Update farm (farmer only)
+ *
+ * /v1/api/farm/mine:
+ *   get:
+ *     summary: Get farms owned by the current user
+ *     description: Returns farms where ownerUserId matches the access token user_id (pagination and search same as GET /farm).
  *     tags: [Farm]
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: farm_id
- *         required: true
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *       - in: query
+ *         name: searchTerm
+ *         required: false
  *         schema:
  *           type: string
- *           format: uuid
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name: { type: string, maxLength: 180 }
- *               area_ha: { type: number }
- *               crop_main: { type: string, maxLength: 120 }
- *               province: { type: string, maxLength: 100 }
- *               district: { type: string, maxLength: 100 }
- *               ward: { type: string, maxLength: 100 }
- *               address: { type: string }
- *               latitude: { type: number, minimum: -90, maximum: 90 }
- *               longitude: { type: number, minimum: -180, maximum: 180 }
- *               in_cooperative: { type: boolean }
  *     responses:
  *       200:
- *         description: Farm updated successfully
+ *         description: Get my farms successfully
  *       401:
  *         description: Access token is invalid, expired, or missing
- *       403:
- *         description: Farm not found or forbidden
  *       422:
  *         description: Validation error
- *   delete:
- *     summary: Delete farm (farmer only)
- *     tags: [Farm]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: farm_id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: Farm deleted successfully
- *       401:
- *         description: Access token is invalid, expired, or missing
- *       403:
- *         description: Farm not found or forbidden
- *       409:
- *         description: Farm has related data and cannot be deleted
  */
 
 /**
@@ -913,6 +918,353 @@
 
 /**
  * @swagger
+ * /v1/api/anchor/season/{season_id}/canonical-payload:
+ *   get:
+ *     summary: Preview canonical payload and SHA-256 hash for season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Canonical payload preview generated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (role mismatch)
+ *       404:
+ *         description: Season not found
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/anchor/season/{season_id}/checkpoints:
+ *   post:
+ *     summary: Create new checkpoint anchor for season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               checkpointType: { type: string, maxLength: 30, default: manual }
+ *               isFinal: { type: boolean, default: false }
+ *               payloadRange: { type: object, nullable: true }
+ *     responses:
+ *       201:
+ *         description: Checkpoint anchor created successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *       409:
+ *         description: Season status is not ready_to_anchor/amended
+ *       422:
+ *         description: Validation error
+ *   get:
+ *     summary: Get checkpoint anchors of season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Checkpoint anchors retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *
+ * /v1/api/anchor/season/{season_id}/checkpoints/{checkpoint_no}/verify:
+ *   get:
+ *     summary: Verify one checkpoint anchor by current canonical hash
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: checkpoint_no
+ *         required: true
+ *         schema: { type: integer, minimum: 1 }
+ *     responses:
+ *       200:
+ *         description: Checkpoint anchor verification result
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Checkpoint anchor not found
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/forum/posts:
+ *   get:
+ *     summary: List forum posts (active only)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100 }
+ *       - in: query
+ *         name: label
+ *         description: Filter by label slug (whitelist)
+ *         schema:
+ *           type: string
+ *           enum:
+ *             [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *       - in: query
+ *         name: searchTerm
+ *         schema: { type: string, maxLength: 200 }
+ *     responses:
+ *       200:
+ *         description: Paginated posts
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     summary: Create forum post
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, content, labels]
+ *             properties:
+ *               title: { type: string, minLength: 1, maxLength: 220 }
+ *               content: { type: string, minLength: 1, maxLength: 20000 }
+ *               labels:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 10
+ *                 items:
+ *                   type: string
+ *                   enum:
+ *                     [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *     responses:
+ *       201:
+ *         description: Post created
+ *       401:
+ *         description: Unauthorized
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/forum/posts/{post_id}/comments:
+ *   get:
+ *     summary: List comments on a post
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100 }
+ *     responses:
+ *       200:
+ *         description: Paginated comments
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *   post:
+ *     summary: Add comment (blocked if post locked)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, minLength: 1, maxLength: 10000 }
+ *     responses:
+ *       201:
+ *         description: Comment created
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *       409:
+ *         description: Post locked
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/forum/posts/{post_id}:
+ *   get:
+ *     summary: Get forum post detail (hidden visible to author or admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Post detail
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Not found
+ *   patch:
+ *     summary: Update post (author or admin; status only admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string, minLength: 1, maxLength: 220 }
+ *               content: { type: string, minLength: 1, maxLength: 20000 }
+ *               labels:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 10
+ *                 items:
+ *                   type: string
+ *                   enum:
+ *                     [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *               status:
+ *                 type: string
+ *                 enum: [active, hidden, locked]
+ *     responses:
+ *       200:
+ *         description: Updated
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       422:
+ *         description: Validation error
+ *   delete:
+ *     summary: Delete post (author or admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Deleted
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *
+ * /v1/api/forum/comments/{comment_id}:
+ *   patch:
+ *     summary: Update own comment
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: comment_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, minLength: 1, maxLength: 10000 }
+ *     responses:
+ *       200:
+ *         description: Updated
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       422:
+ *         description: Validation error
+ *   delete:
+ *     summary: Delete comment (author or admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: comment_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Deleted
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ */
+
+/**
+ * @swagger
  * /v1/api/cooperative/htx:
  *   get:
  *     summary: List active cooperative (HTX) accounts
@@ -920,28 +1272,19 @@
  *     parameters:
  *       - in: query
  *         name: page
- *         schema:
- *           type: integer
- *           minimum: 1
+ *         schema: { type: integer, minimum: 1 }
  *       - in: query
  *         name: limit
- *         schema:
- *           type: integer
- *           minimum: 1
- *           maximum: 100
+ *         schema: { type: integer, minimum: 1, maximum: 100 }
  *       - in: query
  *         name: searchTerm
- *         schema:
- *           type: string
+ *         schema: { type: string }
  *     responses:
  *       200:
  *         description: Paginated list of cooperatives
  *       422:
  *         description: Validation error
- */
-
-/**
- * @swagger
+ *
  * /v1/api/cooperative/register-farmer-applicant:
  *   post:
  *     summary: Register as consumer with farm and pending HTX membership
@@ -953,32 +1296,15 @@
  *           schema:
  *             type: object
  *             required:
- *               - email
- *               - password
- *               - confirm_password
- *               - full_name
- *               - phone
- *               - cooperative_user_id
- *               - farm_name
+ *               [email, password, confirm_password, full_name, phone, cooperative_user_id, farm_name]
  *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *               confirm_password:
- *                 type: string
- *               full_name:
- *                 type: string
- *               phone:
- *                 type: string
- *               cooperative_user_id:
- *                 type: string
- *                 format: uuid
- *                 description: ID of the cooperative user (HTX) to apply under
- *               farm_name:
- *                 type: string
- *                 maxLength: 180
+ *               email: { type: string, format: email }
+ *               password: { type: string }
+ *               confirm_password: { type: string }
+ *               full_name: { type: string }
+ *               phone: { type: string }
+ *               cooperative_user_id: { type: string, format: uuid }
+ *               farm_name: { type: string, maxLength: 180 }
  *     responses:
  *       201:
  *         description: Created; returns tokens and membership pending
@@ -988,10 +1314,7 @@
  *         description: Email or phone already exists
  *       422:
  *         description: Validation error
- */
-
-/**
- * @swagger
+ *
  * /v1/api/cooperative/members/{membershipId}/approve:
  *   post:
  *     summary: Approve pending membership (HTX only)
@@ -1002,9 +1325,7 @@
  *       - in: path
  *         name: membershipId
  *         required: true
- *         schema:
- *           type: string
- *           format: uuid
+ *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
  *         description: Approved; farmer role granted
@@ -1016,10 +1337,7 @@
  *         description: Not a cooperative account or not owner of request
  *       404:
  *         description: Membership not found
- */
-
-/**
- * @swagger
+ *
  * /v1/api/cooperative/members/{membershipId}/reject:
  *   post:
  *     summary: Reject pending membership (HTX only)
@@ -1030,17 +1348,14 @@
  *       - in: path
  *         name: membershipId
  *         required: true
- *         schema:
- *           type: string
- *           format: uuid
+ *         schema: { type: string, format: uuid }
  *     requestBody:
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               note:
- *                 type: string
+ *               note: { type: string }
  *     responses:
  *       200:
  *         description: Rejected
