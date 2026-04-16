@@ -5,6 +5,7 @@ import cooperativeRouter from '~/modules/cooperative/cooperative.router'
 import diaryRouter from '~/modules/diary/diary.router'
 import farmRouter from '~/modules/farm/farm.router'
 import forumRouter from '~/modules/forum/forum.router'
+import chatRouter from '~/modules/chat/chat.router'
 import seasonRouter from '~/modules/season/season.router'
 
 const router = Router()
@@ -21,5 +22,7 @@ router.use('/diary', diaryRouter)
 router.use('/anchor', anchorRouter)
 
 router.use('/forum', forumRouter)
+
+router.use('/chat', chatRouter)
 
 export default router

@@ -15,6 +15,8 @@
  *     description: Canonical payload and anchoring endpoints
  *   - name: Forum
  *     description: Q&A forum posts and comments (labels whitelist)
+ *   - name: Chat
+ *     description: Consumer–farmer chat (REST + Socket.IO on same server, path /socket.io/)
  */
 
 /**
@@ -62,8 +64,8 @@
  *     responses:
  *       201:
  *         description: Register successful
- *       409:
- *         description: Email or phone already exists
+ *       422:
+ *         description: Validation error or email/phone already exists
  *
  * /v1/api/auth/refresh-token:
  *   post:
@@ -1370,5 +1372,91 @@
  *         description: Forbidden
  *       404:
  *         description: Membership not found
+ *
+ * /v1/api/chat/conversations:
+ *   post:
+ *     summary: Create or get 1-1 conversation with another user (any role; valid access token)
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [peerUserId]
+ *             properties:
+ *               peerUserId: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Existing conversation (same consumer–farmer pair)
+ *       201:
+ *         description: New conversation created
+ *       400:
+ *         description: Invalid peer (inactive or self)
+ *       401:
+ *         description: Unauthorized
+ *   get:
+ *     summary: List my chat conversations
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of conversations
+ *       401:
+ *         description: Unauthorized
+ *
+ * /v1/api/chat/conversations/{conversationId}/messages:
+ *   get:
+ *     summary: Paginated messages (oldest first in page)
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100 }
+ *     responses:
+ *       200:
+ *         description: Messages + meta
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Not a participant
+ *   post:
+ *     summary: Send message (HTTP fallback; Socket event chat:send also available)
+ *     tags: [Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, maxLength: 8000 }
+ *     responses:
+ *       201:
+ *         description: Message created; other clients get chat:message via Socket.IO
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Not a participant
  */
 export {}
