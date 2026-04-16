@@ -58,13 +58,17 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, password, confirm_password, full_name, phone]
+ *             required: [email, password, confirm_password, full_name, phone, role]
  *             properties:
  *               email: { type: string, format: email }
  *               password: { type: string }
  *               confirm_password: { type: string }
  *               full_name: { type: string }
  *               phone: { type: string }
+ *               role:
+ *                 type: string
+ *                 enum: [consumer, farmer]
+ *                 description: Người tiêu dùng (consumer) hoặc Nông hộ (farmer)
  *     responses:
  *       201:
  *         description: Register successful

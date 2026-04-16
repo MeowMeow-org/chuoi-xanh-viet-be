@@ -75,6 +75,15 @@ export const registerValidator = validate(
         notEmpty: {
           errorMessage: USER_MESSAGES.PHONE_IS_REQUIRED
         }
+      },
+      role: {
+        notEmpty: {
+          errorMessage: USER_MESSAGES.REGISTER_ROLE_REQUIRED
+        },
+        isIn: {
+          options: [['consumer', 'farmer']],
+          errorMessage: USER_MESSAGES.REGISTER_ROLE_INVALID
+        }
       }
     },
     ['body']

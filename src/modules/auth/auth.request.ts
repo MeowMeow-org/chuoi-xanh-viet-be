@@ -20,6 +20,8 @@ export interface RegisterRequestBody {
   confirm_password: string
   full_name: string
   phone: string
+  /** Self-service sign-up: farmer (nông hộ) or consumer (người tiêu dùng) only */
+  role: 'consumer' | 'farmer'
 }
 
 export interface LogoutRequestBody {
