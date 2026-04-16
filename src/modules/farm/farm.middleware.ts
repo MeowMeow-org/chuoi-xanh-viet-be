@@ -1,10 +1,5 @@
 import { checkSchema } from 'express-validator'
-import { NextFunction, Request, Response } from 'express'
 import { validate } from '~/utils/validation'
-import prisma from '~/lib/prisma'
-import type { TokenPayLoad } from '../auth/auth.request'
-import { ErrorWithStatus } from '~/models/Errors'
-import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 
 export const getFarmsQueryValidator = validate(
@@ -122,31 +117,3 @@ export const createFarmBodyValidator = validate(
     ['body']
   )
 )
-
-export const farmerRoleValidator = async (req: Request, _res: Response, next: NextFunction) => {
-  try {
-    const { user_id } = req.decoded_authorization as TokenPayLoad
-    const user = await prisma.users.findUnique({
-      where: { id: user_id },
-      select: { role: true }
-    })
-
-    if (user == null) {
-      throw new ErrorWithStatus({
-        status: HTTP_STATUS.UNAUTHORIZED,
-        message: USER_MESSAGES.USER_NOT_FOUND
-      })
-    }
-
-    if (user.role !== 'farmer') {
-      throw new ErrorWithStatus({
-        status: HTTP_STATUS.FORBIDDEN,
-        message: USER_MESSAGES.FORBIDDEN_NOT_FARMER
-      })
-    }
-
-    next()
-  } catch (error) {
-    next(error)
-  }
-}

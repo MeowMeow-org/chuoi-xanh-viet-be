@@ -1,8 +1,8 @@
 import { Router } from 'express'
-import { accessTokenValidator } from '../auth/auth.middleware'
+import { accessTokenValidator, requireFarmer } from '../auth/auth.middleware'
 import { wrapAsync } from '~/utils/handler'
 import { createFarmController, getFarmsController } from './farm.controller'
-import { createFarmBodyValidator, farmerRoleValidator, getFarmsQueryValidator } from './farm.middleware'
+import { createFarmBodyValidator, getFarmsQueryValidator } from './farm.middleware'
 
 const farmRouter = Router()
 
@@ -21,7 +21,7 @@ farmRouter.get('/', accessTokenValidator, getFarmsQueryValidator, wrapAsync(getF
 farmRouter.post(
   '/',
   accessTokenValidator,
-  farmerRoleValidator,
+  requireFarmer,
   createFarmBodyValidator,
   wrapAsync(createFarmController)
 )
