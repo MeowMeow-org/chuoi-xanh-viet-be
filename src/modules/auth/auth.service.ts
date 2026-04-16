@@ -123,7 +123,7 @@ class AuthService {
   }
 
   register = async (payload: RegisterRequestBody) => {
-    const { email, password, full_name, phone } = payload
+    const { email, password, full_name, phone, role } = payload
 
     const [existingEmail, existingPhone] = await Promise.all([
       prisma.users.findFirst({ where: { email } }),
@@ -149,7 +149,8 @@ class AuthService {
         email,
         password_hash: password, // keeping same strategy as current login
         full_name,
-        phone
+        phone,
+        role
       }
     })
 

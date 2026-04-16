@@ -1,6 +1,8 @@
 const USER_MESSAGES = {
   LOGIN_SUCCESS: 'Login successfully',
   REGISTER_SUCCESS: 'Register successfully',
+  REGISTER_ROLE_REQUIRED: 'role is required',
+  REGISTER_ROLE_INVALID: 'role must be consumer or farmer',
   LOGOUT_SUCCESS: 'Logout successfully',
   REFRESH_TOKEN_SUCCESS: 'Refresh token successfully',
   VERIFY_EMAIL_SUCCESS: 'Verify email successfully',
