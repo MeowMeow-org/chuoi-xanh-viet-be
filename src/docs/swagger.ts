@@ -86,7 +86,8 @@
  *
  * /v1/api/auth/logout:
  *   post:
- *     summary: Logout
+ *     summary: Logout (revoke refresh token session)
+ *     description: Body must include a valid, non-expired refreshToken (same verification as refresh-token).
  *     tags: [Auth]
  *     requestBody:
  *       required: true
@@ -100,6 +101,8 @@
  *     responses:
  *       200:
  *         description: Logout successful
+ *       401:
+ *         description: Missing, invalid, or expired refresh token
  *
  * /v1/api/auth/me:
  *   get:
