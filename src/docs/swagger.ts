@@ -14,7 +14,9 @@
  *   - name: Anchor
  *     description: Canonical payload and anchoring endpoints
  *   - name: Forum
- *     description: Q&A forum posts and comments (labels whitelist)
+ *     description: Q&A forum posts and comments (labels whitelist; optional images from upload service)
+ *   - name: Upload
+ *     description: Proxy image upload to IMAGE_WORKER (Bearer JWT; multipart field `images`, max 3 files)
  *   - name: Chat
  *     description: Consumer–farmer chat (REST + Socket.IO on same server, path /socket.io/)
  */
@@ -1024,6 +1026,67 @@
  *       422:
  *         description: Validation error
  *
+ * /v1/api/upload:
+ *   post:
+ *     summary: Upload images (proxy to image worker)
+ *     description: |
+ *       Multipart form field **`images`** (repeat for multiple files, max 3 per request, ~12MB each).
+ *       Requires `IMAGE_WORKER_SERVICE_API` and `IMAGE_WORKER_SERVICE_KEY` on the server.
+ *       Response `data.items[].forumImage` is ready to paste into `POST /v1/api/forum/posts` body as `images`.
+ *     tags: [Upload]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [images]
+ *             properties:
+ *               images:
+ *                 type: array
+ *                 maxItems: 3
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *     responses:
+ *       200:
+ *         description: Each file uploaded; worker JSON plus forumImage helper
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           success: { type: boolean }
+ *                           url: { type: string, format: uri }
+ *                           thumb: { type: string, format: uri }
+ *                           id: { type: string, format: uuid }
+ *                           size: { type: number }
+ *                           aspect_ratio: { type: number }
+ *                           forumImage:
+ *                             type: object
+ *                             properties:
+ *                               objectKey: { type: string, description: Worker file id — store as objectKey }
+ *                               url: { type: string, format: uri }
+ *       400:
+ *         description: No files
+ *       401:
+ *         description: Unauthorized
+ *       502:
+ *         description: Image worker error or invalid response
+ *
  * /v1/api/forum/posts:
  *   get:
  *     summary: List forum posts (active only)
@@ -1075,9 +1138,19 @@
  *                   type: string
  *                   enum:
  *                     [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *               images:
+ *                 type: array
+ *                 maxItems: 3
+ *                 description: Optional; use objectKey + url from POST /v1/api/upload response (forumImage)
+ *                 items:
+ *                   type: object
+ *                   required: [objectKey, url]
+ *                   properties:
+ *                     objectKey: { type: string, maxLength: 2048 }
+ *                     url: { type: string, format: uri }
  *     responses:
  *       201:
- *         description: Post created
+ *         description: Post created (response includes images array with ids)
  *       401:
  *         description: Unauthorized
  *       422:
@@ -1182,6 +1255,16 @@
  *                   type: string
  *                   enum:
  *                     [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *               images:
+ *                 type: array
+ *                 maxItems: 3
+ *                 description: Replaces all post images; omit to leave unchanged; [] clears images
+ *                 items:
+ *                   type: object
+ *                   required: [objectKey, url]
+ *                   properties:
+ *                     objectKey: { type: string, maxLength: 2048 }
+ *                     url: { type: string, format: uri }
  *               status:
  *                 type: string
  *                 enum: [active, hidden, locked]
