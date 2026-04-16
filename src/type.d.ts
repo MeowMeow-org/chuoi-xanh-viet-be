@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import type { account_status, user_role } from '@prisma/client'
 import { ActionType, ResourceType } from '~/interfaces/logger.interface'
 import { TokenPayLoad } from './modules/auth/auth.request'
 
@@ -33,5 +34,10 @@ declare module 'express' {
     decoded_authorization?: TokenPayLoad
     decoded_refresh_token?: TokenPayLoad
     decoded_forgot_password_token?: TokenPayLoad
+    current_user?: {
+      id: string
+      role: user_role
+      status: account_status
+    }
   }
 }

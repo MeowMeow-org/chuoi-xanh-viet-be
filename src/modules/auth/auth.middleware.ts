@@ -1,9 +1,11 @@
-import { Request } from 'express'
+import type { user_role } from '@prisma/client'
+import { NextFunction, Request, Response } from 'express'
 import { ParamSchema, checkSchema } from 'express-validator'
 import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken'
 import { capitalize } from 'lodash'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
+import prisma from '~/lib/prisma'
 import { EntityError, ErrorWithStatus } from '~/models/Errors'
 import { verifyToken } from '~/utils/jwt'
 import { validate } from '~/utils/validation'
@@ -96,7 +98,7 @@ export const logoutValidator = validate(
 export const accessTokenValidator = validate(
   checkSchema(
     {
-      Authorization: {
+      authorization: {
         notEmpty: {
           errorMessage: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
         },
@@ -235,3 +237,74 @@ export const resetPasswordValidator = validate(
     ['body']
   )
 )
+
+const loadCurrentUser = async (req: Request) => {
+  if (req.current_user) {
+    return req.current_user
+  }
+
+  const decoded = req.decoded_authorization
+  if (!decoded?.user_id) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNAUTHORIZED,
+      message: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+    })
+  }
+
+  if (decoded.role && decoded.status) {
+    const userFromToken = {
+      id: decoded.user_id,
+      role: decoded.role,
+      status: decoded.status
+    }
+    req.current_user = userFromToken
+    return userFromToken
+  }
+
+  const user = await prisma.users.findUnique({
+    where: { id: decoded.user_id },
+    select: {
+      id: true,
+      role: true,
+      status: true
+    }
+  })
+
+  if (user == null) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNAUTHORIZED,
+      message: USER_MESSAGES.USER_NOT_FOUND
+    })
+  }
+
+  req.current_user = user
+  return user
+}
+
+const requireRoles = (roles: user_role[]) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const currentUser = await loadCurrentUser(req)
+      if (!roles.includes(currentUser.role)) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.FORBIDDEN,
+          message: 'You do not have permission to access this resource'
+        })
+      }
+
+      return next()
+    } catch (error) {
+      return next(error)
+    }
+  }
+}
+
+export const requireConsumer = requireRoles(['consumer'])
+export const requireFarmer = requireRoles(['farmer'])
+export const requireCooperative = requireRoles(['cooperative'])
+export const requireAdmin = requireRoles(['admin'])
+export const requireFarmerOrCooperativeOrAdmin = requireRoles([
+  'farmer',
+  'cooperative',
+  'admin'
+])

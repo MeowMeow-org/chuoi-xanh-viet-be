@@ -1,3 +1,4 @@
+import type { account_status, user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
@@ -23,11 +24,13 @@ class AuthService {
     return new Date(Date.now() + ttl)
   }
 
-  private signAccessToken(user_id: string) {
+  private signAccessToken({ user_id, role, status }: { user_id: string; role: user_role; status: account_status }) {
     return signToken({
       privateKey: process.env.JWT_ACCESS_TOKEN_SECRET as string,
       payload: {
         user_id,
+        role,
+        status,
         token_type: TokenType.AccessToken
       },
       options: { expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN as StringValue }
@@ -76,7 +79,11 @@ class AuthService {
 
     //sign token
     const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
+      this.signAccessToken({
+        user_id,
+        role: user.role,
+        status: user.status
+      }),
       this.signRefreshToken(user_id)
     ])
 
@@ -136,7 +143,7 @@ class AuthService {
 
     const user_id = user.id.toString()
     const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
+      this.signAccessToken({ user_id, role: user.role, status: user.status }),
       this.signRefreshToken(user_id)
     ])
 
@@ -208,8 +215,23 @@ class AuthService {
       })
     }
 
+    const user = await prisma.users.findUnique({
+      where: { id: user_id },
+      select: {
+        role: true,
+        status: true
+      }
+    })
+
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
     const [access_token, new_refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
+      this.signAccessToken({ user_id, role: user.role, status: user.status }),
       this.signRefreshToken(user_id)
     ])
 
