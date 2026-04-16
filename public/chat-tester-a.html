@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat test — Người A</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 16px; line-height: 1.4; }
+    label { display: block; margin-top: 10px; font-weight: 600; }
+    input, textarea, button { font-size: 14px; }
+    input, textarea { width: 100%; max-width: 100%; box-sizing: border-box; }
+    textarea { min-height: 72px; font-family: monospace; }
+    pre#log {
+      background: #1e1e1e; color: #d4d4d4; padding: 12px; overflow: auto; max-height: 320px;
+      font-size: 12px; border-radius: 8px;
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+    button { padding: 8px 12px; cursor: pointer; }
+    a { color: #0b57d0; }
+  </style>
+</head>
+<body>
+  <h1>Chat test — Người A</h1>
+  <p>Mở <a href="/chat-tester-b.html" target="_blank">Người B</a> trong tab khác. Dán <strong>access token</strong> của <strong>user A</strong> và UUID <strong>user B</strong> làm peer.</p>
+
+  <label>API base (không có slash cuối)</label>
+  <input id="baseUrl" type="text" value="http://localhost:8000" />
+
+  <label>Access token (JWT)</label>
+  <textarea id="token" placeholder="eyJhbG..."></textarea>
+
+  <label>My user ID (UUID — bấm “Đọc từ JWT” hoặc dán tay)</label>
+  <input id="myUserId" type="text" placeholder="uuid của user khớp token" />
+
+  <label>Peer user ID (UUID người kia)</label>
+  <input id="peerUserId" type="text" placeholder="uuid user B" />
+
+  <label>Conversation ID (sau Create/get)</label>
+  <input id="conversationId" type="text" placeholder="tự điền hoặc dán" />
+
+  <label>Tin nhắn</label>
+  <input id="msgText" type="text" value="Xin chào từ A" />
+
+  <div class="row">
+    <button type="button" id="btnDecode">Đọc user_id từ JWT</button>
+    <button type="button" id="btnConv">POST tạo / mở hội thoại</button>
+    <button type="button" id="btnList">GET danh sách hội thoại</button>
+    <button type="button" id="btnMsgs">GET tin nhắn</button>
+    <button type="button" id="btnSendRest">POST gửi tin (REST)</button>
+  </div>
+  <div class="row">
+    <button type="button" id="btnSockConnect">Socket: kết nối</button>
+    <button type="button" id="btnSockJoin">Socket: join room</button>
+    <button type="button" id="btnSockSend">Socket: gửi chat:send</button>
+    <button type="button" id="btnSockDisconnect">Socket: ngắt</button>
+  </div>
+
+  <label>Log</label>
+  <pre id="log"></pre>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let socket = null;
+
+    function log(...args) {
+      const line = args.map((x) => (typeof x === 'object' ? JSON.stringify(x, null, 2) : String(x))).join(' ');
+      $('log').textContent += line + '\n';
+      $('log').scrollTop = $('log').scrollHeight;
+    }
+
+    function base() {
+      return $('baseUrl').value.replace(/\/$/, '');
+    }
+
+    async function api(method, path, body) {
+      const token = $('token').value.trim();
+      const url = base() + path;
+      const opts = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token
+        }
+      };
+      if (body !== undefined) opts.body = JSON.stringify(body);
+      const r = await fetch(url, opts);
+      const text = await r.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+      log('HTTP', r.status, data);
+      return { ok: r.ok, status: r.status, data };
+    }
+
+    $('btnDecode').onclick = () => {
+      try {
+        const t = $('token').value.trim();
+        const parts = t.split('.');
+        if (parts.length < 2) return log('JWT không hợp lệ');
+        const json = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (json.user_id) $('myUserId').value = json.user_id;
+        log('JWT payload', json);
+      } catch (e) {
+        log('Lỗi decode', e.message);
+      }
+    };
+
+    $('btnConv').onclick = async () => {
+      const peerUserId = $('peerUserId').value.trim();
+      await api('POST', '/v1/api/chat/conversations', { peerUserId });
+    };
+
+    $('btnList').onclick = async () => {
+      await api('GET', '/v1/api/chat/conversations');
+    };
+
+    $('btnMsgs').onclick = async () => {
+      const cid = $('conversationId').value.trim();
+      if (!cid) return log('Thiếu conversationId');
+      await api('GET', '/v1/api/chat/conversations/' + cid + '/messages?page=1&limit=50');
+    };
+
+    $('btnSendRest').onclick = async () => {
+      const cid = $('conversationId').value.trim();
+      if (!cid) return log('Thiếu conversationId');
+      const content = $('msgText').value;
+      await api('POST', '/v1/api/chat/conversations/' + cid + '/messages', { content });
+    };
+
+    $('btnSockConnect').onclick = () => {
+      if (socket) {
+        log('Đã có socket, ngắt trước');
+        return;
+      }
+      const token = $('token').value.trim();
+      socket = io(base(), {
+        auth: { token },
+        transports: ['websocket', 'polling']
+      });
+      socket.on('connect', () => log('socket connected', socket.id));
+      socket.on('connect_error', (e) => log('connect_error', e.message));
+      socket.on('chat:message', (msg) => log('<<< chat:message', msg));
+      socket.on('disconnect', (r) => log('disconnect', r));
+    };
+
+    $('btnSockJoin').onclick = () => {
+      if (!socket) return log('Chưa connect socket');
+      const cid = $('conversationId').value.trim();
+      if (!cid) return log('Thiếu conversationId');
+      socket.emit('chat:join', { conversationId: cid }, (err) => {
+        if (err) log('join err', err.message || err);
+        else log('joined room', cid);
+      });
+    };
+
+    $('btnSockSend').onclick = () => {
+      if (!socket) return log('Chưa connect socket');
+      const cid = $('conversationId').value.trim();
+      if (!cid) return log('Thiếu conversationId');
+      const content = $('msgText').value;
+      socket.emit('chat:send', { conversationId: cid, content }, (err, data) => {
+        if (err) log('send err', err.message || err);
+        else log('send ack', data);
+      });
+    };
+
+    $('btnSockDisconnect').onclick = () => {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+        log('socket disconnected');
+      }
+    };
+
+    // Khi POST conversation trả về, tự lấy id (nếu mở DevTools khó — copy tay hoặc dùng response)
+    const origFetch = window.fetch;
+    window.fetch = async function (...args) {
+      const res = await origFetch.apply(this, args);
+      try {
+        const u = args[0];
+        if (typeof u === 'string' && u.includes('/chat/conversations') && !u.includes('/messages')) {
+          const clone = res.clone();
+          const j = await clone.json();
+          if (j && j.data && j.data.id) $('conversationId').value = j.data.id;
+        }
+      } catch (_) {}
+      return res;
+    };
+  </script>
+</body>
+</html>
