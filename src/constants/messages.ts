@@ -92,7 +92,20 @@ const USER_MESSAGES = {
   FORUM_FORBIDDEN_NOT_COMMENT_AUTHOR: 'You can only modify your own comment',
   FORUM_ONLY_ADMIN_CAN_CHANGE_STATUS: 'Only admin can change post status',
   FORUM_POST_LOCKED_NO_COMMENTS: 'This post is locked; new comments are disabled',
-  FORUM_PATCH_EMPTY: 'Provide at least one field to update'
+  FORUM_PATCH_EMPTY: 'Provide at least one field to update',
+  SHOP_SUGGEST_SUCCESS: 'Shop suggestion generated successfully',
+  CREATE_SHOP_SUCCESS: 'Create shop successfully',
+  UPDATE_SHOP_SUCCESS: 'Update shop successfully',
+  GET_SHOP_SUCCESS: 'Get shop successfully',
+  GET_MY_SHOP_SUCCESS: 'Get my shop successfully',
+  GET_SHOPS_SUCCESS: 'Get shops successfully',
+  SHOP_NOT_FOUND_OR_FORBIDDEN: 'Shop not found or you do not have permission',
+  SHOP_ALREADY_EXISTS_FOR_FARM: 'This farm already has a shop',
+  AI_GENERATION_FAILED: 'AI generation failed. Please try again later',
+  GET_AVAILABLE_SEASONS_SUCCESS: 'Get available seasons successfully',
+  ADD_PRODUCT_SUCCESS: 'Add product successfully',
+  GET_PRODUCTS_SUCCESS: 'Get products successfully',
+  SEASON_NOT_OWNED_BY_FARMER: 'Season does not belong to your farm'
 } as const
 
 export default USER_MESSAGES

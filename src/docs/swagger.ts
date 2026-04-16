@@ -15,6 +15,8 @@
  *     description: Canonical payload and anchoring endpoints
  *   - name: Forum
  *     description: Q&A forum posts and comments (labels whitelist)
+ *   - name: Shop
+ *     description: Shop (gian hàng) endpoints – CRUD, AI suggest, products
  */
 
 /**
@@ -1368,4 +1370,222 @@
  *       404:
  *         description: Membership not found
  */
+/**
+ * @swagger
+ * /v1/api/shop/suggest:
+ *   get:
+ *     summary: AI-suggest shop name & description based on farm info
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: farm_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *         description: Farm ID to generate suggestion for
+ *     responses:
+ *       200:
+ *         description: Shop suggestion generated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: number, example: 200 }
+ *                 message: { type: string, example: Shop suggestion generated successfully }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     suggestedName: { type: string, example: Nhà Vườn Chuối Xanh Lâm Đồng }
+ *                     suggestedDescription: { type: string, example: Gian hàng nông sản sạch từ vùng đất Lâm Đồng... }
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Farm not found or forbidden
+ *       500:
+ *         description: AI generation failed
+ *
+ * /v1/api/shop:
+ *   post:
+ *     summary: Create shop for a farm (farmer only)
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [farm_id, name]
+ *             properties:
+ *               farm_id: { type: string, format: uuid }
+ *               name: { type: string, maxLength: 180, example: Nhà Vườn Chuối Xanh }
+ *               description: { type: string, example: Gian hàng nông sản sạch... }
+ *     responses:
+ *       201:
+ *         description: Shop created successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Farm not found or forbidden
+ *       409:
+ *         description: This farm already has a shop
+ *       422:
+ *         description: Validation error
+ *   get:
+ *     summary: Get all shops (search + pagination)
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+ *       - in: query
+ *         name: searchTerm
+ *         schema: { type: string }
+ *         description: Search in shop name, description, farm province/district
+ *     responses:
+ *       200:
+ *         description: Get shops successfully
+ *       401:
+ *         description: Unauthorized
+ *
+ * /v1/api/shop/mine:
+ *   get:
+ *     summary: Get shops owned by the current farmer
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Get my shops successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Only farmer accounts can perform this action
+ *
+ * /v1/api/shop/available-seasons:
+ *   get:
+ *     summary: List farmer's seasons available for adding products
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Available seasons retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Only farmer accounts can perform this action
+ *
+ * /v1/api/shop/{shop_id}:
+ *   get:
+ *     summary: Get shop detail
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Get shop detail successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Shop not found
+ *   patch:
+ *     summary: Update shop (farmer only, owner)
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string, maxLength: 180 }
+ *               description: { type: string }
+ *               status: { type: string, enum: [open, closed, suspended] }
+ *     responses:
+ *       200:
+ *         description: Shop updated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Shop not found or forbidden
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/shop/{shop_id}/products:
+ *   post:
+ *     summary: Add product to shop from farmer's season (farmer only)
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [season_id, name, price]
+ *             properties:
+ *               season_id: { type: string, format: uuid, description: Must be a season from the farmer's own farm }
+ *               name: { type: string, maxLength: 180, example: Chuối Nam Mỹ }
+ *               description: { type: string, example: Chuối sạch từ vườn... }
+ *               price: { type: number, example: 25000 }
+ *               unit: { type: string, default: kg, example: kg }
+ *               stock_qty: { type: number, default: 0, example: 100 }
+ *     responses:
+ *       201:
+ *         description: Product added successfully (address auto-appended to description)
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Shop or season not owned by farmer
+ *       422:
+ *         description: Validation error
+ *   get:
+ *     summary: List products in a shop
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+
 export {}
