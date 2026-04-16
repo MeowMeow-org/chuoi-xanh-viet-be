@@ -3,8 +3,8 @@ import type { ParamsDictionary } from 'express-serve-static-core'
 import farmService from './farm.service'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
+import type { CreateFarmRequestBody, GetFarmsQuery, UpdateFarmRequestBody } from './farm.request'
 import type { TokenPayLoad } from '../auth/auth.request'
-import type { GetFarmsQuery } from './farm.request'
 
 const mapFarmRow = (farm: {
   id: string
@@ -85,5 +85,60 @@ export const getMyFarmsController = async (
       items: items.map(mapFarmRow),
       meta
     }
+  })
+}
+
+export const createFarmController = async (
+  req: Request<ParamsDictionary, unknown, CreateFarmRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const createdFarm = await farmService.createFarm({
+    owner_user_id: user_id,
+    payload: req.body
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.CREATED,
+    message: USER_MESSAGES.CREATE_FARM_SUCCESS,
+    data: mapFarmRow(createdFarm)
+  })
+}
+
+export const updateFarmController = async (
+  req: Request<{ farm_id: string }, unknown, UpdateFarmRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const updatedFarm = await farmService.updateFarm({
+    farm_id: req.params.farm_id,
+    owner_user_id: user_id,
+    payload: req.body
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.UPDATE_FARM_SUCCESS,
+    data: mapFarmRow(updatedFarm)
+  })
+}
+
+export const deleteFarmController = async (
+  req: Request<{ farm_id: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  await farmService.deleteFarm({
+    farm_id: req.params.farm_id,
+    owner_user_id: user_id
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.DELETE_FARM_SUCCESS,
+    data: null
   })
 }

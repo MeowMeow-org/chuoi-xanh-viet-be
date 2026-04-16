@@ -98,7 +98,7 @@ export const logoutValidator = validate(
 export const accessTokenValidator = validate(
   checkSchema(
     {
-      Authorization: {
+      authorization: {
         notEmpty: {
           errorMessage: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
         },
@@ -158,6 +158,7 @@ export const refreshTokenValidator = validate(
               }
 
               ;(req as Request).decoded_refresh_token = decoded_refresh_token
+              return true
             } catch (error) {
               if (error instanceof ErrorWithStatus) {
                 throw error
@@ -168,6 +169,10 @@ export const refreshTokenValidator = validate(
                   message: USER_MESSAGES.REFRESH_TOKEN_IS_INVALID
                 })
               }
+              throw new ErrorWithStatus({
+                status: HTTP_STATUS.UNAUTHORIZED,
+                message: USER_MESSAGES.REFRESH_TOKEN_IS_INVALID
+              })
             }
           }
         }

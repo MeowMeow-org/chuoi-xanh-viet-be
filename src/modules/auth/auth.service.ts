@@ -59,6 +59,32 @@ class AuthService {
     })
   }
 
+  createAuthSessionForUser = async ({
+    user_id,
+    role,
+    status
+  }: {
+    user_id: string
+    role: user_role
+    status: account_status
+  }) => {
+    const [access_token, refresh_token] = await Promise.all([
+      this.signAccessToken({ user_id, role, status }),
+      this.signRefreshToken(user_id)
+    ])
+
+    await prisma.refresh_tokens.create({
+      data: {
+        user_id,
+        token_hash: refresh_token,
+        device_id: '',
+        expires_at: this.getRefreshTokenExpiresAt()
+      }
+    })
+
+    return { access_token, refresh_token }
+  }
+
   login = async (payload: LoginRequestBody) => {
     const { email, password } = payload
     const user = await prisma.users.findFirst({
@@ -76,24 +102,10 @@ class AuthService {
     }
 
     const user_id = user.id.toString()
-
-    //sign token
-    const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken({
-        user_id,
-        role: user.role,
-        status: user.status
-      }),
-      this.signRefreshToken(user_id)
-    ])
-
-    await prisma.refresh_tokens.create({
-      data: {
-        user_id,
-        token_hash: refresh_token, //
-        device_id: '',
-        expires_at: this.getRefreshTokenExpiresAt()
-      }
+    const { access_token, refresh_token } = await this.createAuthSessionForUser({
+      user_id,
+      role: user.role,
+      status: user.status
     })
 
     return {
@@ -142,18 +154,10 @@ class AuthService {
     })
 
     const user_id = user.id.toString()
-    const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken({ user_id, role: user.role, status: user.status }),
-      this.signRefreshToken(user_id)
-    ])
-
-    await prisma.refresh_tokens.create({
-      data: {
-        user_id,
-        token_hash: refresh_token,
-        device_id: '',
-        expires_at: this.getRefreshTokenExpiresAt()
-      }
+    const { access_token, refresh_token } = await this.createAuthSessionForUser({
+      user_id,
+      role: user.role,
+      status: user.status
     })
 
     return {
