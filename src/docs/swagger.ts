@@ -5,6 +5,8 @@
  *     description: Authentication endpoints
  *   - name: Farm
  *     description: Farm endpoints
+ *   - name: Cooperative
+ *     description: Cooperative (HTX) and farmer applicant registration
  */
 
 /**
@@ -479,5 +481,212 @@
  *                         format: date-time
  *       401:
  *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error (invalid page or limit)
+ *   post:
+ *     summary: Create new farm (farmer only)
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 maxLength: 180
+ *                 example: Farm Chuoi Xanh
+ *               area_ha:
+ *                 type: number
+ *                 example: 2.5
+ *               crop_main:
+ *                 type: string
+ *                 maxLength: 120
+ *                 example: Banana
+ *               province:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Lam Dong
+ *               district:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Duc Trong
+ *               ward:
+ *                 type: string
+ *                 maxLength: 100
+ *                 example: Hiep An
+ *               address:
+ *                 type: string
+ *                 example: 123 Village Road
+ *               latitude:
+ *                 type: number
+ *                 minimum: -90
+ *                 maximum: 90
+ *                 example: 11.94042
+ *               longitude:
+ *                 type: number
+ *                 minimum: -180
+ *                 maximum: 180
+ *                 example: 108.45831
+ *               in_cooperative:
+ *                 type: boolean
+ *                 example: false
+ *     responses:
+ *       201:
+ *         description: Farm created successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       403:
+ *         description: Only farmer accounts can perform this action
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/cooperative/htx:
+ *   get:
+ *     summary: List active cooperative (HTX) accounts
+ *     tags: [Cooperative]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *       - in: query
+ *         name: searchTerm
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Paginated list of cooperatives
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/cooperative/register-farmer-applicant:
+ *   post:
+ *     summary: Register as consumer with farm and pending HTX membership
+ *     tags: [Cooperative]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - confirm_password
+ *               - full_name
+ *               - phone
+ *               - cooperative_user_id
+ *               - farm_name
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *               confirm_password:
+ *                 type: string
+ *               full_name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               cooperative_user_id:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the cooperative user (HTX) to apply under
+ *               farm_name:
+ *                 type: string
+ *                 maxLength: 180
+ *     responses:
+ *       201:
+ *         description: Created; returns tokens and membership pending
+ *       400:
+ *         description: Invalid cooperative id
+ *       409:
+ *         description: Email or phone already exists
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/cooperative/members/{membershipId}/approve:
+ *   post:
+ *     summary: Approve pending membership (HTX only)
+ *     tags: [Cooperative]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: membershipId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Approved; farmer role granted
+ *       400:
+ *         description: Invalid state
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Not a cooperative account or not owner of request
+ *       404:
+ *         description: Membership not found
+ */
+
+/**
+ * @swagger
+ * /v1/api/cooperative/members/{membershipId}/reject:
+ *   post:
+ *     summary: Reject pending membership (HTX only)
+ *     tags: [Cooperative]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: membershipId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               note:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Rejected
+ *       400:
+ *         description: Invalid state
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Membership not found
  */
 export {}

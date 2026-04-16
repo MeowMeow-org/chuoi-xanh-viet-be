@@ -9,6 +9,7 @@ const USER_MESSAGES = {
   INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
   GET_ME_SUCCESS: 'Get my profile successfully',
   GET_FARMS_SUCCESS: 'Get farms successfully',
+  CREATE_FARM_SUCCESS: 'Create farm successfully',
   EMAIL_IS_REQUIRED: 'Email is required',
   ACCESS_TOKEN_IS_REQUIRED: 'Access token is required',
   PASSWORD_IS_REQUIRED: 'Password is required',
@@ -28,7 +29,19 @@ const USER_MESSAGES = {
   EMAIL_ALREADY_EXISTS: 'Email already exists',
   PHONE_ALREADY_EXISTS: 'Phone already exists',
   FULL_NAME_IS_REQUIRED: 'Full name is required',
-  PHONE_IS_REQUIRED: 'Phone is required'
+  PHONE_IS_REQUIRED: 'Phone is required',
+  GET_HTX_LIST_SUCCESS: 'Get cooperatives list successfully',
+  REGISTER_FARMER_APPLICANT_SUCCESS: 'Registered as consumer; pending cooperative approval',
+  COOPERATIVE_USER_NOT_FOUND: 'Cooperative account not found or inactive',
+  COOPERATIVE_MEMBERSHIP_NOT_FOUND: 'Cooperative membership not found',
+  COOPERATIVE_MEMBERSHIP_FORBIDDEN: 'You cannot manage this membership',
+  COOPERATIVE_MEMBERSHIP_APPROVE_SUCCESS: 'Membership approved; user is now a farmer',
+  COOPERATIVE_MEMBERSHIP_REJECT_SUCCESS: 'Membership rejected',
+  COOPERATIVE_MEMBERSHIP_INVALID_STATE: 'Membership is not pending',
+  FORBIDDEN_NOT_COOPERATIVE: 'Only cooperative accounts can perform this action',
+  FORBIDDEN_NOT_FARMER: 'Only farmer accounts can perform this action',
+  FARM_NAME_IS_REQUIRED: 'Farm name is required',
+  COOPERATIVE_USER_ID_IS_REQUIRED: 'Cooperative user id is required'
 } as const
 
 export default USER_MESSAGES
