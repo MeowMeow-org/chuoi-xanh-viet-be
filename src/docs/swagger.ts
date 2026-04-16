@@ -500,6 +500,70 @@
 
 /**
  * @swagger
+ * /v1/api/farm/{farm_id}:
+ *   patch:
+ *     summary: Update farm (farmer only)
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farm_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name: { type: string, maxLength: 180 }
+ *               area_ha: { type: number }
+ *               crop_main: { type: string, maxLength: 120 }
+ *               province: { type: string, maxLength: 100 }
+ *               district: { type: string, maxLength: 100 }
+ *               ward: { type: string, maxLength: 100 }
+ *               address: { type: string }
+ *               latitude: { type: number, minimum: -90, maximum: 90 }
+ *               longitude: { type: number, minimum: -180, maximum: 180 }
+ *               in_cooperative: { type: boolean }
+ *     responses:
+ *       200:
+ *         description: Farm updated successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       403:
+ *         description: Farm not found or forbidden
+ *       422:
+ *         description: Validation error
+ *   delete:
+ *     summary: Delete farm (farmer only)
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farm_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Farm deleted successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       403:
+ *         description: Farm not found or forbidden
+ *       409:
+ *         description: Farm has related data and cannot be deleted
+ */
+
+/**
+ * @swagger
  * /v1/api/season:
  *   post:
  *     summary: Create season

@@ -1,6 +1,9 @@
 import type { Prisma } from '@prisma/client'
 import prisma from '~/lib/prisma'
-import type { CreateFarmRequestBody } from './farm.request'
+import type { CreateFarmRequestBody, UpdateFarmRequestBody } from './farm.request'
+import HTTP_STATUS from '~/constants/httpStatus'
+import USER_MESSAGES from '~/constants/messages'
+import { ErrorWithStatus } from '~/models/Errors'
 
 const farmSelect = {
   id: true,
@@ -20,6 +23,23 @@ const farmSelect = {
 } as const
 
 class FarmService {
+  private async ensureFarmOwner(farmId: string, userId: string) {
+    const farm = await prisma.farms.findFirst({
+      where: {
+        id: farmId,
+        owner_user_id: userId
+      },
+      select: { id: true }
+    })
+
+    if (farm == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.FORBIDDEN,
+        message: USER_MESSAGES.FARM_NOT_FOUND_OR_FORBIDDEN
+      })
+    }
+  }
+
   createFarm = async ({
     owner_user_id,
     payload
@@ -42,6 +62,64 @@ class FarmService {
         in_cooperative: payload.in_cooperative ?? false
       },
       select: farmSelect
+    })
+  }
+
+  updateFarm = async ({
+    farm_id,
+    owner_user_id,
+    payload
+  }: {
+    farm_id: string
+    owner_user_id: string
+    payload: UpdateFarmRequestBody
+  }) => {
+    await this.ensureFarmOwner(farm_id, owner_user_id)
+
+    const data: Prisma.farmsUncheckedUpdateInput = {}
+    if (payload.name !== undefined) data.name = payload.name
+    if (payload.area_ha !== undefined) data.area_ha = payload.area_ha
+    if (payload.crop_main !== undefined) data.crop_main = payload.crop_main
+    if (payload.province !== undefined) data.province = payload.province
+    if (payload.district !== undefined) data.district = payload.district
+    if (payload.ward !== undefined) data.ward = payload.ward
+    if (payload.address !== undefined) data.address = payload.address
+    if (payload.latitude !== undefined) data.latitude = payload.latitude
+    if (payload.longitude !== undefined) data.longitude = payload.longitude
+    if (payload.in_cooperative !== undefined) data.in_cooperative = payload.in_cooperative
+
+    return prisma.farms.update({
+      where: { id: farm_id },
+      data,
+      select: farmSelect
+    })
+  }
+
+  deleteFarm = async ({
+    farm_id,
+    owner_user_id
+  }: {
+    farm_id: string
+    owner_user_id: string
+  }) => {
+    await this.ensureFarmOwner(farm_id, owner_user_id)
+
+    const [seasonCount, membershipCount, diaryCount, shop] = await Promise.all([
+      prisma.seasons.count({ where: { farm_id } }),
+      prisma.cooperative_members.count({ where: { farm_id } }),
+      prisma.diary_entries.count({ where: { farm_id } }),
+      prisma.shops.findUnique({ where: { farm_id }, select: { id: true } })
+    ])
+
+    if (seasonCount > 0 || membershipCount > 0 || diaryCount > 0 || shop != null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.FARM_HAS_RELATED_DATA
+      })
+    }
+
+    await prisma.farms.delete({
+      where: { id: farm_id }
     })
   }
 
