@@ -41,3 +41,11 @@ declare module 'express' {
     }
   }
 }
+
+declare module 'socket.io' {
+  interface SocketData {
+    userId: string
+    role: user_role
+    status: account_status
+  }
+}

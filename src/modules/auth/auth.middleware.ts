@@ -81,20 +81,6 @@ export const registerValidator = validate(
   )
 )
 
-export const logoutValidator = validate(
-  checkSchema(
-    {
-      refreshToken: {
-        trim: true,
-        notEmpty: {
-          errorMessage: USER_MESSAGES.REFRESH_TOKEN_IS_REQUIRED
-        }
-      }
-    },
-    ['body']
-  )
-)
-
 export const accessTokenValidator = validate(
   checkSchema(
     {

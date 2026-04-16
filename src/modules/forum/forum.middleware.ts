@@ -50,6 +50,28 @@ const eachLabelInWhitelist = {
   }
 }
 
+const forumPostImagesBodyValidator = {
+  optional: true,
+  isArray: {
+    options: { max: 3 }
+  },
+  custom: {
+    options: (arr: unknown) => {
+      if (arr === undefined) return true
+      if (!Array.isArray(arr) || arr.length > 3) return false
+      return arr.every((item) => {
+        if (!item || typeof item !== 'object') return false
+        const o = item as Record<string, unknown>
+        const key = typeof o.objectKey === 'string' ? o.objectKey.trim() : ''
+        const url = typeof o.url === 'string' ? o.url.trim() : ''
+        return key.length > 0 && key.length <= 2048 && url.length > 0 && url.length <= 8192
+      })
+    },
+    errorMessage:
+      'images must be an array (max 3); each item needs objectKey (max 2048 chars) and url (max 8192 chars)'
+  }
+}
+
 export const createForumPostValidator = validate(
   checkSchema(
     {
@@ -70,7 +92,8 @@ export const createForumPostValidator = validate(
       labels: {
         ...labelListValidator,
         ...eachLabelInWhitelist
-      }
+      },
+      images: forumPostImagesBodyValidator
     },
     ['body']
   )
@@ -111,6 +134,7 @@ export const updateForumPostValidator = validate(
           errorMessage: `each label must be one of: ${ALLOWED_FORUM_LABELS.join(', ')}`
         }
       },
+      images: forumPostImagesBodyValidator,
       status: {
         optional: true,
         isIn: {
