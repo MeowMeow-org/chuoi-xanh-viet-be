@@ -98,7 +98,7 @@ export const logoutValidator = validate(
 export const accessTokenValidator = validate(
   checkSchema(
     {
-      authorization: {
+      Authorization: {
         notEmpty: {
           errorMessage: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
         },
@@ -130,7 +130,7 @@ export const accessTokenValidator = validate(
         }
       }
     },
-    ['body']
+    ['headers']
   )
 )
 
@@ -303,8 +303,4 @@ export const requireConsumer = requireRoles(['consumer'])
 export const requireFarmer = requireRoles(['farmer'])
 export const requireCooperative = requireRoles(['cooperative'])
 export const requireAdmin = requireRoles(['admin'])
-export const requireFarmerOrCooperativeOrAdmin = requireRoles([
-  'farmer',
-  'cooperative',
-  'admin'
-])
+export const requireFarmerOrCooperativeOrAdmin = requireRoles(['farmer', 'cooperative', 'admin'])

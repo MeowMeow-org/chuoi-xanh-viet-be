@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import authRouter from '~/modules/auth/auth.router'
+import diaryRouter from '~/modules/diary/diary.router'
 import farmRouter from '~/modules/farm/farm.router'
 import seasonRouter from '~/modules/season/season.router'
 
@@ -10,5 +11,7 @@ router.use('/auth', authRouter)
 router.use('/farm', farmRouter)
 
 router.use('/season', seasonRouter)
+
+router.use('/diary', diaryRouter)
 
 export default router
