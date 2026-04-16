@@ -92,7 +92,15 @@ const USER_MESSAGES = {
   FORUM_FORBIDDEN_NOT_COMMENT_AUTHOR: 'You can only modify your own comment',
   FORUM_ONLY_ADMIN_CAN_CHANGE_STATUS: 'Only admin can change post status',
   FORUM_POST_LOCKED_NO_COMMENTS: 'This post is locked; new comments are disabled',
-  FORUM_PATCH_EMPTY: 'Provide at least one field to update'
+  FORUM_PATCH_EMPTY: 'Provide at least one field to update',
+  CHAT_CONVERSATION_CREATED: 'Chat conversation created',
+  CHAT_CONVERSATION_OPENED: 'Chat conversation opened (existing thread)',
+  CHAT_CONVERSATIONS_LIST_SUCCESS: 'Get chat conversations successfully',
+  CHAT_MESSAGES_LIST_SUCCESS: 'Get chat messages successfully',
+  CHAT_MESSAGE_SENT: 'Message sent',
+  CHAT_PEER_INVALID: 'Peer must be another active user (not yourself)',
+  CHAT_CONVERSATION_NOT_FOUND: 'Chat conversation not found',
+  CHAT_FORBIDDEN: 'You are not a participant in this conversation'
 } as const
 
 export default USER_MESSAGES

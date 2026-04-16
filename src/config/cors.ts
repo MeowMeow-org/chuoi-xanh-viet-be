@@ -1,5 +1,14 @@
 import cors from 'cors'
 
+/** Origins allowed for Socket.IO (align with HTTP CORS). */
+export const getSocketIoAllowedOrigins = (): string[] => [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:8000',
+  'http://178.128.98.214:8001',
+  'http://178.128.98.214:8000',
+  'https://chuoi-xanh-viet-fe.netlify.app'
+]
+
 /**
  * CORS configuration
  * Allows frontend, Swagger UI, and same-origin requests
@@ -11,13 +20,7 @@ export const corsConfig = cors({
       return callback(null, true)
     }
 
-    const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:8000',
-      'http://178.128.98.214:8001',
-      'http://178.128.98.214:8000',
-      'https://chuoi-xanh-viet-fe.netlify.app'
-    ]
+    const allowedOrigins = getSocketIoAllowedOrigins()
 
     // Check if origin is in allowed list
     if (allowedOrigins.includes(origin)) {

@@ -311,6 +311,34 @@ model trace_scans {
   @@index([sale_unit_id, scanned_at], map: "idx_trace_scans_sale_unit_scanned_at")
 }
 
+/// Hội thoại 1-1 giữa hai user. Luôn có participant_1_id < participant_2_id (UUID) — một thread / cặp.
+model chat_conversations {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  participant_1_id String           @db.Uuid
+  participant_2_id String           @db.Uuid
+  created_at       DateTime         @default(now()) @db.Timestamp(6)
+  updated_at       DateTime         @default(now()) @db.Timestamp(6)
+  participant_1    users            @relation("chat_participant_1", fields: [participant_1_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p1")
+  participant_2    users            @relation("chat_participant_2", fields: [participant_2_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p2")
+  messages         chat_messages[]
+
+  @@unique([participant_1_id, participant_2_id], map: "uq_chat_conv_participants")
+  @@index([participant_1_id, updated_at], map: "idx_chat_conv_p1_updated")
+  @@index([participant_2_id, updated_at], map: "idx_chat_conv_p2_updated")
+}
+
+model chat_messages {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String             @db.Uuid
+  sender_user_id  String             @db.Uuid
+  content         String
+  created_at      DateTime           @default(now()) @db.Timestamp(6)
+  conversation    chat_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_chat_msg_conv")
+  sender          users              @relation(fields: [sender_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_msg_sender")
+
+  @@index([conversation_id, created_at], map: "idx_chat_msg_conv_created")
+}
+
 model users {
   id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   phone                String           @unique @db.VarChar(20)
@@ -334,6 +362,9 @@ model users {
   refresh_tokens       refresh_tokens[]
   seasons              seasons[]
   shop_reviews         shop_reviews[]
+  chat_conversations_as_p1 chat_conversations[] @relation("chat_participant_1")
+  chat_conversations_as_p2 chat_conversations[] @relation("chat_participant_2")
+  chat_messages                  chat_messages[]
 }
 
 enum account_status {

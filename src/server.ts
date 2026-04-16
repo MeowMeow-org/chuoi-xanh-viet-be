@@ -1,15 +1,29 @@
 import 'dotenv/config'
+import path from 'path'
+import http from 'http'
 import express from 'express'
+import { Server } from 'socket.io'
 import { defaultErrorHandler } from './middlewares/error.middlewares'
 import { syncResponseMiddleware } from './middlewares/response.middleware'
 import router from './routers'
 import { setupSwagger } from './config/swagger'
-import { corsConfig } from './config/cors'
+import { corsConfig, getSocketIoAllowedOrigins } from './config/cors'
 import { loggerMiddleware } from './middlewares/logger.middleware'
 import { registerAnchorEventListeners } from './modules/anchor/anchor.listeners'
+import { registerChatSocket } from './modules/chat/chat.socket'
 
 const app = express()
 const PORT = Number(process.env.PORT) || 8000
+
+const httpServer = http.createServer(app)
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.NODE_ENV === 'development' ? true : getSocketIoAllowedOrigins(),
+    credentials: true,
+    methods: ['GET', 'POST']
+  }
+})
+registerChatSocket(io)
 
 app.use(corsConfig)
 app.use((req, res, next) => {
@@ -32,6 +46,8 @@ app.get('/', (req, res) => {
 app.use(syncResponseMiddleware)
 app.use('/v1/api', router)
 
+app.use(express.static(path.join(process.cwd(), 'public')))
+
 /* ======= ERROR HANDLER ======= */
 
 app.use(defaultErrorHandler)
@@ -40,9 +56,10 @@ app.use(defaultErrorHandler)
 
 const startServer = async () => {
   try {
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`)
       console.log(`http://localhost:${PORT}`)
+      console.log(`Socket.IO ready (same port, path /socket.io/)`)
     })
   } catch (error) {
     console.error('Error starting server:', error)

@@ -133,14 +133,14 @@ class AuthService {
     if (existingEmail != null) {
       throw new ErrorWithStatus({
         message: USER_MESSAGES.EMAIL_ALREADY_EXISTS,
-        status: HTTP_STATUS.CONFLICT
+        status: HTTP_STATUS.UNPROCESSABLE_ENTITY
       })
     }
 
     if (existingPhone != null) {
       throw new ErrorWithStatus({
         message: USER_MESSAGES.PHONE_ALREADY_EXISTS,
-        status: HTTP_STATUS.CONFLICT
+        status: HTTP_STATUS.UNPROCESSABLE_ENTITY
       })
     }
 
