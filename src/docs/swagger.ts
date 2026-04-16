@@ -436,6 +436,42 @@
  *         description: Access token is invalid, expired, or missing
  *       422:
  *         description: Validation error (invalid page or limit)
+ *
+ * /v1/api/farm/mine:
+ *   get:
+ *     summary: Get farms owned by the current user
+ *     description: Returns farms where ownerUserId matches the access token user_id (pagination and search same as GET /farm).
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *       - in: query
+ *         name: searchTerm
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Get my farms successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error
  */
 
 /**
