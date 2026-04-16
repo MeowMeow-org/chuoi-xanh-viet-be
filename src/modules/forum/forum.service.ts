@@ -88,18 +88,14 @@ export class ForumService {
     const page = Number(query.page ?? DEFAULT_PAGE)
     const limit = Number(query.limit ?? DEFAULT_LIMIT)
     const safePage = Number.isFinite(page) && page > 0 ? page : DEFAULT_PAGE
-    const safeLimit =
-      Number.isFinite(limit) && limit > 0 && limit <= 100 ? limit : DEFAULT_LIMIT
+    const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 100 ? limit : DEFAULT_LIMIT
     const skip = (safePage - 1) * safeLimit
     const label = typeof query.label === 'string' ? query.label.trim() : undefined
-    const searchTerm =
-      typeof query.searchTerm === 'string' ? query.searchTerm.trim() : undefined
+    const searchTerm = typeof query.searchTerm === 'string' ? query.searchTerm.trim() : undefined
 
     const where: Prisma.forum_postsWhereInput = {
       status: forum_post_status.active,
-      ...(label && isAllowedForumLabel(label)
-        ? { forum_post_labels: { some: { label } } }
-        : {}),
+      ...(label && isAllowedForumLabel(label) ? { forum_post_labels: { some: { label } } } : {}),
       ...(searchTerm
         ? {
             OR: [
@@ -168,12 +164,7 @@ export class ForumService {
     return this.mapPost(post)
   }
 
-  async updatePost(
-    postId: string,
-    userId: string,
-    role: string,
-    body: UpdateForumPostBody
-  ) {
+  async updatePost(postId: string, userId: string, role: string, body: UpdateForumPostBody) {
     const post = await prisma.forum_posts.findUnique({ where: { id: postId } })
     if (!post) {
       throw new ErrorWithStatus({
@@ -331,8 +322,7 @@ export class ForumService {
     const page = Number(query.page ?? DEFAULT_PAGE)
     const limit = Number(query.limit ?? DEFAULT_LIMIT)
     const safePage = Number.isFinite(page) && page > 0 ? page : DEFAULT_PAGE
-    const safeLimit =
-      Number.isFinite(limit) && limit > 0 && limit <= 100 ? limit : DEFAULT_LIMIT
+    const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 100 ? limit : DEFAULT_LIMIT
     const skip = (safePage - 1) * safeLimit
 
     const where = { post_id: postId }
