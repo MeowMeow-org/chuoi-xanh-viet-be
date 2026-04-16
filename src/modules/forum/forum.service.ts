@@ -7,6 +7,7 @@ import { ErrorWithStatus } from '~/models/Errors'
 import type {
   CreateForumCommentBody,
   CreateForumPostBody,
+  ForumPostImageInput,
   GetForumPostsQuery,
   UpdateForumCommentBody,
   UpdateForumPostBody
@@ -27,6 +28,23 @@ function normalizeLabels(labels: string[]): string[] {
   return out
 }
 
+const MAX_FORUM_POST_IMAGES = 3
+
+function normalizeForumPostImages(images: ForumPostImageInput[] | undefined) {
+  if (!images?.length) return []
+  if (images.length > MAX_FORUM_POST_IMAGES) {
+    throw new ErrorWithStatus({
+      message: USER_MESSAGES.FORUM_IMAGES_INVALID,
+      status: HTTP_STATUS.BAD_REQUEST
+    })
+  }
+  return images.map((img, sort_order) => ({
+    object_key: img.objectKey.trim(),
+    file_url: img.url.trim(),
+    sort_order
+  }))
+}
+
 export class ForumService {
   async createPost(authorUserId: string, body: CreateForumPostBody) {
     const labels = normalizeLabels(body.labels)
@@ -37,6 +55,8 @@ export class ForumService {
       })
     }
 
+    const imageRows = normalizeForumPostImages(body.images)
+
     const post = await prisma.forum_posts.create({
       data: {
         author_user_id: authorUserId,
@@ -44,10 +64,18 @@ export class ForumService {
         content: body.content.trim(),
         forum_post_labels: {
           create: labels.map((label) => ({ label }))
-        }
+        },
+        ...(imageRows.length > 0
+          ? {
+              forum_post_images: {
+                create: imageRows
+              }
+            }
+          : {})
       },
       include: {
         forum_post_labels: true,
+        forum_post_images: { orderBy: { sort_order: 'asc' } },
         users: { select: { id: true, full_name: true, role: true } },
         _count: { select: { forum_comments: true } }
       }
@@ -90,6 +118,7 @@ export class ForumService {
         orderBy: { created_at: 'desc' },
         include: {
           forum_post_labels: true,
+          forum_post_images: { orderBy: { sort_order: 'asc' } },
           users: { select: { id: true, full_name: true, role: true } },
           _count: { select: { forum_comments: true } }
         }
@@ -113,6 +142,7 @@ export class ForumService {
       where: { id: postId },
       include: {
         forum_post_labels: true,
+        forum_post_images: { orderBy: { sort_order: 'asc' } },
         users: { select: { id: true, full_name: true, role: true } },
         _count: { select: { forum_comments: true } }
       }
@@ -173,6 +203,7 @@ export class ForumService {
       body.title !== undefined ||
       body.content !== undefined ||
       body.labels !== undefined ||
+      body.images !== undefined ||
       body.status !== undefined
     if (!hasFieldUpdate) {
       throw new ErrorWithStatus({
@@ -198,6 +229,11 @@ export class ForumService {
       labelCreates = labels.map((label) => ({ label }))
     }
 
+    let imageRows: ReturnType<typeof normalizeForumPostImages> | undefined
+    if (body.images !== undefined) {
+      imageRows = normalizeForumPostImages(body.images)
+    }
+
     const updated = await prisma.$transaction(async (tx) => {
       if (labelCreates) {
         await tx.forum_post_labels.deleteMany({ where: { post_id: postId } })
@@ -206,11 +242,21 @@ export class ForumService {
         })
       }
 
+      if (imageRows !== undefined) {
+        await tx.forum_post_images.deleteMany({ where: { post_id: postId } })
+        if (imageRows.length > 0) {
+          await tx.forum_post_images.createMany({
+            data: imageRows.map((row) => ({ post_id: postId, ...row }))
+          })
+        }
+      }
+
       return tx.forum_posts.update({
         where: { id: postId },
         data,
         include: {
           forum_post_labels: true,
+          forum_post_images: { orderBy: { sort_order: 'asc' } },
           users: { select: { id: true, full_name: true, role: true } },
           _count: { select: { forum_comments: true } }
         }
@@ -374,6 +420,12 @@ export class ForumService {
     created_at: Date
     updated_at: Date
     forum_post_labels: { label: string }[]
+    forum_post_images: {
+      id: string
+      object_key: string
+      file_url: string
+      sort_order: number
+    }[]
     users: { id: string; full_name: string; role: string }
     _count: { forum_comments: number }
   }) {
@@ -384,6 +436,12 @@ export class ForumService {
       content: post.content,
       status: post.status,
       labels: post.forum_post_labels.map((l) => l.label),
+      images: post.forum_post_images.map((img) => ({
+        id: img.id,
+        objectKey: img.object_key,
+        url: img.file_url,
+        sortOrder: img.sort_order
+      })),
       commentCount: post._count.forum_comments,
       author: {
         id: post.users.id,
