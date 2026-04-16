@@ -9,6 +9,10 @@
  *     description: Season endpoints
  *   - name: Diary
  *     description: Diary endpoints
+ *   - name: Anchor
+ *     description: Canonical payload and anchoring endpoints
+ *   - name: Forum
+ *     description: Q&A forum posts and comments (labels whitelist)
  */
 
 /**
@@ -432,6 +436,42 @@
  *         description: Access token is invalid, expired, or missing
  *       422:
  *         description: Validation error (invalid page or limit)
+ *
+ * /v1/api/farm/mine:
+ *   get:
+ *     summary: Get farms owned by the current user
+ *     description: Returns farms where ownerUserId matches the access token user_id (pagination and search same as GET /farm).
+ *     tags: [Farm]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *       - in: query
+ *         name: searchTerm
+ *         required: false
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Get my farms successfully
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error
  */
 
 /**
@@ -781,5 +821,352 @@
  *         description: Delete diary successfully
  *       409:
  *         description: Season is anchored, cannot delete diary
+ */
+
+/**
+ * @swagger
+ * /v1/api/anchor/season/{season_id}/canonical-payload:
+ *   get:
+ *     summary: Preview canonical payload and SHA-256 hash for season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Canonical payload preview generated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden (role mismatch)
+ *       404:
+ *         description: Season not found
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/anchor/season/{season_id}/checkpoints:
+ *   post:
+ *     summary: Create new checkpoint anchor for season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               checkpointType: { type: string, maxLength: 30, default: manual }
+ *               isFinal: { type: boolean, default: false }
+ *               payloadRange: { type: object, nullable: true }
+ *     responses:
+ *       201:
+ *         description: Checkpoint anchor created successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *       409:
+ *         description: Season status is not ready_to_anchor/amended
+ *       422:
+ *         description: Validation error
+ *   get:
+ *     summary: Get checkpoint anchors of season
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Checkpoint anchors retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Season not found
+ *
+ * /v1/api/anchor/season/{season_id}/checkpoints/{checkpoint_no}/verify:
+ *   get:
+ *     summary: Verify one checkpoint anchor by current canonical hash
+ *     tags: [Anchor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: path
+ *         name: checkpoint_no
+ *         required: true
+ *         schema: { type: integer, minimum: 1 }
+ *     responses:
+ *       200:
+ *         description: Checkpoint anchor verification result
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Checkpoint anchor not found
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/forum/posts:
+ *   get:
+ *     summary: List forum posts (active only)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100 }
+ *       - in: query
+ *         name: label
+ *         description: Filter by label slug (whitelist)
+ *         schema:
+ *           type: string
+ *           enum:
+ *             [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *       - in: query
+ *         name: searchTerm
+ *         schema: { type: string, maxLength: 200 }
+ *     responses:
+ *       200:
+ *         description: Paginated posts
+ *       401:
+ *         description: Unauthorized
+ *   post:
+ *     summary: Create forum post
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [title, content, labels]
+ *             properties:
+ *               title: { type: string, minLength: 1, maxLength: 220 }
+ *               content: { type: string, minLength: 1, maxLength: 20000 }
+ *               labels:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 10
+ *                 items:
+ *                   type: string
+ *                   enum:
+ *                     [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *     responses:
+ *       201:
+ *         description: Post created
+ *       401:
+ *         description: Unauthorized
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/forum/posts/{post_id}/comments:
+ *   get:
+ *     summary: List comments on a post
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 100 }
+ *     responses:
+ *       200:
+ *         description: Paginated comments
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *   post:
+ *     summary: Add comment (blocked if post locked)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, minLength: 1, maxLength: 10000 }
+ *     responses:
+ *       201:
+ *         description: Comment created
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Post not found
+ *       409:
+ *         description: Post locked
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/forum/posts/{post_id}:
+ *   get:
+ *     summary: Get forum post detail (hidden visible to author or admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Post detail
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Not found
+ *   patch:
+ *     summary: Update post (author or admin; status only admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title: { type: string, minLength: 1, maxLength: 220 }
+ *               content: { type: string, minLength: 1, maxLength: 20000 }
+ *               labels:
+ *                 type: array
+ *                 minItems: 1
+ *                 maxItems: 10
+ *                 items:
+ *                   type: string
+ *                   enum:
+ *                     [ky-thuat-trong, phan-bon, sau-benh, tuoi-nuoc, thu-hoach, bao-quan, thi-truong, khac]
+ *               status:
+ *                 type: string
+ *                 enum: [active, hidden, locked]
+ *     responses:
+ *       200:
+ *         description: Updated
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       422:
+ *         description: Validation error
+ *   delete:
+ *     summary: Delete post (author or admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: post_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Deleted
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *
+ * /v1/api/forum/comments/{comment_id}:
+ *   patch:
+ *     summary: Update own comment
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: comment_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [content]
+ *             properties:
+ *               content: { type: string, minLength: 1, maxLength: 10000 }
+ *     responses:
+ *       200:
+ *         description: Updated
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ *       422:
+ *         description: Validation error
+ *   delete:
+ *     summary: Delete comment (author or admin)
+ *     tags: [Forum]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: comment_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Deleted
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
  */
 export {}

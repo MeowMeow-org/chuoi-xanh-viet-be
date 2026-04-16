@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
+import { domainEvents, DomainEventName } from '~/events/domain-events'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
 import type {
@@ -114,7 +115,7 @@ class DiaryService {
       farmId: payload.farmId
     })
 
-    return prisma.diary_entries.create({
+    const created = await prisma.diary_entries.create({
       data: {
         season_id: payload.seasonId,
         farm_id: payload.farmId,
@@ -126,6 +127,9 @@ class DiaryService {
       },
       select: diarySelect
     })
+
+    domainEvents.emit(DomainEventName.DIARY_CREATED, { seasonId: season.id })
+    return created
   }
 
   getDiaries = async ({ userId, query }: { userId: string; query: GetDiariesQuery }) => {
@@ -216,7 +220,7 @@ class DiaryService {
       })
     }
 
-    return prisma.diary_attachments.create({
+    const created = await prisma.diary_attachments.create({
       data: {
         diary_entry_id: diaryId,
         file_url: payload.fileUrl,
@@ -226,6 +230,9 @@ class DiaryService {
       },
       select: attachmentSelect
     })
+
+    domainEvents.emit(DomainEventName.ATTACHMENT_ADDED, { seasonId: diary.season_id })
+    return created
   }
 
   deleteDiaryAttachment = async ({
@@ -258,6 +265,8 @@ class DiaryService {
         message: USER_MESSAGES.DIARY_ATTACHMENT_NOT_FOUND
       })
     }
+
+    domainEvents.emit(DomainEventName.ATTACHMENT_DELETED, { seasonId: diary.season_id })
   }
 
   updateDiary = async ({
@@ -283,11 +292,14 @@ class DiaryService {
     if (payload.description !== undefined) data.description = payload.description
     if (payload.extraData !== undefined) data.extra_data = payload.extraData ?? Prisma.DbNull
 
-    return prisma.diary_entries.update({
+    const updated = await prisma.diary_entries.update({
       where: { id: diaryId },
       data,
       select: diarySelect
     })
+
+    domainEvents.emit(DomainEventName.DIARY_UPDATED, { seasonId: diary.season_id })
+    return updated
   }
 
   deleteDiary = async ({ userId, diaryId }: { userId: string; diaryId: string }) => {
@@ -302,6 +314,8 @@ class DiaryService {
     await prisma.diary_entries.delete({
       where: { id: diaryId }
     })
+
+    domainEvents.emit(DomainEventName.DIARY_DELETED, { seasonId: diary.season_id })
   }
 }
 
