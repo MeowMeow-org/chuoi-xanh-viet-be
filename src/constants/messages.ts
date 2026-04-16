@@ -58,7 +58,24 @@ const USER_MESSAGES = {
   EMAIL_ALREADY_EXISTS: 'Email already exists',
   PHONE_ALREADY_EXISTS: 'Phone already exists',
   FULL_NAME_IS_REQUIRED: 'Full name is required',
-  PHONE_IS_REQUIRED: 'Phone is required'
+  PHONE_IS_REQUIRED: 'Phone is required',
+  CREATE_FORUM_POST_SUCCESS: 'Create forum post successfully',
+  GET_FORUM_POSTS_SUCCESS: 'Get forum posts successfully',
+  GET_FORUM_POST_DETAIL_SUCCESS: 'Get forum post detail successfully',
+  UPDATE_FORUM_POST_SUCCESS: 'Update forum post successfully',
+  DELETE_FORUM_POST_SUCCESS: 'Delete forum post successfully',
+  CREATE_FORUM_COMMENT_SUCCESS: 'Create forum comment successfully',
+  GET_FORUM_COMMENTS_SUCCESS: 'Get forum comments successfully',
+  UPDATE_FORUM_COMMENT_SUCCESS: 'Update forum comment successfully',
+  DELETE_FORUM_COMMENT_SUCCESS: 'Delete forum comment successfully',
+  FORUM_POST_NOT_FOUND: 'Forum post not found',
+  FORUM_COMMENT_NOT_FOUND: 'Forum comment not found',
+  FORUM_LABELS_INVALID: 'At least one valid label is required',
+  FORUM_FORBIDDEN_NOT_AUTHOR: 'You can only modify your own post',
+  FORUM_FORBIDDEN_NOT_COMMENT_AUTHOR: 'You can only modify your own comment',
+  FORUM_ONLY_ADMIN_CAN_CHANGE_STATUS: 'Only admin can change post status',
+  FORUM_POST_LOCKED_NO_COMMENTS: 'This post is locked; new comments are disabled',
+  FORUM_PATCH_EMPTY: 'Provide at least one field to update'
 } as const
 
 export default USER_MESSAGES
