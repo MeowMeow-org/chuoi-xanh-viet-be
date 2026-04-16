@@ -1,0 +1,45 @@
+---
+description: Keep implementation aligned with project docs
+alwaysApply: true
+---
+
+# Project Alignment Guardrail (Flexible)
+
+Use `chuoi-xanh-viet-be/mo-ta-du-an.md` and `chuoi-xanh-viet-be/topic.md` as the source of truth for product direction.
+
+## Before proposing architecture or code
+
+- Identify which feature pillar the request belongs to (farm, cooperative, traceability, ecommerce, AI assistant, etc.).
+- Cross-check whether the proposal supports the stated users (farmer, cooperative, consumer, admin).
+- Flag scope drift early if the request conflicts with project goals, naming, or domain flow.
+- Do NOT force exact implementation from docs; treat docs as direction, not strict blueprint.
+
+## Required response behavior
+
+- Give a short **Alignment Check** with:
+  - `Status`: aligned / partially aligned / misaligned
+  - `Reason`: 1-3 bullets tied to project docs
+  - `Adjustment`: concrete change to bring back in scope
+- Prefer incremental solutions that preserve current progress and avoid overengineering.
+- Allow improvements beyond docs when they strengthen product value, security, scalability, or developer velocity.
+- If proposing beyond-doc changes, explicitly state why they still align with the project vision.
+- If requirements are ambiguous, ask a clarifying question before major refactors.
+
+## Domain consistency rules
+
+- Use the canonical role set: `consumer`, `farmer`, `cooperative`, `admin`.
+- Prioritize data integrity and trust features (verification, provenance, auditability).
+- Keep naming and API payloads consistent with existing module conventions.
+
+## Red flags to call out
+
+- Security shortcuts in auth (e.g., plain text passwords, weak token handling).
+- Features that bypass traceability/verification principles.
+- New modules that duplicate existing responsibilities without clear need.
+
+## Evolution principle
+
+- The project is expected to evolve. New ideas are valid if they:
+  - stay consistent with the core problem and user groups;
+  - do not break established domain language and API contracts without migration plan;
+  - are explained with trade-offs and expected value.

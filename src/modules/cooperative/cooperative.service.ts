@@ -157,8 +157,11 @@ class CooperativeService {
     })
 
     const user_id = user.id.toString()
-    const { access_token, refresh_token } =
-      await authService.createAuthSessionForUser(user_id)
+    const { access_token, refresh_token } = await authService.createAuthSessionForUser({
+      user_id,
+      role: user.role,
+      status: user.status
+    })
 
     return {
       access_token,

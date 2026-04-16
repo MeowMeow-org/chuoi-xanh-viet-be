@@ -7,7 +7,7 @@ import { createFarmBodyValidator, farmerRoleValidator, getFarmsQueryValidator } 
 const farmRouter = Router()
 
 /**
- * @desc get all farms
+ * @desc get all farms (search + pagination)
  * @route GET /farm/
  * @access private
  */
