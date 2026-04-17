@@ -45,6 +45,31 @@ const mapSeasonRow = (season: {
   updatedAt: season.updated_at
 })
 
+const mapAnchorRow = (
+  anchor: {
+    id: string
+    checkpoint_no: number
+    data_hash: string
+    chain_network: string | null
+    tx_hash: string | null
+    tx_url: string | null
+    status: string
+    anchored_at: Date | null
+  } | null
+) => {
+  if (anchor == null) return null
+  return {
+    id: anchor.id,
+    checkpointNo: anchor.checkpoint_no,
+    dataHash: anchor.data_hash,
+    chainNetwork: anchor.chain_network,
+    txHash: anchor.tx_hash,
+    txUrl: anchor.tx_url,
+    status: anchor.status,
+    anchoredAt: anchor.anchored_at
+  }
+}
+
 export const createSeasonController = async (
   req: Request<ParamsDictionary, unknown, CreateSeasonRequestBody>,
   res: Response,
@@ -80,7 +105,7 @@ export const getSeasonsController = async (
 
 export const getSeasonDetailController = async (req: Request<ParamsDictionary>, res: Response, next: NextFunction) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
-  const season = await seasonService.getSeasonDetail({
+  const { latestAnchor, ...season } = await seasonService.getSeasonDetail({
     userId: user_id,
     seasonId: req.params.season_id as string
   })
@@ -88,7 +113,7 @@ export const getSeasonDetailController = async (req: Request<ParamsDictionary>, 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_SEASON_DETAIL_SUCCESS,
-    data: mapSeasonRow(season)
+    data: { ...mapSeasonRow(season), latestAnchor: mapAnchorRow(latestAnchor) }
   })
 }
 
@@ -131,7 +156,7 @@ export const changeSeasonStatusController = async (
   next: NextFunction
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
-  const season = await seasonService.changeSeasonStatus({
+  const { season, anchor } = await seasonService.changeSeasonStatus({
     userId: user_id,
     seasonId: req.params.season_id as string,
     status: req.body.status
@@ -140,6 +165,6 @@ export const changeSeasonStatusController = async (
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.CHANGE_SEASON_STATUS_SUCCESS,
-    data: mapSeasonRow(season)
+    data: { ...mapSeasonRow(season), latestAnchor: mapAnchorRow(anchor) }
   })
 }
