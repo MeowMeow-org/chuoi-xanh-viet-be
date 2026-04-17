@@ -1,10 +1,8 @@
-import type { Prisma } from '@prisma/client'
+import type { Prisma, cooperative_member_status } from '@prisma/client'
 import prisma from '~/lib/prisma'
-import authService from '~/modules/auth/auth.service'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
-import type { RegisterFarmerApplicantBody } from './cooperative.request'
 
 const htxSelect = {
   id: true,
@@ -74,19 +72,21 @@ class CooperativeService {
     }
   }
 
-  registerFarmerApplicant = async (payload: RegisterFarmerApplicantBody) => {
-    const {
-      email,
-      password,
-      full_name,
-      phone,
-      cooperative_user_id,
-      farm_name
-    } = payload
-
+  /**
+   * Farmer đã có tài khoản + nông trại: gửi đơn gia nhập HTX (cooperative_members.pending).
+   */
+  requestJoinCooperative = async ({
+    farmerUserId,
+    cooperativeUserId,
+    farmId
+  }: {
+    farmerUserId: string
+    cooperativeUserId: string
+    farmId: string
+  }) => {
     const cooperative = await prisma.users.findFirst({
       where: {
-        id: cooperative_user_id,
+        id: cooperativeUserId,
         role: 'cooperative',
         status: 'active'
       },
@@ -100,89 +100,89 @@ class CooperativeService {
       })
     }
 
-    const [existingEmail, existingPhone] = await Promise.all([
-      prisma.users.findFirst({ where: { email } }),
-      prisma.users.findFirst({ where: { phone } })
-    ])
-
-    if (existingEmail != null) {
-      throw new ErrorWithStatus({
-        message: USER_MESSAGES.EMAIL_ALREADY_EXISTS,
-        status: HTTP_STATUS.CONFLICT
-      })
-    }
-
-    if (existingPhone != null) {
-      throw new ErrorWithStatus({
-        message: USER_MESSAGES.PHONE_ALREADY_EXISTS,
-        status: HTTP_STATUS.CONFLICT
-      })
-    }
-
-    const { user, farm, membership } = await prisma.$transaction(async (tx) => {
-      const createdUser = await tx.users.create({
-        data: {
-          email,
-          password_hash: password,
-          full_name,
-          phone,
-          role: 'consumer',
-          status: 'active'
-        }
-      })
-
-      const createdFarm = await tx.farms.create({
-        data: {
-          owner_user_id: createdUser.id,
-          name: farm_name,
-          in_cooperative: false
-        }
-      })
-
-      const createdMembership = await tx.cooperative_members.create({
-        data: {
-          cooperative_user_id,
-          farmer_user_id: createdUser.id,
-          farm_id: createdFarm.id,
-          status: 'pending',
-          requested_by: createdUser.id
-        }
-      })
-
-      return {
-        user: createdUser,
-        farm: createdFarm,
-        membership: createdMembership
-      }
+    const farm = await prisma.farms.findFirst({
+      where: { id: farmId, owner_user_id: farmerUserId },
+      select: { id: true, in_cooperative: true }
     })
 
-    const user_id = user.id.toString()
-    const { access_token, refresh_token } = await authService.createAuthSessionForUser({
-      user_id,
-      role: user.role,
-      status: user.status
+    if (farm == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.FARM_NOT_FOUND_OR_FORBIDDEN,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
+    if (farm.in_cooperative) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.FARM_ALREADY_LINKED_TO_COOPERATIVE,
+        status: HTTP_STATUS.CONFLICT
+      })
+    }
+
+    const existing = await prisma.cooperative_members.findFirst({
+      where: { farm_id: farmId }
+    })
+
+    if (existing != null) {
+      if (existing.status === 'approved') {
+        throw new ErrorWithStatus({
+          message: USER_MESSAGES.FARM_ALREADY_LINKED_TO_COOPERATIVE,
+          status: HTTP_STATUS.CONFLICT
+        })
+      }
+
+      if (existing.status === 'pending') {
+        if (existing.cooperative_user_id === cooperativeUserId) {
+          return {
+            id: existing.id,
+            status: existing.status,
+            cooperative_user_id: existing.cooperative_user_id,
+            farm_id: existing.farm_id
+          }
+        }
+        throw new ErrorWithStatus({
+          message: USER_MESSAGES.COOPERATIVE_JOIN_PENDING_EXISTS,
+          status: HTTP_STATUS.CONFLICT
+        })
+      }
+
+      if (existing.status === 'rejected' || existing.status === 'removed') {
+        const updated = await prisma.cooperative_members.update({
+          where: { id: existing.id },
+          data: {
+            cooperative_user_id: cooperativeUserId,
+            farmer_user_id: farmerUserId,
+            status: 'pending',
+            requested_by: farmerUserId,
+            verified_by: null,
+            verified_at: null,
+            note: null
+          }
+        })
+        return {
+          id: updated.id,
+          status: updated.status,
+          cooperative_user_id: updated.cooperative_user_id,
+          farm_id: updated.farm_id
+        }
+      }
+    }
+
+    const created = await prisma.cooperative_members.create({
+      data: {
+        cooperative_user_id: cooperativeUserId,
+        farmer_user_id: farmerUserId,
+        farm_id: farmId,
+        status: 'pending',
+        requested_by: farmerUserId
+      }
     })
 
     return {
-      access_token,
-      refresh_token,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        status: user.status
-      },
-      farm: {
-        id: farm.id,
-        name: farm.name
-      },
-      membership: {
-        id: membership.id,
-        status: membership.status,
-        cooperativeUserId: membership.cooperative_user_id
-      }
+      id: created.id,
+      status: created.status,
+      cooperative_user_id: created.cooperative_user_id,
+      farm_id: created.farm_id
     }
   }
 
@@ -285,6 +285,75 @@ class CooperativeService {
     })
 
     return { membershipId }
+  }
+
+  listMembershipsForCooperative = async ({
+    cooperativeUserId,
+    status,
+    page = 1,
+    limit = 10
+  }: {
+    cooperativeUserId: string
+    status?: cooperative_member_status
+    page?: number
+    limit?: number
+  }) => {
+    const safePage = Math.max(1, page)
+    const safeLimit = Math.min(100, Math.max(1, limit))
+    const skip = (safePage - 1) * safeLimit
+
+    const where: Prisma.cooperative_membersWhereInput = {
+      cooperative_user_id: cooperativeUserId,
+      ...(status != null ? { status } : {})
+    }
+
+    const [rows, total] = await Promise.all([
+      prisma.cooperative_members.findMany({
+        where,
+        skip,
+        take: safeLimit,
+        orderBy: { created_at: 'desc' },
+        include: {
+          farmer_user: {
+            select: {
+              id: true,
+              full_name: true,
+              email: true,
+              phone: true,
+              role: true
+            }
+          },
+          farms: {
+            select: {
+              id: true,
+              name: true,
+              province: true,
+              district: true,
+              ward: true,
+              in_cooperative: true
+            }
+          }
+        }
+      }),
+      prisma.cooperative_members.count({ where })
+    ])
+
+    const totalPages = Math.ceil(total / safeLimit)
+    const previousPage = safePage > 1 ? safePage - 1 : null
+    const nextPage =
+      totalPages > 0 && safePage < totalPages ? safePage + 1 : null
+
+    return {
+      items: rows,
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        previousPage,
+        nextPage
+      }
+    }
   }
 }
 

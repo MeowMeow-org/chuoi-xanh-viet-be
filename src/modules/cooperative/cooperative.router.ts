@@ -1,18 +1,20 @@
 import { Router } from 'express'
 import { wrapAsync } from '~/utils/handler'
-import { accessTokenValidator } from '../auth/auth.middleware'
+import { accessTokenValidator, requireFarmer } from '../auth/auth.middleware'
 import {
   cooperativeRoleValidator,
   getHtxListQueryValidator,
+  joinRequestBodyValidator,
+  listMyMembershipsQueryValidator,
   membershipIdParamValidator,
-  registerFarmerApplicantValidator,
   rejectMembershipBodyValidator
 } from './cooperative.middleware'
 import {
   approveMembershipController,
   listHtxController,
-  registerFarmerApplicantController,
-  rejectMembershipController
+  listMyMembershipsController,
+  rejectMembershipController,
+  requestJoinCooperativeController
 } from './cooperative.controller'
 
 const cooperativeRouter = Router()
@@ -29,14 +31,29 @@ cooperativeRouter.get(
 )
 
 /**
- * @desc Register as consumer with a farm and pending membership under chosen HTX
- * @route POST /cooperative/register-farmer-applicant
- * @access public
+ * @desc Farmer: gửi đơn gia nhập HTX cho nông trại đã có (cooperative_members pending)
+ * @route POST /cooperative/join-request
+ * @access private (farmer)
  */
 cooperativeRouter.post(
-  '/register-farmer-applicant',
-  registerFarmerApplicantValidator,
-  wrapAsync(registerFarmerApplicantController)
+  '/join-request',
+  accessTokenValidator,
+  requireFarmer,
+  joinRequestBodyValidator,
+  wrapAsync(requestJoinCooperativeController)
+)
+
+/**
+ * @desc List membership rows for the logged-in HTX (optional status filter)
+ * @route GET /cooperative/members
+ * @access private (cooperative role)
+ */
+cooperativeRouter.get(
+  '/members',
+  accessTokenValidator,
+  cooperativeRoleValidator,
+  listMyMembershipsQueryValidator,
+  wrapAsync(listMyMembershipsController)
 )
 
 /**

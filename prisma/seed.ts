@@ -17,7 +17,7 @@ type SeedUser = {
   email: string
   phone: string
   full_name: string
-  role: 'consumer' | 'farmer'
+  role: 'consumer' | 'farmer' | 'cooperative'
 }
 
 type SeedFarm = {
@@ -76,6 +76,40 @@ const consumers: SeedUser[] = [
     phone: '0912345679',
     full_name: 'Lê Hoàng Nam',
     role: 'consumer'
+  }
+]
+
+/** Tài khoản HTX đăng nhập (role cooperative). Mật khẩu: 123456 — cùng convention seed hiện tại. */
+const cooperatives: SeedUser[] = [
+  {
+    email: 'lienhe@htx-rauxanh-laichau.vn',
+    phone: '0902000001',
+    full_name: 'Hợp tác xã Rau an toàn Lai Châu',
+    role: 'cooperative'
+  },
+  {
+    email: 'vanphong@htx-nongsan-dienbien.vn',
+    phone: '0902000002',
+    full_name: 'Hợp tác xã Nông sản sạch Điện Biên',
+    role: 'cooperative'
+  },
+  {
+    email: 'tonghop@htx-chuoi-lamdong.vn',
+    phone: '0902000003',
+    full_name: 'Hợp tác xã Chuối hữu cơ Lâm Đồng',
+    role: 'cooperative'
+  },
+  {
+    email: 'kinhdoanh@htx-raucu-tiengiang.vn',
+    phone: '0902000004',
+    full_name: 'Hợp tác xã Rau củ quả Tiền Giang',
+    role: 'cooperative'
+  },
+  {
+    email: 'hotro@htx-thuysan-caomau.vn',
+    phone: '0902000005',
+    full_name: 'Hợp tác xã Thủy sản bền vững Cà Mau',
+    role: 'cooperative'
   }
 ]
 
@@ -436,6 +470,7 @@ async function main() {
 
   // Users
   for (const u of consumers) await upsertUser(u)
+  for (const u of cooperatives) await upsertUser(u)
   for (const u of farmers) await upsertUser(u)
   const allUsers = await prisma.users.findMany({ select: { id: true, email: true } })
   const userIdByEmail = new Map(allUsers.map((u) => [u.email ?? '', u.id]))
@@ -591,8 +626,12 @@ async function main() {
   console.log('✅  Seed complete.')
   console.log('')
   console.log('Demo accounts (password: 123456):')
-  console.log('  Consumer: mai@consumer.vn / nam@consumer.vn')
-  console.log('  Farmer  : minh@farmer.vn / tai@farmer.vn / huong@farmer.vn')
+  console.log('  Consumer   : mai@consumer.vn / nam@consumer.vn')
+  console.log('  Cooperative (5 HTX):')
+  for (const c of cooperatives) {
+    console.log(`    • ${c.email}  |  ${c.phone}  |  ${c.full_name}`)
+  }
+  console.log('  Farmer     : minh@farmer.vn / tai@farmer.vn / huong@farmer.vn')
 }
 
 main()

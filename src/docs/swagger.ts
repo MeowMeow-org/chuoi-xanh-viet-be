@@ -1379,36 +1379,6 @@
  *       422:
  *         description: Validation error
  *
- * /v1/api/cooperative/register-farmer-applicant:
- *   post:
- *     summary: Register as consumer with farm and pending HTX membership
- *     tags: [Cooperative]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               [email, password, confirm_password, full_name, phone, cooperative_user_id, farm_name]
- *             properties:
- *               email: { type: string, format: email }
- *               password: { type: string }
- *               confirm_password: { type: string }
- *               full_name: { type: string }
- *               phone: { type: string }
- *               cooperative_user_id: { type: string, format: uuid }
- *               farm_name: { type: string, maxLength: 180 }
- *     responses:
- *       201:
- *         description: Created; returns tokens and membership pending
- *       400:
- *         description: Invalid cooperative id
- *       409:
- *         description: Email or phone already exists
- *       422:
- *         description: Validation error
- *
  * /v1/api/cooperative/members/{membershipId}/approve:
  *   post:
  *     summary: Approve pending membership (HTX only)

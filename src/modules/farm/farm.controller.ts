@@ -38,6 +38,22 @@ const mapFarmRow = (farm: {
   updatedAt: farm.updated_at
 })
 
+const mapMyFarmRow = (
+  farm: Parameters<typeof mapFarmRow>[0] & {
+    cooperative_members: {
+      status: string
+      cooperative_user: { full_name: string } | null
+    }[]
+  }
+) => {
+  const membership = farm.cooperative_members[0]
+  return {
+    ...mapFarmRow(farm),
+    cooperativeMembershipStatus: membership?.status ?? null,
+    cooperativeName: membership?.cooperative_user?.full_name ?? null
+  }
+}
+
 export const getFarmsController = async (
   req: Request<ParamsDictionary, unknown, unknown, GetFarmsQuery>,
   res: Response,
@@ -82,7 +98,7 @@ export const getMyFarmsController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_MY_FARMS_SUCCESS,
     data: {
-      items: items.map(mapFarmRow),
+      items: items.map(mapMyFarmRow),
       meta
     }
   })
