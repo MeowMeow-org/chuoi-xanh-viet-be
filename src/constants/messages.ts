@@ -10,6 +10,8 @@ const USER_MESSAGES = {
   RESET_PASSWORD_SUCCESS: 'Reset password successfully',
   INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
   GET_ME_SUCCESS: 'Get my profile successfully',
+  UPDATE_PROFILE_SUCCESS: 'Profile updated successfully',
+  AVATAR_URL_INVALID: 'avatarUrl must be a valid URL string (max 2048 characters)',
   GET_FARMS_SUCCESS: 'Get farms successfully',
   CREATE_FARM_SUCCESS: 'Create farm successfully',
   UPDATE_FARM_SUCCESS: 'Update farm successfully',
@@ -36,6 +38,12 @@ const USER_MESSAGES = {
   CHANGE_SEASON_STATUS_SUCCESS: 'Change season status successfully',
   SEASON_CODE_ALREADY_EXISTS: 'Mã mùa vụ đã tồn tại',
   SEASON_CODE_GENERATION_FAILED: 'Không tạo được mã mùa vụ, vui lòng thử lại',
+  SEASON_HARVEST_START_BEFORE_SEASON_START:
+    'Ngày bắt đầu thu hoạch không được trước ngày bắt đầu mùa vụ',
+  SEASON_HARVEST_END_BEFORE_HARVEST_START:
+    'Ngày kết thúc thu hoạch phải sau hoặc cùng ngày bắt đầu thu hoạch',
+  SEASON_HARVEST_END_BEFORE_SEASON_START:
+    'Ngày kết thúc thu hoạch không được trước ngày bắt đầu mùa vụ',
   CREATE_DIARY_SUCCESS: 'Create diary successfully',
   GET_DIARIES_SUCCESS: 'Get diaries successfully',
   GET_DIARY_DETAIL_SUCCESS: 'Get diary detail successfully',
@@ -124,7 +132,11 @@ const USER_MESSAGES = {
   SHOP_ALREADY_EXISTS_FOR_FARM: 'This farm already has a shop',
   AI_GENERATION_FAILED: 'AI generation failed. Please try again later',
   GET_AVAILABLE_SEASONS_SUCCESS: 'Get available seasons successfully',
+  GET_AVAILABLE_SALE_UNITS_SUCCESS: 'Get available sale units successfully',
   ADD_PRODUCT_SUCCESS: 'Add product successfully',
+  SALE_UNIT_NOT_AVAILABLE_FOR_SHOP: 'Lô bán không thuộc nông trại của gian hàng này hoặc không hợp lệ',
+  SALE_UNIT_NOT_ACTIVE: 'Lô bán không ở trạng thái đang bán',
+  SALE_UNIT_ALREADY_LISTED: 'Lô này đã được đăng bán trên chợ',
   GET_PRODUCTS_SUCCESS: 'Get products successfully',
   GET_PRODUCT_DETAIL_SUCCESS: 'Get product detail successfully',
   PRODUCT_NOT_FOUND: 'Product not found',
@@ -142,7 +154,46 @@ const USER_MESSAGES = {
   ORDER_INSUFFICIENT_STOCK: 'Insufficient stock for one or more products',
   ORDER_CANNOT_CANCEL: 'Only pending orders can be cancelled',
   ORDER_INVALID_STATUS_TRANSITION: 'Invalid order status transition',
-  FORBIDDEN_NOT_CONSUMER: 'Only consumer accounts can place orders'
+  FORBIDDEN_NOT_CONSUMER: 'Only consumer accounts can place orders',
+  BLOCKCHAIN_NOT_CONFIGURED: 'Blockchain anchoring is not configured (missing env: SEPOLIA_RPC_URL, ANCHOR_WALLET_PRIVATE_KEY, ANCHOR_CONTRACT_ADDRESS)',
+  BLOCKCHAIN_ANCHOR_FAILED: 'Failed to send anchor transaction to blockchain',
+
+  CREATE_INSPECTION_SUCCESS: 'Inspection recorded successfully',
+  GET_INSPECTIONS_SUCCESS: 'Get inspections successfully',
+  DELETE_INSPECTION_SUCCESS: 'Inspection deleted successfully',
+  INSPECTION_FORBIDDEN_NOT_MEMBER:
+    'You are not managing this farm as a cooperative (no approved cooperative_member link)',
+  INSPECTION_FORBIDDEN_NOT_OWNER: 'Only the cooperative inspector who created this inspection can delete it',
+  INSPECTION_VERDICT_INVALID: 'verdict must be one of: pass, fail, needs_work',
+  INSPECTION_SUMMARY_TOO_LONG: 'summary must be at most 2000 characters',
+  INSPECTION_SEASON_ANCHORED:
+    'Season is anchored, inspection is locked (add a new one after the next amendment cycle)',
+
+  SALE_UNIT_CREATE_SUCCESS: 'Sale unit created successfully',
+  SALE_UNIT_LIST_SUCCESS: 'Get sale units successfully',
+  SALE_UNIT_DETAIL_SUCCESS: 'Get sale unit detail successfully',
+  SALE_UNIT_UPDATE_SUCCESS: 'Sale unit updated successfully',
+  SALE_UNIT_DELETE_SUCCESS: 'Sale unit deleted successfully',
+  SALE_UNIT_NOT_FOUND: 'Sale unit not found',
+  SALE_UNIT_SEASON_MUST_BE_ANCHORED: 'Season must be anchored before creating sale units',
+  SALE_UNIT_CODE_GENERATION_FAILED: 'Failed to generate unique sale unit code, please retry',
+  SALE_UNIT_SEASON_MISSING_YIELD:
+    'Season is missing actual yield; cannot allocate sale units until harvested total is recorded',
+  SALE_UNIT_UNIT_MISMATCH: 'Sale unit measurement unit must match season yield unit',
+  SALE_UNIT_LOT_UNIT_INVALID: 'Sale lot unit must be one of: tấn, kg, gam (g)',
+  SALE_UNIT_SEASON_UNIT_NOT_CONVERTIBLE:
+    'Season yield unit must be convertible to kg (e.g. kg, yến, tạ, tấn, g) to allocate sale lots',
+  SALE_UNIT_EXCEEDS_ACTUAL_YIELD:
+    'Requested quantity exceeds remaining harvested yield for this season',
+
+  SEASON_MISSING_YIELD_FOR_ANCHOR:
+    'Season actual yield and yield unit are required before sealing/anchoring',
+
+  TRACE_RESOLVE_SUCCESS: 'Trace resolved successfully',
+  TRACE_DETAIL_SUCCESS: 'Get trace detail successfully',
+  TRACE_VERIFY_SUCCESS: 'Verify trace successfully',
+  TRACE_CODE_REQUIRED: 'trace code is required',
+  TRACE_CODE_NOT_FOUND: 'Trace code not found'
 } as const
 
 export default USER_MESSAGES

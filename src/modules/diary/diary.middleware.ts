@@ -12,6 +12,13 @@ const eventTypeValues = [
   'other'
 ]
 
+// Farmer không được trực tiếp tạo diary với event_type=inspection;
+// chỉ cooperative đi qua endpoint /inspection mới được.
+const farmerAllowedEventTypes = eventTypeValues
+
+// Cho phép tất cả event_type khi filter list (bao gồm inspection).
+const filterableEventTypes = [...eventTypeValues, 'inspection']
+
 export const diaryIdValidator = validate(
   checkSchema(
     {
@@ -97,8 +104,8 @@ export const createDiaryValidator = validate(
       },
       eventType: {
         notEmpty: true,
-        isIn: { options: [eventTypeValues] },
-        errorMessage: `eventType must be one of: ${eventTypeValues.join(', ')}`
+        isIn: { options: [farmerAllowedEventTypes] },
+        errorMessage: `eventType must be one of: ${farmerAllowedEventTypes.join(', ')}`
       },
       eventDate: {
         notEmpty: true,
@@ -128,8 +135,8 @@ export const updateDiaryValidator = validate(
     {
       eventType: {
         optional: true,
-        isIn: { options: [eventTypeValues] },
-        errorMessage: `eventType must be one of: ${eventTypeValues.join(', ')}`
+        isIn: { options: [farmerAllowedEventTypes] },
+        errorMessage: `eventType must be one of: ${farmerAllowedEventTypes.join(', ')}`
       },
       eventDate: {
         optional: true,
@@ -170,8 +177,8 @@ export const getDiariesQueryValidator = validate(
       },
       eventType: {
         optional: true,
-        isIn: { options: [eventTypeValues] },
-        errorMessage: `eventType must be one of: ${eventTypeValues.join(', ')}`
+        isIn: { options: [filterableEventTypes] },
+        errorMessage: `eventType must be one of: ${filterableEventTypes.join(', ')}`
       },
       page: {
         optional: true,

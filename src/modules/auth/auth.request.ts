@@ -36,6 +36,11 @@ export interface ForgotPasswordRequestBody {
   email: string
 }
 
+export interface PatchMeRequestBody {
+  /** URL ảnh đại diện (thường từ POST /upload). Gửi null hoặc chuỗi rỗng để xóa. */
+  avatarUrl?: string | null
+}
+
 export interface VerifyForgotPasswordRequestBody {
   forgot_password_token: string
 }

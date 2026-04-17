@@ -145,6 +145,55 @@ export const rejectMembershipController = async (
   })
 }
 
+export const listManagedFarmSeasonsController = async (
+  req: Request<{ farmId: string }>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const { seasons, farm } = await cooperativeService.listSeasonsOfManagedFarm({
+    cooperativeUserId: user_id,
+    farmId: req.params.farmId
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_SEASONS_SUCCESS,
+    data: {
+      farm: farm
+        ? {
+            id: farm.id,
+            name: farm.name,
+            province: farm.province,
+            district: farm.district,
+            ward: farm.ward,
+            inCooperative: farm.in_cooperative,
+            owner: {
+              id: farm.users.id,
+              fullName: farm.users.full_name,
+              email: farm.users.email,
+              phone: farm.users.phone
+            }
+          }
+        : null,
+      seasons: seasons.map((s) => ({
+        id: s.id,
+        farmId: s.farm_id,
+        code: s.code,
+        cropName: s.crop_name,
+        startDate: s.start_date,
+        harvestStartDate: s.harvest_start_date,
+        harvestEndDate: s.harvest_end_date,
+        status: s.status,
+        sealedAt: s.sealed_at,
+        createdAt: s.created_at,
+        updatedAt: s.updated_at,
+        diaryCount: s._count.diary_entries
+      }))
+    }
+  })
+}
+
 export const requestJoinCooperativeController = async (
   req: Request<ParamsDictionary, unknown, RequestJoinCooperativeBody>,
   res: Response,

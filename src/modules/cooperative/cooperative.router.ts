@@ -12,6 +12,7 @@ import {
 import {
   approveMembershipController,
   listHtxController,
+  listManagedFarmSeasonsController,
   listMyMembershipsController,
   rejectMembershipController,
   requestJoinCooperativeController
@@ -81,6 +82,18 @@ cooperativeRouter.post(
   membershipIdParamValidator,
   rejectMembershipBodyValidator,
   wrapAsync(rejectMembershipController)
+)
+
+/**
+ * @desc List seasons of a farm this HTX is approved-member of (for inspection UI)
+ * @route GET /cooperative/farms/:farmId/seasons
+ * @access private (cooperative role)
+ */
+cooperativeRouter.get(
+  '/farms/:farmId/seasons',
+  accessTokenValidator,
+  cooperativeRoleValidator,
+  wrapAsync(listManagedFarmSeasonsController)
 )
 
 export default cooperativeRouter

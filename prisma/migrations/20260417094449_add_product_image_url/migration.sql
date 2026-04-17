@@ -1,8 +1,8 @@
 -- DropIndex
-DROP INDEX "idx_chat_conv_p1_updated";
+DROP INDEX IF EXISTS "idx_chat_conv_p1_updated";
 
 -- DropIndex
-DROP INDEX "idx_chat_conv_p2_updated";
+DROP INDEX IF EXISTS "idx_chat_conv_p2_updated";
 
 -- AlterTable
 ALTER TABLE "chat_conversations" RENAME CONSTRAINT "pk_chat_conversations" TO "chat_conversations_pkey";

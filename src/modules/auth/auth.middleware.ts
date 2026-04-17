@@ -299,6 +299,25 @@ const requireRoles = (roles: user_role[]) => {
   }
 }
 
+export const patchMeValidator = validate(
+  checkSchema(
+    {
+      avatarUrl: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === null || value === undefined) return true
+            if (typeof value !== 'string') return false
+            return value.trim().length <= 2048
+          },
+          errorMessage: USER_MESSAGES.AVATAR_URL_INVALID
+        }
+      }
+    },
+    ['body']
+  )
+)
+
 export const requireConsumer = requireRoles(['consumer'])
 export const requireFarmer = requireRoles(['farmer'])
 export const requireCooperative = requireRoles(['cooperative'])
