@@ -5,6 +5,7 @@ import {
   getMeController,
   loginController,
   logoutController,
+  patchMeController,
   refreshTokenController,
   registerController,
   resetPasswordController,
@@ -14,6 +15,7 @@ import {
   accessTokenValidator,
   forgotPasswordValidator,
   loginValidator,
+  patchMeValidator,
   refreshTokenValidator,
   registerValidator,
   resetPasswordValidator,
@@ -35,6 +37,18 @@ authRouter.post('/login', loginValidator, wrapAsync(loginController))
  * @access private
  */
 authRouter.get('/me', accessTokenValidator, wrapAsync(getMeController))
+
+/**
+ * @desc Update current user profile (e.g. avatarUrl from image upload)
+ * @route PATCH /auth/me
+ * @access private
+ */
+authRouter.patch(
+  '/me',
+  accessTokenValidator,
+  patchMeValidator,
+  wrapAsync(patchMeController)
+)
 
 // register
 /**

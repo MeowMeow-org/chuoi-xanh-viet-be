@@ -9,6 +9,7 @@ import {
   getMyShopController,
   getShopsController,
   getAvailableSeasonsController,
+  getAvailableSaleUnitsController,
   addProductController,
   getProductsController,
   getPublicProductsController,
@@ -84,6 +85,19 @@ shopRouter.get(
  * @access private
  */
 shopRouter.get('/', accessTokenValidator, getShopsQueryValidator, wrapAsync(getShopsController))
+
+/**
+ * @desc sale units on shop's farm that can still be listed (active, not yet a product)
+ * @route GET /shop/:shop_id/available-sale-units
+ * @access private (farmer only)
+ */
+shopRouter.get(
+  '/:shop_id/available-sale-units',
+  accessTokenValidator,
+  requireFarmer,
+  shopIdParamValidator,
+  wrapAsync(getAvailableSaleUnitsController)
+)
 
 /**
  * @desc get shop detail

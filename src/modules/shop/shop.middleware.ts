@@ -138,13 +138,13 @@ export const productIdParamValidator = validate(
 export const addProductBodyValidator = validate(
   checkSchema(
     {
-      season_id: {
-        isUUID: { errorMessage: 'season_id must be a valid UUID' }
+      sale_unit_id: {
+        isUUID: { errorMessage: 'sale_unit_id must be a valid UUID' }
       },
       name: {
+        optional: true,
         isString: true,
         trim: true,
-        notEmpty: { errorMessage: 'Product name is required' },
         isLength: { options: { max: 180 }, errorMessage: 'name must be at most 180 characters' }
       },
       description: {
@@ -166,6 +166,16 @@ export const addProductBodyValidator = validate(
         optional: true,
         isFloat: { options: { min: 0 }, errorMessage: 'stock_qty must be >= 0' },
         toFloat: true
+      },
+      image_url: {
+        optional: true,
+        custom: {
+          options: (value: unknown) =>
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim().length <= 512),
+          errorMessage: 'image_url must be a string at most 512 characters or null'
+        }
       }
     },
     ['body']

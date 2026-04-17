@@ -287,6 +287,79 @@ class CooperativeService {
     return { membershipId }
   }
 
+  /**
+   * List seasons of a farm mà cooperative đang quản lý (approved member).
+   * Dùng cho trang inspection / overview của HTX.
+   */
+  listSeasonsOfManagedFarm = async ({
+    cooperativeUserId,
+    farmId
+  }: {
+    cooperativeUserId: string
+    farmId: string
+  }) => {
+    const membership = await prisma.cooperative_members.findFirst({
+      where: {
+        cooperative_user_id: cooperativeUserId,
+        farm_id: farmId,
+        status: 'approved'
+      },
+      select: { id: true }
+    })
+
+    if (membership == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.FORBIDDEN,
+        message: USER_MESSAGES.INSPECTION_FORBIDDEN_NOT_MEMBER
+      })
+    }
+
+    const seasons = await prisma.seasons.findMany({
+      where: { farm_id: farmId },
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        farm_id: true,
+        code: true,
+        crop_name: true,
+        start_date: true,
+        harvest_start_date: true,
+        harvest_end_date: true,
+        status: true,
+        sealed_at: true,
+        created_at: true,
+        updated_at: true,
+        _count: {
+          select: {
+            diary_entries: true
+          }
+        }
+      }
+    })
+
+    const farm = await prisma.farms.findUnique({
+      where: { id: farmId },
+      select: {
+        id: true,
+        name: true,
+        province: true,
+        district: true,
+        ward: true,
+        in_cooperative: true,
+        users: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            phone: true
+          }
+        }
+      }
+    })
+
+    return { seasons, farm }
+  }
+
   listMembershipsForCooperative = async ({
     cooperativeUserId,
     status,

@@ -23,6 +23,7 @@ const productSelect = {
   id: true,
   shop_id: true,
   season_id: true,
+  sale_unit_id: true,
   image_url: true,
   name: true,
   description: true,
@@ -265,6 +266,57 @@ class ShopService {
     })
   }
 
+  /**
+   * Lô bán (đã phân + QR) thuộc đúng nông trại của gian hàng, còn active và chưa gắn sản phẩm chợ.
+   */
+  getAvailableSaleUnitsForShop = async ({ shopId, userId }: { shopId: string; userId: string }) => {
+    await this.ensureShopOwner(shopId, userId)
+
+    const shop = await prisma.shops.findUnique({
+      where: { id: shopId },
+      select: { farm_id: true }
+    })
+    if (shop == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN
+      })
+    }
+
+    const listed = await prisma.products.findMany({
+      where: { sale_unit_id: { not: null } },
+      select: { sale_unit_id: true }
+    })
+    const listedIds = listed.map((p) => p.sale_unit_id).filter((id): id is string => id != null)
+
+    const where: Prisma.sale_unitsWhereInput = {
+      status: 'active',
+      seasons: {
+        farm_id: shop.farm_id,
+        farms: { owner_user_id: userId }
+      }
+    }
+    if (listedIds.length > 0) {
+      where.id = { notIn: listedIds }
+    }
+
+    return prisma.sale_units.findMany({
+      where,
+      select: {
+        id: true,
+        code: true,
+        short_code: true,
+        quantity: true,
+        unit: true,
+        qr_url: true,
+        status: true,
+        created_at: true,
+        seasons: { select: { id: true, code: true, crop_name: true } }
+      },
+      orderBy: { created_at: 'desc' }
+    })
+  }
+
   addProduct = async ({
     shopId,
     userId,
@@ -276,36 +328,105 @@ class ShopService {
   }) => {
     await this.ensureShopOwner(shopId, userId)
 
-    const season = await prisma.seasons.findFirst({
-      where: { id: payload.season_id, farms: { owner_user_id: userId } },
-      select: {
-        id: true,
-        farms: { select: { province: true, district: true, ward: true, address: true } }
-      }
+    const shop = await prisma.shops.findUnique({
+      where: { id: shopId },
+      select: { farm_id: true }
     })
-    if (!season) {
+    if (shop == null) {
       throw new ErrorWithStatus({
-        status: HTTP_STATUS.FORBIDDEN,
-        message: USER_MESSAGES.SEASON_NOT_OWNED_BY_FARMER
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN
       })
     }
 
-    const addressParts = [season.farms.address, season.farms.ward, season.farms.district, season.farms.province]
-      .filter(Boolean)
-      .join(', ')
-    const fullDescription = payload.description
-      ? `${payload.description}\n\n📍 Địa chỉ: ${addressParts}`
-      : `📍 Địa chỉ: ${addressParts}`
+    const duplicate = await prisma.products.findFirst({
+      where: { sale_unit_id: payload.sale_unit_id },
+      select: { id: true }
+    })
+    if (duplicate != null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.SALE_UNIT_ALREADY_LISTED
+      })
+    }
+
+    const saleUnit = await prisma.sale_units.findFirst({
+      where: {
+        id: payload.sale_unit_id,
+        seasons: {
+          farm_id: shop.farm_id,
+          farms: { owner_user_id: userId }
+        }
+      },
+      select: {
+        id: true,
+        code: true,
+        short_code: true,
+        quantity: true,
+        unit: true,
+        qr_url: true,
+        status: true,
+        season_id: true,
+        seasons: {
+          select: {
+            farms: { select: { province: true, district: true, ward: true, address: true } }
+          }
+        }
+      }
+    })
+
+    if (saleUnit == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.FORBIDDEN,
+        message: USER_MESSAGES.SALE_UNIT_NOT_AVAILABLE_FOR_SHOP
+      })
+    }
+
+    if (saleUnit.status !== 'active') {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.SALE_UNIT_NOT_ACTIVE
+      })
+    }
+
+    const farm = saleUnit.seasons.farms
+    const addressParts = [farm.address, farm.ward, farm.district, farm.province].filter(Boolean).join(', ')
+    const lotLabel = (saleUnit.short_code?.trim() || saleUnit.code).trim()
+    const name =
+      payload.name != null && payload.name.trim().length > 0 ? payload.name.trim() : `Lô ${lotLabel}`
+
+    const unit =
+      payload.unit != null && payload.unit.trim().length > 0 ? payload.unit.trim() : saleUnit.unit
+
+    const stockQty =
+      payload.stock_qty !== undefined && payload.stock_qty !== null
+        ? payload.stock_qty
+        : Number(saleUnit.quantity)
+
+    const userDesc = payload.description?.trim()
+    const traceLine = saleUnit.qr_url ? `\n\n🔗 Truy xuất lô: ${saleUnit.qr_url}` : ''
+    const fullDescription = userDesc
+      ? `${userDesc}\n\n📍 Địa chỉ: ${addressParts}${traceLine}`
+      : `📍 Địa chỉ: ${addressParts}${traceLine}`
+
+    const imageUrl =
+      payload.image_url === undefined || payload.image_url === null
+        ? null
+        : typeof payload.image_url === 'string'
+          ? payload.image_url.trim() || null
+          : null
 
     return prisma.products.create({
       data: {
         shop_id: shopId,
-        season_id: payload.season_id,
-        name: payload.name,
+        season_id: saleUnit.season_id,
+        sale_unit_id: saleUnit.id,
+        name,
         description: fullDescription,
         price: payload.price,
-        unit: payload.unit ?? 'kg',
-        stock_qty: payload.stock_qty ?? 0
+        unit: unit ?? 'kg',
+        stock_qty: stockQty,
+        image_url: imageUrl
       },
       select: productSelect
     })
@@ -326,7 +447,8 @@ class ShopService {
         take: safeLimit,
         select: {
           ...productSelect,
-          seasons: { select: { id: true, code: true, crop_name: true } }
+          seasons: { select: { id: true, code: true, crop_name: true } },
+          sale_unit: { select: { id: true, code: true, short_code: true, qr_url: true } }
         }
       }),
       prisma.products.count({ where })
@@ -416,7 +538,8 @@ class ShopService {
               }
             }
           },
-          seasons: { select: { id: true, code: true, crop_name: true } }
+          seasons: { select: { id: true, code: true, crop_name: true } },
+          sale_unit: { select: { id: true, code: true, short_code: true, qr_url: true } }
         }
       }),
       prisma.products.count({ where })
@@ -472,7 +595,8 @@ class ShopService {
             harvest_end_date: true,
             status: true
           }
-        }
+        },
+        sale_unit: { select: { id: true, code: true, short_code: true, qr_url: true } }
       }
     })
 

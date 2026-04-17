@@ -5,6 +5,7 @@ import type {
   RefreshTokenRequestBody,
   LoginRequestBody,
   LogoutRequestBody,
+  PatchMeRequestBody,
   RegisterRequestBody,
   ResetPasswordRequestBody,
   TokenPayLoad,
@@ -35,7 +36,8 @@ export const loginController = async (
         email: response.user.email,
         phone: response.user.phone,
         role: response.user.role,
-        status: response.user.status
+        status: response.user.status,
+        avatarUrl: response.user.avatar_url ?? null
       }
     }
   })
@@ -54,7 +56,45 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
       email: user.email,
       phone: user.phone,
       role: user.role,
-      status: user.status
+      status: user.status,
+      avatarUrl: user.avatar_url ?? null
+    }
+  })
+}
+
+export const patchMeController = async (
+  req: Request<ParamsDictionary, unknown, PatchMeRequestBody>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const body = req.body
+  const avatarRaw =
+    body.avatarUrl === undefined
+      ? undefined
+      : body.avatarUrl === null
+        ? null
+        : typeof body.avatarUrl === 'string'
+          ? body.avatarUrl.trim() === ''
+            ? null
+            : body.avatarUrl.trim()
+          : undefined
+
+  const user = await authService.updateMe(user_id, {
+    ...(avatarRaw !== undefined ? { avatar_url: avatarRaw } : {})
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.UPDATE_PROFILE_SUCCESS,
+    data: {
+      id: user.id,
+      fullName: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      avatarUrl: user.avatar_url ?? null
     }
   })
 }
@@ -79,7 +119,8 @@ export const registerController = async (
         email: response.user.email,
         phone: response.user.phone,
         role: response.user.role,
-        status: response.user.status
+        status: response.user.status,
+        avatarUrl: response.user.avatar_url ?? null
       }
     }
   })

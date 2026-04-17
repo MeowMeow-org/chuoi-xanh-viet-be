@@ -21,12 +21,18 @@ export interface GetShopsQuery {
 }
 
 export interface AddProductRequestBody {
-  season_id: string
-  name: string
+  /** Lô đã phân (QR); bắt buộc — mùa vụ & tồn kho lấy từ lô */
+  sale_unit_id: string
+  /** Tuỳ chọn; mặc định BE đặt tên theo mã lô */
+  name?: string
   description?: string
   price: number
+  /** Tuỳ chọn; mặc định theo đơn vị lô */
   unit?: string
+  /** Tuỳ chọn; mặc định theo số lượng lô */
   stock_qty?: number
+  /** URL ảnh (vd. từ POST /upload), tối đa 512 ký tự */
+  image_url?: string | null
 }
 
 export interface GetPublicProductsQuery {

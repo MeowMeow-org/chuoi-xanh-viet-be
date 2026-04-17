@@ -1,4 +1,4 @@
-import type { account_status, user_role } from '@prisma/client'
+import type { Prisma, account_status, user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
@@ -117,7 +117,8 @@ class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        status: user.status
+        status: user.status,
+        avatar_url: user.avatar_url ?? null
       }
     }
   }
@@ -170,7 +171,8 @@ class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        status: user.status
+        status: user.status,
+        avatar_url: user.avatar_url ?? null
       }
     }
   }
@@ -261,7 +263,17 @@ class AuthService {
     }
   }
 
-  getMe = async (user_id: string) => {
+  getMe = async (
+    user_id: string
+  ): Promise<{
+    id: string
+    full_name: string
+    email: string | null
+    phone: string
+    role: user_role
+    status: account_status
+    avatar_url: string | null
+  }> => {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
       select: {
@@ -270,7 +282,8 @@ class AuthService {
         email: true,
         phone: true,
         role: true,
-        status: true
+        status: true,
+        avatar_url: true
       }
     })
 
@@ -281,7 +294,45 @@ class AuthService {
       })
     }
 
-    return user
+    return {
+      ...user,
+      avatar_url: user.avatar_url ?? null
+    }
+  }
+
+  updateMe = async (user_id: string, payload: { avatar_url?: string | null }) => {
+    const data: Prisma.usersUpdateInput = {}
+
+    if (payload.avatar_url !== undefined) {
+      const raw = payload.avatar_url
+      if (raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+        data.avatar_url = null
+      } else if (typeof raw === 'string') {
+        const v = raw.trim()
+        if (v.length > 2048) {
+          throw new ErrorWithStatus({
+            status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            message: USER_MESSAGES.AVATAR_URL_INVALID
+          })
+        }
+        data.avatar_url = v
+      } else {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.AVATAR_URL_INVALID
+        })
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      return this.getMe(user_id)
+    }
+
+    await prisma.users.update({
+      where: { id: user_id },
+      data
+    })
+    return this.getMe(user_id)
   }
 
   findUserByEmail = async (email: string) => {

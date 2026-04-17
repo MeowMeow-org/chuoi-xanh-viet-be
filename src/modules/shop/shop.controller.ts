@@ -118,6 +118,24 @@ export const getAvailableSeasonsController = async (req: Request, res: Response,
   })
 }
 
+export const getAvailableSaleUnitsController = async (
+  req: Request<{ shop_id: string }>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const rows = await shopService.getAvailableSaleUnitsForShop({
+    shopId: req.params.shop_id,
+    userId: user_id
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_AVAILABLE_SALE_UNITS_SUCCESS,
+    data: rows
+  })
+}
+
 export const addProductController = async (
   req: Request<{ shop_id: string }, unknown, AddProductRequestBody>,
   res: Response,
