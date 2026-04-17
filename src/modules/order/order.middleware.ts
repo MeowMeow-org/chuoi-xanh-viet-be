@@ -1,0 +1,108 @@
+import { checkSchema } from 'express-validator'
+import { validate } from '~/utils/validation'
+
+export const createOrderValidator = validate(
+  checkSchema(
+    {
+      shop_id: {
+        isUUID: { errorMessage: 'shop_id must be a valid UUID' },
+        notEmpty: { errorMessage: 'shop_id is required' }
+      },
+      items: {
+        isArray: {
+          options: { min: 1 },
+          errorMessage: 'items must be a non-empty array'
+        }
+      },
+      'items.*.product_id': {
+        isUUID: { errorMessage: 'product_id must be a valid UUID' }
+      },
+      'items.*.qty': {
+        isFloat: {
+          options: { min: 0.01 },
+          errorMessage: 'qty must be greater than 0'
+        },
+        toFloat: true
+      },
+      shipping_name: {
+        isString: true,
+        trim: true,
+        notEmpty: { errorMessage: 'shipping_name is required' },
+        isLength: { options: { max: 120 } }
+      },
+      shipping_phone: {
+        isString: true,
+        trim: true,
+        notEmpty: { errorMessage: 'shipping_phone is required' },
+        isLength: { options: { max: 20 } }
+      },
+      shipping_address: {
+        isString: true,
+        trim: true,
+        notEmpty: { errorMessage: 'shipping_address is required' }
+      },
+      payment_method: {
+        isIn: {
+          options: [['cod', 'vnpay', 'payos']],
+          errorMessage: 'payment_method must be one of cod, vnpay, payos'
+        }
+      },
+      note: {
+        optional: true,
+        isString: true,
+        trim: true
+      }
+    },
+    ['body']
+  )
+)
+
+export const orderIdParamValidator = validate(
+  checkSchema(
+    {
+      order_id: {
+        isUUID: { errorMessage: 'order_id must be a valid UUID' }
+      }
+    },
+    ['params']
+  )
+)
+
+export const getOrdersQueryValidator = validate(
+  checkSchema(
+    {
+      page: {
+        optional: true,
+        isInt: { options: { min: 1 } },
+        toInt: true
+      },
+      limit: {
+        optional: true,
+        isInt: { options: { min: 1, max: 100 } },
+        toInt: true
+      },
+      status: {
+        optional: true,
+        isIn: {
+          options: [['pending', 'confirmed', 'shipping', 'delivered', 'cancelled']],
+          errorMessage: 'Invalid status'
+        }
+      }
+    },
+    ['query']
+  )
+)
+
+export const updateOrderStatusValidator = validate(
+  checkSchema(
+    {
+      status: {
+        isIn: {
+          options: [['confirmed', 'shipping', 'delivered', 'cancelled']],
+          errorMessage: 'status must be one of confirmed, shipping, delivered, cancelled'
+        }
+      }
+    },
+    ['body']
+  )
+)

@@ -28,3 +28,11 @@ export interface AddProductRequestBody {
   unit?: string
   stock_qty?: number
 }
+
+export interface GetPublicProductsQuery {
+  page?: string
+  limit?: string
+  searchTerm?: string
+  province?: string
+  shopId?: string
+}

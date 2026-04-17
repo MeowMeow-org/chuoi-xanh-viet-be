@@ -120,7 +120,23 @@ const USER_MESSAGES = {
   GET_AVAILABLE_SEASONS_SUCCESS: 'Get available seasons successfully',
   ADD_PRODUCT_SUCCESS: 'Add product successfully',
   GET_PRODUCTS_SUCCESS: 'Get products successfully',
-  SEASON_NOT_OWNED_BY_FARMER: 'Season does not belong to your farm'
+  GET_PRODUCT_DETAIL_SUCCESS: 'Get product detail successfully',
+  PRODUCT_NOT_FOUND: 'Product not found',
+  SEASON_NOT_OWNED_BY_FARMER: 'Season does not belong to your farm',
+  CREATE_ORDER_SUCCESS: 'Create order successfully',
+  GET_ORDERS_SUCCESS: 'Get orders successfully',
+  GET_ORDER_DETAIL_SUCCESS: 'Get order detail successfully',
+  CANCEL_ORDER_SUCCESS: 'Cancel order successfully',
+  UPDATE_ORDER_STATUS_SUCCESS: 'Update order status successfully',
+  ORDER_NOT_FOUND: 'Order not found',
+  ORDER_FORBIDDEN: 'You do not have permission to access this order',
+  ORDER_ITEMS_REQUIRED: 'Order must contain at least one item',
+  ORDER_ITEMS_SAME_SHOP: 'All items in an order must belong to the same shop',
+  ORDER_PRODUCT_NOT_AVAILABLE: 'Some products are no longer available',
+  ORDER_INSUFFICIENT_STOCK: 'Insufficient stock for one or more products',
+  ORDER_CANNOT_CANCEL: 'Only pending orders can be cancelled',
+  ORDER_INVALID_STATUS_TRANSITION: 'Invalid order status transition',
+  FORBIDDEN_NOT_CONSUMER: 'Only consumer accounts can place orders'
 } as const
 
 export default USER_MESSAGES

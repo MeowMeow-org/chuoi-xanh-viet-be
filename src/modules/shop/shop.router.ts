@@ -10,7 +10,9 @@ import {
   getShopsController,
   getAvailableSeasonsController,
   addProductController,
-  getProductsController
+  getProductsController,
+  getPublicProductsController,
+  getPublicProductByIdController
 } from './shop.controller'
 import {
   suggestShopQueryValidator,
@@ -18,7 +20,9 @@ import {
   updateShopBodyValidator,
   shopIdParamValidator,
   getShopsQueryValidator,
-  addProductBodyValidator
+  addProductBodyValidator,
+  getPublicProductsQueryValidator,
+  productIdParamValidator
 } from './shop.middleware'
 
 const shopRouter = Router()
@@ -49,6 +53,30 @@ shopRouter.get('/mine', accessTokenValidator, requireFarmer, wrapAsync(getMyShop
  * @access private (farmer only)
  */
 shopRouter.get('/available-seasons', accessTokenValidator, requireFarmer, wrapAsync(getAvailableSeasonsController))
+
+/**
+ * @desc list active products across all shops (consumer marketplace)
+ * @route GET /shop/products?page=&limit=&searchTerm=&province=&shopId=
+ * @access private
+ */
+shopRouter.get(
+  '/products',
+  accessTokenValidator,
+  getPublicProductsQueryValidator,
+  wrapAsync(getPublicProductsController)
+)
+
+/**
+ * @desc public product detail with shop + farm origin + season
+ * @route GET /shop/products/:product_id
+ * @access private
+ */
+shopRouter.get(
+  '/products/:product_id',
+  accessTokenValidator,
+  productIdParamValidator,
+  wrapAsync(getPublicProductByIdController)
+)
 
 /**
  * @desc get all shops (search + pagination)
