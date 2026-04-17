@@ -6,8 +6,9 @@ import type { TokenPayLoad } from '../auth/auth.request'
 import cooperativeService from './cooperative.service'
 import type {
   GetHtxListQuery,
-  RegisterFarmerApplicantBody,
-  RejectMembershipBody
+  GetMyMembershipsQuery,
+  RejectMembershipBody,
+  RequestJoinCooperativeBody
 } from './cooperative.request'
 
 export const listHtxController = async (
@@ -44,29 +45,60 @@ export const listHtxController = async (
   })
 }
 
-export const registerFarmerApplicantController = async (
-  req: Request<ParamsDictionary, unknown, RegisterFarmerApplicantBody>,
+export const listMyMembershipsController = async (
+  req: Request<ParamsDictionary, unknown, unknown, GetMyMembershipsQuery>,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
-  const result = await cooperativeService.registerFarmerApplicant(req.body)
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const page =
+    req.query.page !== undefined ? Number(req.query.page) : undefined
+  const limit =
+    req.query.limit !== undefined ? Number(req.query.limit) : undefined
+  const status =
+    typeof req.query.status === 'string' ? req.query.status : undefined
+
+  const { items, meta } = await cooperativeService.listMembershipsForCooperative(
+    {
+      cooperativeUserId: user_id,
+      status: status as
+        | 'pending'
+        | 'approved'
+        | 'rejected'
+        | 'removed'
+        | undefined,
+      page,
+      limit
+    }
+  )
 
   return res.sendResponse({
-    statusCode: HTTP_STATUS.CREATED,
-    message: USER_MESSAGES.REGISTER_FARMER_APPLICANT_SUCCESS,
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_COOPERATIVE_MEMBERSHIPS_SUCCESS,
     data: {
-      accessToken: result.access_token,
-      refreshToken: result.refresh_token,
-      user: {
-        id: result.user.id,
-        fullName: result.user.full_name,
-        email: result.user.email,
-        phone: result.user.phone,
-        role: result.user.role,
-        status: result.user.status
-      },
-      farm: result.farm,
-      membership: result.membership
+      items: items.map((row) => ({
+        id: row.id,
+        status: row.status,
+        createdAt: row.created_at,
+        verifiedAt: row.verified_at,
+        note: row.note,
+        farmer: {
+          id: row.farmer_user.id,
+          fullName: row.farmer_user.full_name,
+          email: row.farmer_user.email,
+          phone: row.farmer_user.phone,
+          role: row.farmer_user.role
+        },
+        farm: {
+          id: row.farms.id,
+          name: row.farms.name,
+          province: row.farms.province,
+          district: row.farms.district,
+          ward: row.farms.ward,
+          inCooperative: row.farms.in_cooperative
+        }
+      })),
+      meta
     }
   })
 }
@@ -110,5 +142,29 @@ export const rejectMembershipController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.COOPERATIVE_MEMBERSHIP_REJECT_SUCCESS,
     data: null
+  })
+}
+
+export const requestJoinCooperativeController = async (
+  req: Request<ParamsDictionary, unknown, RequestJoinCooperativeBody>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const row = await cooperativeService.requestJoinCooperative({
+    farmerUserId: user_id,
+    cooperativeUserId: req.body.cooperative_user_id,
+    farmId: req.body.farm_id
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.COOPERATIVE_JOIN_REQUEST_SUCCESS,
+    data: {
+      membershipId: row.id,
+      status: row.status,
+      cooperativeUserId: row.cooperative_user_id,
+      farmId: row.farm_id
+    }
   })
 }

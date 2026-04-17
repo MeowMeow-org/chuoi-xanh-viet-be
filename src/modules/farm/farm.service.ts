@@ -22,6 +22,19 @@ const farmSelect = {
   updated_at: true
 } as const
 
+/** Danh sách nông trại của tôi: kèm trạng thái đơn HTX (tối đa 1 bản ghi / farm). */
+const farmSelectMine = {
+  ...farmSelect,
+  cooperative_members: {
+    select: {
+      status: true,
+      cooperative_user: { select: { full_name: true } }
+    },
+    take: 1,
+    orderBy: { created_at: 'desc' as const }
+  }
+} satisfies Prisma.farmsSelect
+
 class FarmService {
   private async ensureFarmOwner(farmId: string, userId: string) {
     const farm = await prisma.farms.findFirst({
@@ -219,7 +232,7 @@ class FarmService {
         orderBy: { created_at: 'desc' },
         skip,
         take: safeLimit,
-        select: farmSelect
+        select: farmSelectMine
       }),
       prisma.farms.count({ where })
     ])

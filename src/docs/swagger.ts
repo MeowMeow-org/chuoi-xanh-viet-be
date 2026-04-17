@@ -594,10 +594,10 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [farmId, code, cropName, startDate]
+ *             required: [farmId, cropName, startDate]
  *             properties:
  *               farmId: { type: string, format: uuid }
- *               code: { type: string, example: SSN-2026-001 }
+ *               code: { type: string, description: 'Optional; server generates 6 letters + 6 digits if omitted', example: ABCDEF042891 }
  *               cropName: { type: string, example: Chuoi Nam My }
  *               startDate: { type: string, format: date, example: '2026-04-15' }
  *               harvestStartDate: { type: string, format: date, nullable: true }
@@ -1376,36 +1376,6 @@
  *     responses:
  *       200:
  *         description: Paginated list of cooperatives
- *       422:
- *         description: Validation error
- *
- * /v1/api/cooperative/register-farmer-applicant:
- *   post:
- *     summary: Register as consumer with farm and pending HTX membership
- *     tags: [Cooperative]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               [email, password, confirm_password, full_name, phone, cooperative_user_id, farm_name]
- *             properties:
- *               email: { type: string, format: email }
- *               password: { type: string }
- *               confirm_password: { type: string }
- *               full_name: { type: string }
- *               phone: { type: string }
- *               cooperative_user_id: { type: string, format: uuid }
- *               farm_name: { type: string, maxLength: 180 }
- *     responses:
- *       201:
- *         description: Created; returns tokens and membership pending
- *       400:
- *         description: Invalid cooperative id
- *       409:
- *         description: Email or phone already exists
  *       422:
  *         description: Validation error
  *
