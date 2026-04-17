@@ -8,7 +8,8 @@ import type {
   CreateShopRequestBody,
   UpdateShopRequestBody,
   GetShopsQuery,
-  AddProductRequestBody
+  AddProductRequestBody,
+  GetPublicProductsQuery
 } from './shop.request'
 import type { TokenPayLoad } from '../auth/auth.request'
 
@@ -150,5 +151,39 @@ export const getProductsController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_PRODUCTS_SUCCESS,
     data: result
+  })
+}
+
+export const getPublicProductsController = async (
+  req: Request<ParamsDictionary, unknown, unknown, GetPublicProductsQuery>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const page = req.query.page !== undefined ? Number(req.query.page) : undefined
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
+  const searchTerm = typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
+  const province = typeof req.query.province === 'string' ? req.query.province : undefined
+  const shopId = typeof req.query.shopId === 'string' ? req.query.shopId : undefined
+
+  const result = await shopService.getPublicProducts({ page, limit, searchTerm, province, shopId })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_PRODUCTS_SUCCESS,
+    data: result
+  })
+}
+
+export const getPublicProductByIdController = async (
+  req: Request<{ product_id: string }>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const product = await shopService.getPublicProductById(req.params.product_id)
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_PRODUCT_DETAIL_SUCCESS,
+    data: product
   })
 }

@@ -98,6 +98,43 @@ export const getShopsQueryValidator = validate(
   )
 )
 
+export const getPublicProductsQueryValidator = validate(
+  checkSchema(
+    {
+      page: {
+        optional: true,
+        isInt: { options: { min: 1 } },
+        toInt: true,
+        errorMessage: 'page must be a positive integer'
+      },
+      limit: {
+        optional: true,
+        isInt: { options: { min: 1, max: 100 } },
+        toInt: true,
+        errorMessage: 'limit must be between 1 and 100'
+      },
+      searchTerm: { optional: true, isString: true, trim: true },
+      province: { optional: true, isString: true, trim: true },
+      shopId: {
+        optional: true,
+        isUUID: { errorMessage: 'shopId must be a valid UUID' }
+      }
+    },
+    ['query']
+  )
+)
+
+export const productIdParamValidator = validate(
+  checkSchema(
+    {
+      product_id: {
+        isUUID: { errorMessage: 'product_id must be a valid UUID' }
+      }
+    },
+    ['params']
+  )
+)
+
 export const addProductBodyValidator = validate(
   checkSchema(
     {

@@ -23,6 +23,7 @@ const productSelect = {
   id: true,
   shop_id: true,
   season_id: true,
+  image_url: true,
   name: true,
   description: true,
   price: true,
@@ -343,6 +344,146 @@ class ShopService {
         nextPage: totalPages > 0 && safePage < totalPages ? safePage + 1 : null
       }
     }
+  }
+
+  // ─── Public product browsing (consumer marketplace) ──────
+
+  getPublicProducts = async ({
+    page = 1,
+    limit = 20,
+    searchTerm,
+    province,
+    shopId
+  }: {
+    page?: number
+    limit?: number
+    searchTerm?: string
+    province?: string
+    shopId?: string
+  }) => {
+    const safePage = Math.max(1, page)
+    const safeLimit = Math.min(100, Math.max(1, limit))
+    const skip = (safePage - 1) * safeLimit
+
+    const term = searchTerm?.trim()
+    const andFilters: Prisma.productsWhereInput[] = [
+      { is_active: true },
+      { shops: { status: 'open' } }
+    ]
+
+    if (shopId) andFilters.push({ shop_id: shopId })
+
+    if (term && term.length > 0) {
+      andFilters.push({
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { description: { contains: term, mode: 'insensitive' } },
+          { shops: { name: { contains: term, mode: 'insensitive' } } }
+        ]
+      })
+    }
+
+    if (province && province.trim().length > 0) {
+      andFilters.push({
+        shops: { farms: { province: { contains: province, mode: 'insensitive' } } }
+      })
+    }
+
+    const where: Prisma.productsWhereInput = { AND: andFilters }
+
+    const [items, total] = await Promise.all([
+      prisma.products.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: safeLimit,
+        select: {
+          ...productSelect,
+          shops: {
+            select: {
+              id: true,
+              name: true,
+              is_verified: true,
+              certifications: true,
+              farms: {
+                select: {
+                  id: true,
+                  name: true,
+                  province: true,
+                  district: true,
+                  ward: true
+                }
+              }
+            }
+          },
+          seasons: { select: { id: true, code: true, crop_name: true } }
+        }
+      }),
+      prisma.products.count({ where })
+    ])
+
+    const totalPages = Math.ceil(total / safeLimit)
+    return {
+      items,
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        previousPage: safePage > 1 ? safePage - 1 : null,
+        nextPage: totalPages > 0 && safePage < totalPages ? safePage + 1 : null
+      }
+    }
+  }
+
+  getPublicProductById = async (productId: string) => {
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+      select: {
+        ...productSelect,
+        shops: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            is_verified: true,
+            certifications: true,
+            farms: {
+              select: {
+                id: true,
+                name: true,
+                owner_user_id: true,
+                crop_main: true,
+                province: true,
+                district: true,
+                ward: true,
+                address: true
+              }
+            }
+          }
+        },
+        seasons: {
+          select: {
+            id: true,
+            code: true,
+            crop_name: true,
+            start_date: true,
+            harvest_start_date: true,
+            harvest_end_date: true,
+            status: true
+          }
+        }
+      }
+    })
+
+    if (!product) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.PRODUCT_NOT_FOUND
+      })
+    }
+
+    return product
   }
 }
 
