@@ -594,10 +594,10 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [farmId, code, cropName, startDate]
+ *             required: [farmId, cropName, startDate]
  *             properties:
  *               farmId: { type: string, format: uuid }
- *               code: { type: string, example: SSN-2026-001 }
+ *               code: { type: string, description: 'Optional; server generates 6 letters + 6 digits if omitted', example: ABCDEF042891 }
  *               cropName: { type: string, example: Chuoi Nam My }
  *               startDate: { type: string, format: date, example: '2026-04-15' }
  *               harvestStartDate: { type: string, format: date, nullable: true }

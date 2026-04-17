@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 import type { Prisma, season_status } from '@prisma/client'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
@@ -23,6 +25,20 @@ const seasonSelect = {
   created_at: true,
   updated_at: true
 } as const
+
+const SEASON_CODE_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+/** 6 chữ cái in hoa + 6 chữ số ngẫu nhiên (vd: ABCDEF042891). */
+function generateAutoSeasonCodeCandidate(): string {
+  const lb = randomBytes(6)
+  let letters = ''
+  for (let i = 0; i < 6; i++) {
+    letters += SEASON_CODE_LETTERS[lb[i]! % 26]!
+  }
+  const nb = randomBytes(4)
+  const num = nb.readUInt32BE(0) % 1_000_000
+  return `${letters}${String(num).padStart(6, '0')}`
+}
 
 class SeasonService {
   private readonly statusTransitions: Record<season_status, season_status[]> = {
@@ -50,13 +66,55 @@ class SeasonService {
     }
   }
 
+  /** Mã tự sinh: 6 chữ cái A–Z + 6 số; gửi `code` thì dùng giá trị đó (seed/API). */
+  private async resolveSeasonCode(requested: string | undefined): Promise<string> {
+    const trimmed = requested?.trim()
+    if (trimmed != null && trimmed.length > 0) {
+      if (trimmed.length > 80) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          message: 'code must be at most 80 characters'
+        })
+      }
+      const exists = await prisma.seasons.findUnique({
+        where: { code: trimmed },
+        select: { id: true }
+      })
+      if (exists != null) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.CONFLICT,
+          message: USER_MESSAGES.SEASON_CODE_ALREADY_EXISTS
+        })
+      }
+      return trimmed
+    }
+
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const code = generateAutoSeasonCodeCandidate()
+      const dup = await prisma.seasons.findUnique({
+        where: { code },
+        select: { id: true }
+      })
+      if (dup == null) {
+        return code
+      }
+    }
+
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      message: USER_MESSAGES.SEASON_CODE_GENERATION_FAILED
+    })
+  }
+
   createSeason = async ({ userId, payload }: { userId: string; payload: CreateSeasonRequestBody }) => {
     await this.ensureFarmOwner(payload.farmId, userId)
+
+    const code = await this.resolveSeasonCode(payload.code)
 
     return prisma.seasons.create({
       data: {
         farm_id: payload.farmId,
-        code: payload.code,
+        code,
         crop_name: payload.cropName,
         start_date: new Date(payload.startDate),
         harvest_start_date: payload.harvestStartDate ? new Date(payload.harvestStartDate) : null,

@@ -34,6 +34,8 @@ const USER_MESSAGES = {
   UPDATE_SEASON_SUCCESS: 'Update season successfully',
   DELETE_SEASON_SUCCESS: 'Delete season successfully',
   CHANGE_SEASON_STATUS_SUCCESS: 'Change season status successfully',
+  SEASON_CODE_ALREADY_EXISTS: 'Mã mùa vụ đã tồn tại',
+  SEASON_CODE_GENERATION_FAILED: 'Không tạo được mã mùa vụ, vui lòng thử lại',
   CREATE_DIARY_SUCCESS: 'Create diary successfully',
   GET_DIARIES_SUCCESS: 'Get diaries successfully',
   GET_DIARY_DETAIL_SUCCESS: 'Get diary detail successfully',

@@ -441,6 +441,111 @@ function pickRandomImage(seed: string) {
   return PRODUCT_IMAGE_POOL[hash % PRODUCT_IMAGE_POOL.length]
 }
 
+function pickForumImage(postIndex: number) {
+  return PRODUCT_IMAGE_POOL[postIndex % PRODUCT_IMAGE_POOL.length]
+}
+
+/** Bài diễn đàn: mỗi bài 1 nhãn (whitelist) + 1 ảnh từ PRODUCT_IMAGE_POOL */
+const forumPostsSeed: {
+  author_email: string
+  title: string
+  content: string
+  label:
+    | 'ky-thuat-trong'
+    | 'phan-bon'
+    | 'sau-benh'
+    | 'tuoi-nuoc'
+    | 'thu-hoach'
+    | 'bao-quan'
+    | 'thi-truong'
+    | 'khac'
+}[] = [
+  {
+    author_email: 'minh@farmer.vn',
+    title: 'Kỹ thuật trồng rau muống xen cải trong luống nhỏ',
+    content:
+      'Mình trồng xen một hàng cải giữa hai hàng rau muống để tận dụng bóng mát và giảm cỏ dại. Luống rộng 1m2, tưới nhỏ giọt buổi sáng. Anh chị nào có kinh nghiệm chỉnh tỉa lá già để hạn chế sâu ăn lá không ạ?',
+    label: 'ky-thuat-trong'
+  },
+  {
+    author_email: 'tai@farmer.vn',
+    title: 'Phân hữu cơ ủ hoai cho rau ăn lá — liều lượng tham khảo',
+    content:
+      'Vụ này mình bón lót phân compost đã ủ 60 ngày, khoảng 3 tấn/ha quy đổi. Sau 20 ngày gieo bón thúc thêm compost loãng 1 lần. Lưu ý không dùng phân tươi chưa hoai để tránh kiến và ruồi.',
+    label: 'phan-bon'
+  },
+  {
+    author_email: 'huong@farmer.vn',
+    title: 'Rệp sáp trên cà chua chữa thế nào an toàn?',
+    content:
+      'Lá non bị nhớt và đen do nấm sương mai. Mình đã phun nước tỏi ớt loãng 2 lần cách nhau 5 ngày và lắp bẫy vàng. Ai đã thử dầu neem liều nào hiệu quả thì chia sẻ giúp.',
+    label: 'sau-benh'
+  },
+  {
+    author_email: 'mai@consumer.vn',
+    title: 'Giá rau sạch khu Bình Chánh dạo này thế nào?',
+    content:
+      'Nhà mình hay mua rau tại chợ đầu mối nhưng muốn ủng hộ nông dân địa phương. Mọi người cho hỏi giá cải ngọt / muống / dưa leo tham khảo tháng 4 khoảng bao nhiêu là hợp lý?',
+    label: 'thi-truong'
+  },
+  {
+    author_email: 'lienhe@htx-rauxanh-laichau.vn',
+    title: 'Gợi ý lịch tưới mùa nắng cho rau ăn lá',
+    content:
+      'HTX khuyến nghị tưới sáng sớm (trước 8h) hoặc chiều mát, tránh giữa trưa. Lượng nước tham khảo 4–6 lít/m²/lần tùy độ ẩm đất. Nên kết hợp mulching rơm mỏng để giảm bay hơi.',
+    label: 'tuoi-nuoc'
+  },
+  {
+    author_email: 'nam@consumer.vn',
+    title: 'Thu hoạch dưa leo sao cho giòn, để lâu hơn?',
+    content:
+      'Mình hay mua dưa về bị mềm nhanh. Nông dân cho biết nên hái lúc quả còn xanh bóng, cuống khô một nửa phải không? Có nên rửa và để ráo trước khi bảo quản lạnh?',
+    label: 'thu-hoach'
+  },
+  {
+    author_email: 'minh@farmer.vn',
+    title: 'Bảo quản rau đã nhặt trong túi có lỗ thông hơi',
+    content:
+      'Sau thu hoạch mình làm nguội nhanh 15 phút trong nhà lưới rồi cho vào túi PE đục lỗ, cất ngăn mát 8–10°C. Không để sát tường tủ lạnh để tránh đông nhẹ lá.',
+    label: 'bao-quan'
+  },
+  {
+    author_email: 'tai@farmer.vn',
+    title: 'Luân canh rau gia vị với họ đậu — kinh nghiệm vụ đông',
+    content:
+      'Sau vụ đậu cove mình trồng hành lá rồi đến ngò gai. Đất được cày sâu và bổ sung vôi nhẹ. Mời bà con góp thêm cây trồng trung gian hợp lý cho vùng đất phèn.',
+    label: 'khac'
+  }
+]
+
+const forumCommentsSeed: { postIndex: number; author_email: string; content: string }[] = [
+  {
+    postIndex: 0,
+    author_email: 'nam@consumer.vn',
+    content: 'Hay quá, để em học theo vườn nhà phố. Cho hỏi luống 1m2 thì gieo bao nhiêu hạt muống vừa?'
+  },
+  {
+    postIndex: 0,
+    author_email: 'huong@farmer.vn',
+    content: 'Chị hay nhặt lá già sát gốc 1 lần/tuần, phơi khô ủ thêm compost. Sâu ăn lá giảm rõ.'
+  },
+  {
+    postIndex: 3,
+    author_email: 'minh@farmer.vn',
+    content: 'Khu mình cải ngọt dao động 18–25k/kg tùy cỡ bó; muống 12–18k; dưa leo 22–30k. Giá chợ sáng thường cao hơn chiều một chút.'
+  },
+  {
+    postIndex: 2,
+    author_email: 'lienhe@htx-rauxanh-laichau.vn',
+    content: 'Neem nên phun chiều mát, liều theo nhãn, lặp lại sau 7 ngày nếu còn rệp. Lưu ý thời gian cách ly trước thu hoạch.'
+  },
+  {
+    postIndex: 5,
+    author_email: 'huong@farmer.vn',
+    content: 'Đúng rồi, hái khi cuống còn tươi nhưng quả đã đủ size; để ráo nước mưa rồi mới cho túi, bảo quản lạnh 3–5 ngày vẫn giòn.'
+  }
+]
+
 // ─── Main ───────────────────────────────────────────────────
 
 async function upsertUser(u: SeedUser) {
@@ -621,6 +726,51 @@ async function main() {
   }
   const productCount = await prisma.products.count()
   console.log(`  ✓ Products: ${productCount}`)
+
+  await prisma.forum_posts.deleteMany({})
+
+  const createdForumPostIds: string[] = []
+  for (let i = 0; i < forumPostsSeed.length; i++) {
+    const p = forumPostsSeed[i]
+    const authorId = userIdByEmail.get(p.author_email)
+    if (!authorId) continue
+
+    const fileUrl = pickForumImage(i)
+    const post = await prisma.forum_posts.create({
+      data: {
+        author_user_id: authorId,
+        title: p.title,
+        content: p.content,
+        forum_post_labels: {
+          create: [{ label: p.label }]
+        },
+        forum_post_images: {
+          create: [
+            {
+              object_key: `seed/forum/post-${String(i + 1).padStart(2, '0')}.jpg`,
+              file_url: fileUrl,
+              sort_order: 0
+            }
+          ]
+        }
+      }
+    })
+    createdForumPostIds.push(post.id)
+  }
+
+  for (const c of forumCommentsSeed) {
+    const postId = createdForumPostIds[c.postIndex]
+    const authorId = userIdByEmail.get(c.author_email)
+    if (!postId || !authorId) continue
+    await prisma.forum_comments.create({
+      data: {
+        post_id: postId,
+        author_user_id: authorId,
+        content: c.content
+      }
+    })
+  }
+  console.log(`  ✓ Forum: ${createdForumPostIds.length} posts, ${forumCommentsSeed.length} comments`)
 
   console.log('')
   console.log('✅  Seed complete.')

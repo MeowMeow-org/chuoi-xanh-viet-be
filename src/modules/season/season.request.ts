@@ -6,7 +6,8 @@ export interface SeasonParams {
 
 export interface CreateSeasonRequestBody {
   farmId: string
-  code: string
+  /** Tuỳ chọn; nếu bỏ trống server tự sinh mã (6 chữ A–Z + 6 số). */
+  code?: string
   cropName: string
   startDate: string
   harvestStartDate?: string

@@ -26,10 +26,10 @@ export const createSeasonValidator = validate(
         errorMessage: 'farmId must be a valid UUID'
       },
       code: {
-        notEmpty: true,
+        optional: true,
         isString: true,
         trim: true,
-        errorMessage: 'code is required'
+        errorMessage: 'code must be a string'
       },
       cropName: {
         notEmpty: true,
