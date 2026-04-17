@@ -187,9 +187,11 @@ model products {
   is_active   Boolean       @default(true)
   created_at  DateTime      @default(now()) @db.Timestamp(6)
   updated_at  DateTime      @default(now()) @db.Timestamp(6)
-  order_items order_items[]
-  seasons     seasons?      @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_season")
-  shops       shops         @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_shop")
+  sale_unit_id String?       @unique @db.Uuid
+  order_items  order_items[]
+  seasons      seasons?      @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_season")
+  shops        shops         @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_shop")
+  sale_unit    sale_units?   @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_sale_unit")
 
   @@index([shop_id, is_active], map: "idx_products_shop_active")
 }
@@ -221,6 +223,7 @@ model sale_units {
   created_at  DateTime         @default(now()) @db.Timestamp(6)
   seasons     seasons          @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sale_units_season")
   trace_scans trace_scans[]
+  product     products?
 
   @@index([season_id, status], map: "idx_sale_units_season_status")
 }
@@ -361,6 +364,7 @@ model users {
   forum_posts          forum_posts[]
   password_hash        String?          @db.VarChar(255)
   full_name            String           @db.VarChar(120)
+  avatar_url           String?          @db.VarChar(2048)
   role                 user_role        @default(farmer)
   status               account_status   @default(active)
   reset_password_token String?          @db.VarChar(255)
@@ -401,6 +405,7 @@ enum diary_event_type {
   irrigation
   harvesting
   packing
+  inspection
   other
 }
 

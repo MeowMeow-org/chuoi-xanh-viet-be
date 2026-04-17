@@ -41,6 +41,30 @@ const toTimestampString = (value: Date | null) => {
   return value.toISOString()
 }
 
+const seasonFullInclude = {
+  farms: {
+    select: {
+      id: true,
+      owner_user_id: true,
+      name: true,
+      area_ha: true,
+      crop_main: true,
+      province: true,
+      district: true,
+      ward: true,
+      address: true,
+      latitude: true,
+      longitude: true,
+      in_cooperative: true
+    }
+  },
+  diary_entries: {
+    include: {
+      diary_attachments: true
+    }
+  }
+} as const
+
 class AnchorService {
   private async getOwnedSeason(userId: string, seasonId: string) {
     // Phân quyền theo dữ liệu: farmer chỉ được build payload cho season mình sở hữu.
@@ -51,29 +75,7 @@ class AnchorService {
           owner_user_id: userId
         }
       },
-      include: {
-        farms: {
-          select: {
-            id: true,
-            owner_user_id: true,
-            name: true,
-            area_ha: true,
-            crop_main: true,
-            province: true,
-            district: true,
-            ward: true,
-            address: true,
-            latitude: true,
-            longitude: true,
-            in_cooperative: true
-          }
-        },
-        diary_entries: {
-          include: {
-            diary_attachments: true
-          }
-        }
-      }
+      include: seasonFullInclude
     })
 
     if (season == null) {
@@ -86,8 +88,79 @@ class AnchorService {
     return season
   }
 
+  private async getSeasonBySeasonId(seasonId: string) {
+    const season = await prisma.seasons.findUnique({
+      where: { id: seasonId },
+      include: seasonFullInclude
+    })
+
+    if (season == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.SEASON_NOT_FOUND
+      })
+    }
+
+    return season
+  }
+
+  /**
+   * Build canonical payload + SHA-256 hash cho public trace (không check ownership).
+   * Dùng bởi trace/verify API để so sánh lại với hash đã neo on-chain.
+   */
+  buildCanonicalPayloadPublic = async (seasonId: string) => {
+    const season = await this.getSeasonBySeasonId(seasonId)
+    return this.buildCanonicalFromSeason(season)
+  }
+
   buildCanonicalPayload = async ({ userId, seasonId }: { userId: string; seasonId: string }) => {
     const season = await this.getOwnedSeason(userId, seasonId)
+    return this.buildCanonicalFromSeason(season)
+  }
+
+  private buildCanonicalFromSeason = (season: {
+    id: string
+    code: string
+    crop_name: string
+    status: string
+    start_date: Date
+    harvest_start_date: Date | null
+    harvest_end_date: Date | null
+    estimated_yield: { toString(): string } | null
+    actual_yield: { toString(): string } | null
+    yield_unit: string | null
+    sealed_at: Date | null
+    farms: {
+      id: string
+      owner_user_id: string
+      name: string
+      area_ha: { toString(): string } | null
+      crop_main: string | null
+      province: string | null
+      district: string | null
+      ward: string | null
+      address: string | null
+      latitude: { toString(): string } | null
+      longitude: { toString(): string } | null
+      in_cooperative: boolean
+    }
+    diary_entries: Array<{
+      id: string
+      event_type: string
+      event_date: Date
+      server_timestamp: Date
+      description: string | null
+      extra_data: unknown
+      diary_attachments: Array<{
+        id: string
+        file_url: string
+        mime_type: string | null
+        sort_order: number
+        created_at: Date
+        meta: unknown
+      }>
+    }>
+  }) => {
 
     // Sắp xếp nhật ký cố định để hash không bị lệch:
     // event_date -> server_timestamp -> id.
@@ -186,6 +259,17 @@ class AnchorService {
       throw new ErrorWithStatus({
         status: HTTP_STATUS.CONFLICT,
         message: USER_MESSAGES.SEASON_MUST_BE_READY_OR_AMENDED_FOR_ANCHOR
+      })
+    }
+
+    // Defensive: dù status transition đã kiểm, vẫn kiểm thêm ở đây để không neo mùa vụ
+    // thiếu actual_yield/yield_unit (dữ liệu quan trọng đi vào canonical hash).
+    const yieldValue = season.actual_yield ? Number(season.actual_yield.toString()) : 0
+    const unit = season.yield_unit?.trim() ?? ''
+    if (!Number.isFinite(yieldValue) || yieldValue <= 0 || unit.length === 0) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.SEASON_MISSING_YIELD_FOR_ANCHOR
       })
     }
 

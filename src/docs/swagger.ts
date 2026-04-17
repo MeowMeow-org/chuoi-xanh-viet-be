@@ -1620,7 +1620,7 @@
  *
  * /v1/api/shop/available-seasons:
  *   get:
- *     summary: List farmer's seasons available for adding products
+ *     summary: List farmer's seasons (legacy; product listing uses sale units)
  *     tags: [Shop]
  *     security:
  *       - bearerAuth: []
@@ -1631,6 +1631,25 @@
  *         description: Unauthorized
  *       403:
  *         description: Only farmer accounts can perform this action
+ *
+ * /v1/api/shop/{shop_id}/available-sale-units:
+ *   get:
+ *     summary: List sale lots (QR) on the shop's farm that can still be listed
+ *     tags: [Shop]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Available sale units retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Shop not found or forbidden
  *
  * /v1/api/shop/{shop_id}:
  *   get:
@@ -1681,7 +1700,7 @@
  *
  * /v1/api/shop/{shop_id}/products:
  *   post:
- *     summary: Add product to shop from farmer's season (farmer only)
+ *     summary: Add product to shop from a parcelled sale lot (farmer only)
  *     tags: [Shop]
  *     security:
  *       - bearerAuth: []
@@ -1696,21 +1715,24 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [season_id, name, price]
+ *             required: [sale_unit_id, price]
  *             properties:
- *               season_id: { type: string, format: uuid, description: Must be a season from the farmer's own farm }
- *               name: { type: string, maxLength: 180, example: Chuối Nam Mỹ }
+ *               sale_unit_id: { type: string, format: uuid, description: Active sale unit on the same farm as the shop; not already listed }
+ *               name: { type: string, maxLength: 180, description: Optional; default name from lot code }
  *               description: { type: string, example: Chuối sạch từ vườn... }
  *               price: { type: number, example: 25000 }
- *               unit: { type: string, default: kg, example: kg }
- *               stock_qty: { type: number, default: 0, example: 100 }
+ *               unit: { type: string, description: Optional; defaults to lot unit }
+ *               stock_qty: { type: number, description: Optional; defaults to lot quantity }
+ *               image_url: { type: string, nullable: true, description: From POST /upload }
  *     responses:
  *       201:
- *         description: Product added successfully (address auto-appended to description)
+ *         description: Product added successfully (address + trace URL auto-appended to description)
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Shop or season not owned by farmer
+ *         description: Shop or sale unit not valid for this farmer
+ *       409:
+ *         description: Sale unit already listed
  *       422:
  *         description: Validation error
  *   get:

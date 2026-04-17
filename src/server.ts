@@ -10,6 +10,7 @@ import { setupSwagger } from './config/swagger'
 import { corsConfig, getSocketIoAllowedOrigins } from './config/cors'
 import { loggerMiddleware } from './middlewares/logger.middleware'
 import { registerAnchorEventListeners } from './modules/anchor/anchor.listeners'
+import { startAnchorWorker } from './modules/anchor/anchor.worker'
 import { registerChatSocket } from './modules/chat/chat.socket'
 
 const app = express()
@@ -35,6 +36,7 @@ app.use(loggerMiddleware)
 
 app.use(express.json())
 registerAnchorEventListeners()
+startAnchorWorker()
 setupSwagger(app)
 
 app.get('/', (req, res) => {
