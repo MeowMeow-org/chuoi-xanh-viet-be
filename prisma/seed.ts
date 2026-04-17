@@ -218,16 +218,14 @@ const shops: SeedShop[] = [
   {
     farm_name: 'Nông trại Phú An',
     name: 'Nông trại Phú An Củ Chi',
-    description:
-      'Rau gia vị và rau ăn lá gia đình 3 đời, trồng theo hướng hữu cơ. Giao sáng sớm cho bếp và nhà hàng.',
+    description: 'Rau gia vị và rau ăn lá gia đình 3 đời, trồng theo hướng hữu cơ. Giao sáng sớm cho bếp và nhà hàng.',
     certifications: ['VietGAP'],
     is_verified: true
   },
   {
     farm_name: 'HTX Rau quả Bình Chánh',
     name: 'HTX Rau quả Bình Chánh',
-    description:
-      'Hợp tác xã quy mô 5ha, cung cấp dưa leo, cà chua, bí đao cho siêu thị và bếp ăn. Đạt GlobalGAP.',
+    description: 'Hợp tác xã quy mô 5ha, cung cấp dưa leo, cà chua, bí đao cho siêu thị và bếp ăn. Đạt GlobalGAP.',
     certifications: ['VietGAP', 'GlobalGAP'],
     is_verified: true
   }
@@ -239,8 +237,7 @@ const products: SeedProduct[] = [
     shop_name: 'Gian hàng Rau sạch Long Hòa',
     season_code: 'LH-2026-01',
     name: 'Rau muống hữu cơ',
-    description:
-      'Rau muống trồng theo VietGAP, không dùng thuốc trừ sâu hóa học. Thu hoạch mỗi sáng, tươi ngon.',
+    description: 'Rau muống trồng theo VietGAP, không dùng thuốc trừ sâu hóa học. Thu hoạch mỗi sáng, tươi ngon.',
     price: 25000,
     unit: 'bó',
     stock_qty: 150
@@ -352,8 +349,7 @@ const products: SeedProduct[] = [
     shop_name: 'HTX Rau quả Bình Chánh',
     season_code: 'BC-2026-01',
     name: 'Dưa leo baby',
-    description:
-      'Dưa leo baby giòn ngọt, kích thước nhỏ gọn, ăn sống hoặc làm salad. Đạt GlobalGAP.',
+    description: 'Dưa leo baby giòn ngọt, kích thước nhỏ gọn, ăn sống hoặc làm salad. Đạt GlobalGAP.',
     price: 30000,
     unit: 'kg',
     stock_qty: 100
@@ -450,15 +446,7 @@ const forumPostsSeed: {
   author_email: string
   title: string
   content: string
-  label:
-    | 'ky-thuat-trong'
-    | 'phan-bon'
-    | 'sau-benh'
-    | 'tuoi-nuoc'
-    | 'thu-hoach'
-    | 'bao-quan'
-    | 'thi-truong'
-    | 'khac'
+  label: 'ky-thuat-trong' | 'phan-bon' | 'sau-benh' | 'tuoi-nuoc' | 'thu-hoach' | 'bao-quan' | 'thi-truong' | 'khac'
 }[] = [
   {
     author_email: 'minh@farmer.vn',
@@ -532,17 +520,20 @@ const forumCommentsSeed: { postIndex: number; author_email: string; content: str
   {
     postIndex: 3,
     author_email: 'minh@farmer.vn',
-    content: 'Khu mình cải ngọt dao động 18–25k/kg tùy cỡ bó; muống 12–18k; dưa leo 22–30k. Giá chợ sáng thường cao hơn chiều một chút.'
+    content:
+      'Khu mình cải ngọt dao động 18–25k/kg tùy cỡ bó; muống 12–18k; dưa leo 22–30k. Giá chợ sáng thường cao hơn chiều một chút.'
   },
   {
     postIndex: 2,
     author_email: 'lienhe@htx-rauxanh-laichau.vn',
-    content: 'Neem nên phun chiều mát, liều theo nhãn, lặp lại sau 7 ngày nếu còn rệp. Lưu ý thời gian cách ly trước thu hoạch.'
+    content:
+      'Neem nên phun chiều mát, liều theo nhãn, lặp lại sau 7 ngày nếu còn rệp. Lưu ý thời gian cách ly trước thu hoạch.'
   },
   {
     postIndex: 5,
     author_email: 'huong@farmer.vn',
-    content: 'Đúng rồi, hái khi cuống còn tươi nhưng quả đã đủ size; để ráo nước mưa rồi mới cho túi, bảo quản lạnh 3–5 ngày vẫn giòn.'
+    content:
+      'Đúng rồi, hái khi cuống còn tươi nhưng quả đã đủ size; để ráo nước mưa rồi mới cho túi, bảo quản lạnh 3–5 ngày vẫn giòn.'
   }
 ]
 
