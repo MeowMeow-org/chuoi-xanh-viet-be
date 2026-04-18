@@ -1,10 +1,8 @@
 import crypto from 'crypto'
-import { Prisma } from '@prisma/client'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
-import type { CreateCheckpointRequestBody } from './anchor.request'
 
 // Chuẩn hóa JSON đệ quy để payload luôn có cấu trúc ổn định:
 // - key của object được sort theo alphabet
@@ -105,17 +103,34 @@ class AnchorService {
   }
 
   /**
-   * Build canonical payload + SHA-256 hash cho public trace (không check ownership).
-   * Dùng bởi trace/verify API để so sánh lại với hash đã neo on-chain.
+   * Hash để verify: phải khớp cách tính lúc neo.
+   * - Schema v2: không đưa `status` / `sealed_at` vào payload (tránh lệch sau khi seal).
+   * - Schema v1 (cũ): hash tính **trước** khi UPDATE status→anchored → dùng snapshot ready_to_anchor + sealedAt null
+   *   cho bản `auto_anchored`; bản checkpoint tay `manual` dùng trạng thái DB hiện tại.
    */
-  buildCanonicalPayloadPublic = async (seasonId: string) => {
+  buildCanonicalForVerify = async (
+    seasonId: string,
+    referenceAnchor: {
+      anchor_meta: unknown
+      checkpoint_type: string
+    } | null
+  ) => {
     const season = await this.getSeasonBySeasonId(seasonId)
-    return this.buildCanonicalFromSeason(season)
+    if (referenceAnchor == null) {
+      return this.buildCanonicalFromSeason(season, { schemaVersion: 2 })
+    }
+    const meta = referenceAnchor.anchor_meta as { canonicalSchemaVersion?: number } | undefined
+    const schemaVersion = meta?.canonicalSchemaVersion ?? 1
+    if (schemaVersion >= 2) {
+      return this.buildCanonicalFromSeason(season, { schemaVersion: 2 })
+    }
+    const v1SealSnapshot = referenceAnchor.checkpoint_type !== 'manual'
+    return this.buildCanonicalFromSeason(season, { schemaVersion: 1, v1SealSnapshot })
   }
 
   buildCanonicalPayload = async ({ userId, seasonId }: { userId: string; seasonId: string }) => {
     const season = await this.getOwnedSeason(userId, seasonId)
-    return this.buildCanonicalFromSeason(season)
+    return this.buildCanonicalFromSeason(season, { schemaVersion: 2 })
   }
 
   private buildCanonicalFromSeason = (season: {
@@ -160,7 +175,7 @@ class AnchorService {
         meta: unknown
       }>
     }>
-  }) => {
+  }, options: { schemaVersion: 1 | 2; v1SealSnapshot?: boolean }) => {
 
     // Sắp xếp nhật ký cố định để hash không bị lệch:
     // event_date -> server_timestamp -> id.
@@ -197,25 +212,44 @@ class AnchorService {
           }))
       }))
 
+    const useV2 = options.schemaVersion >= 2
+    const v1Snap = options.schemaVersion === 1 && options.v1SealSnapshot === true
+    const lifecycleStatus = v1Snap ? 'ready_to_anchor' : season.status
+    const lifecycleSealedAt = v1Snap ? null : toTimestampString(season.sealed_at)
+
     // Canonical payload:
-    // - chỉ chứa các field liên quan tới truy xuất nguồn gốc
-    // - decimal đổi sang string để tránh sai khác biểu diễn số thực
-    // - normalize lần cuối để thứ tự key ổn định
+    // - v2: bỏ status/sealedAt (thay đổi ngay sau lúc neo → không phải dữ liệu truy xuất)
+    // - v1: giữ để tương thích anchor cũ; verify dùng v1SealSnapshot cho auto_anchored
+    // - decimal đổi sang string; normalize lần cuối
+    const seasonPayload = useV2
+      ? {
+          id: season.id,
+          code: season.code,
+          cropName: season.crop_name,
+          startDate: toDateString(season.start_date),
+          harvestStartDate: toDateString(season.harvest_start_date),
+          harvestEndDate: toDateString(season.harvest_end_date),
+          estimatedYield: season.estimated_yield?.toString() ?? null,
+          actualYield: season.actual_yield?.toString() ?? null,
+          yieldUnit: season.yield_unit ?? null
+        }
+      : {
+          id: season.id,
+          code: season.code,
+          cropName: season.crop_name,
+          status: lifecycleStatus,
+          startDate: toDateString(season.start_date),
+          harvestStartDate: toDateString(season.harvest_start_date),
+          harvestEndDate: toDateString(season.harvest_end_date),
+          estimatedYield: season.estimated_yield?.toString() ?? null,
+          actualYield: season.actual_yield?.toString() ?? null,
+          yieldUnit: season.yield_unit ?? null,
+          sealedAt: lifecycleSealedAt
+        }
+
     const canonicalPayload = normalizeJson({
-      schemaVersion: 1,
-      season: {
-        id: season.id,
-        code: season.code,
-        cropName: season.crop_name,
-        status: season.status,
-        startDate: toDateString(season.start_date),
-        harvestStartDate: toDateString(season.harvest_start_date),
-        harvestEndDate: toDateString(season.harvest_end_date),
-        estimatedYield: season.estimated_yield?.toString() ?? null,
-        actualYield: season.actual_yield?.toString() ?? null,
-        yieldUnit: season.yield_unit ?? null,
-        sealedAt: toTimestampString(season.sealed_at)
-      },
+      schemaVersion: useV2 ? 2 : 1,
+      season: seasonPayload,
       farm: {
         id: season.farms.id,
         ownerUserId: season.farms.owner_user_id,
@@ -241,126 +275,6 @@ class AnchorService {
       canonicalPayload,
       canonicalJson,
       payloadHash
-    }
-  }
-
-  createCheckpointAnchor = async ({
-    userId,
-    seasonId,
-    payload
-  }: {
-    userId: string
-    seasonId: string
-    payload: CreateCheckpointRequestBody
-  }) => {
-    const season = await this.getOwnedSeason(userId, seasonId)
-    // Kiểm tra trạng thái của season có phải là ready_to_anchor hoặc amended không
-    if (season.status !== 'ready_to_anchor' && season.status !== 'amended') {
-      throw new ErrorWithStatus({
-        status: HTTP_STATUS.CONFLICT,
-        message: USER_MESSAGES.SEASON_MUST_BE_READY_OR_AMENDED_FOR_ANCHOR
-      })
-    }
-
-    // Defensive: dù status transition đã kiểm, vẫn kiểm thêm ở đây để không neo mùa vụ
-    // thiếu actual_yield/yield_unit (dữ liệu quan trọng đi vào canonical hash).
-    const yieldValue = season.actual_yield ? Number(season.actual_yield.toString()) : 0
-    const unit = season.yield_unit?.trim() ?? ''
-    if (!Number.isFinite(yieldValue) || yieldValue <= 0 || unit.length === 0) {
-      throw new ErrorWithStatus({
-        status: HTTP_STATUS.BAD_REQUEST,
-        message: USER_MESSAGES.SEASON_MISSING_YIELD_FOR_ANCHOR
-      })
-    }
-
-    const canonical = await this.buildCanonicalPayload({ userId, seasonId })
-    const diaryCount = season.diary_entries.length
-    const attachmentCount = season.diary_entries.reduce((sum, item) => sum + item.diary_attachments.length, 0)
-
-    const record = await prisma.$transaction(async (tx) => {
-      const latest = await tx.season_anchors.findFirst({
-        where: { season_id: seasonId },
-        orderBy: { checkpoint_no: 'desc' },
-        select: { checkpoint_no: true }
-      })
-      const nextCheckpointNo = (latest?.checkpoint_no ?? 0) + 1
-
-      return tx.season_anchors.create({
-        data: {
-          season_id: seasonId,
-          checkpoint_no: nextCheckpointNo,
-          checkpoint_type: payload.checkpointType ?? 'manual',
-          is_final: payload.isFinal ?? false,
-          payload_range: payload.payloadRange ?? Prisma.DbNull,
-          hash_algo: 'SHA-256',
-          data_hash: canonical.payloadHash,
-          chain_network: 'db_only',
-          status: 'anchored',
-          anchored_at: new Date(),
-          anchor_meta: {
-            canonicalSchemaVersion: 1,
-            diaryCount,
-            attachmentCount,
-            trigger: 'manual'
-          }
-        }
-      })
-    })
-
-    return {
-      anchor: record,
-      canonicalPayload: canonical.canonicalPayload,
-      canonicalJson: canonical.canonicalJson,
-      payloadHash: canonical.payloadHash
-    }
-  }
-
-  listCheckpointAnchors = async ({ userId, seasonId }: { userId: string; seasonId: string }) => {
-    await this.getOwnedSeason(userId, seasonId)
-
-    return prisma.season_anchors.findMany({
-      where: {
-        season_id: seasonId
-      },
-      orderBy: {
-        checkpoint_no: 'asc'
-      }
-    })
-  }
-
-  verifyCheckpointAnchor = async ({
-    userId,
-    seasonId,
-    checkpointNo
-  }: {
-    userId: string
-    seasonId: string
-    checkpointNo: number
-  }) => {
-    await this.getOwnedSeason(userId, seasonId)
-
-    const checkpoint = await prisma.season_anchors.findFirst({
-      where: {
-        season_id: seasonId,
-        checkpoint_no: checkpointNo
-      }
-    })
-
-    if (checkpoint == null) {
-      throw new ErrorWithStatus({
-        status: HTTP_STATUS.NOT_FOUND,
-        message: USER_MESSAGES.CHECKPOINT_ANCHOR_NOT_FOUND
-      })
-    }
-
-    const canonical = await this.buildCanonicalPayload({ userId, seasonId })
-    const matched = canonical.payloadHash === checkpoint.data_hash
-
-    return {
-      checkpoint,
-      currentPayloadHash: canonical.payloadHash,
-      anchoredDataHash: checkpoint.data_hash,
-      matched
     }
   }
 }

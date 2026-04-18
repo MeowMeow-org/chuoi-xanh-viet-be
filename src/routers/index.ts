@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import anchorRouter from '~/modules/anchor/anchor.router'
 import authRouter from '~/modules/auth/auth.router'
 import cooperativeRouter from '~/modules/cooperative/cooperative.router'
 import diaryRouter from '~/modules/diary/diary.router'
@@ -13,7 +12,6 @@ import saleUnitRouter from '~/modules/sale-unit/sale-unit.router'
 import seasonRouter from '~/modules/season/season.router'
 import traceRouter from '~/modules/trace/trace.router'
 import uploadRouter from '~/modules/upload/upload.router'
-import notificationRouter from '~/modules/notification/notification.router'
 
 const router = Router()
 
@@ -29,8 +27,6 @@ router.use('/inspection', inspectionRouter)
 router.use('/sale-unit', saleUnitRouter)
 router.use('/trace', traceRouter)
 
-router.use('/anchor', anchorRouter)
-
 router.use('/forum', forumRouter)
 
 router.use('/shop', shopRouter)
@@ -38,6 +34,5 @@ router.use('/order', orderRouter)
 router.use('/chat', chatRouter)
 
 router.use('/upload', uploadRouter)
-router.use('/notification', notificationRouter)
 
 export default router

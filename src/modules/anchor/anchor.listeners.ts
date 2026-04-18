@@ -14,7 +14,7 @@ const handleSeasonDataChanged = async ({ seasonId }: SeasonChangedEventPayload) 
     }
   })
 
-  // Chỉ đánh dấu amended khi season đã từng có ít nhất 1 checkpoint.
+  // Chỉ đánh dấu amended khi season đã từng neo (có bản ghi season_anchors).
   if (latestAnchor == null) {
     return
   }

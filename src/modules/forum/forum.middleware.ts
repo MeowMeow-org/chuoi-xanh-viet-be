@@ -225,6 +225,13 @@ export const getForumCommentsQueryValidator = validate(
         isInt: { options: { min: 1, max: 100 } },
         toInt: true,
         errorMessage: 'limit must be between 1 and 100'
+      },
+      sort: {
+        optional: true,
+        isIn: {
+          options: [['asc', 'desc']]
+        },
+        errorMessage: 'sort must be asc or desc'
       }
     },
     ['query']
