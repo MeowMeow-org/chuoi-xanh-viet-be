@@ -23,7 +23,12 @@ COPY prisma ./prisma
 COPY prisma.config.ts ./prisma.config.ts
 
 RUN npm ci --omit=dev
-RUN npx prisma generate
+
+# Prisma client was generated in the builder (`npm run build`). The runner only
+# installs production deps, so `prisma`/`dotenv` are missing and
+# `npx prisma generate` would fail loading prisma.config.ts.
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/src/docs ./src/docs
