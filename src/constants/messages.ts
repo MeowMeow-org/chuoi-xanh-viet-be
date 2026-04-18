@@ -11,6 +11,8 @@ const USER_MESSAGES = {
   INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
   GET_ME_SUCCESS: 'Get my profile successfully',
   UPDATE_PROFILE_SUCCESS: 'Profile updated successfully',
+  CHANGE_PASSWORD_SUCCESS: 'Password changed successfully',
+  CURRENT_PASSWORD_INCORRECT: 'Current password is incorrect',
   AVATAR_URL_INVALID: 'avatarUrl must be a valid URL string (max 2048 characters)',
   GET_FARMS_SUCCESS: 'Get farms successfully',
   CREATE_FARM_SUCCESS: 'Create farm successfully',
@@ -194,7 +196,17 @@ const USER_MESSAGES = {
   GET_NOTIFICATIONS_SUCCESS: 'Get notifications successfully',
   MARK_NOTIFICATION_READ_SUCCESS: 'Notification marked as read',
   MARK_ALL_NOTIFICATIONS_READ_SUCCESS: 'All notifications marked as read',
-  NOTIFICATION_NOT_FOUND: 'Notification not found'
+  NOTIFICATION_NOT_FOUND: 'Notification not found',
+
+  SHOP_REVIEW_CREATE_SUCCESS: 'Shop review created successfully',
+  SHOP_REVIEW_LIST_SUCCESS: 'Shop reviews loaded successfully',
+  SHOP_REVIEW_UPDATE_SUCCESS: 'Shop review updated successfully',
+  SHOP_REVIEW_RATING_INVALID: 'rating must be an integer from 1 to 5',
+  SHOP_REVIEW_ORDER_NOT_DELIVERED: 'You can only review after the order is delivered',
+  SHOP_REVIEW_ALREADY_EXISTS: 'You have already reviewed this product for this order',
+  SHOP_REVIEW_PRODUCT_NOT_IN_ORDER: 'This product is not part of the order',
+  SHOP_REVIEW_NOT_FOUND: 'Review not found',
+  SHOP_REVIEW_NOTHING_TO_UPDATE: 'Provide at least rating or comment to update'
 } as const
 
 export default USER_MESSAGES

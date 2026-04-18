@@ -202,9 +202,44 @@ class OrderService {
       prisma.orders.count({ where })
     ])
 
+    const orderIds = items.map((i) => i.id)
+    const myReviews =
+      orderIds.length > 0
+        ? await prisma.shop_reviews.findMany({
+            where: { user_id: buyerUserId, order_id: { in: orderIds } },
+            select: {
+              id: true,
+              order_id: true,
+              product_id: true,
+              rating: true,
+              comment: true
+            }
+          })
+        : []
+    const reviewByOrderProduct = new Map<string, Map<string, { id: string; rating: number; comment: string | null }>>()
+    for (const r of myReviews) {
+      if (!reviewByOrderProduct.has(r.order_id)) {
+        reviewByOrderProduct.set(r.order_id, new Map())
+      }
+      reviewByOrderProduct.get(r.order_id)!.set(r.product_id, {
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment
+      })
+    }
+
     const totalPages = Math.ceil(total / safeLimit)
     return {
-      items,
+      items: items.map((o) => {
+        const byProduct = reviewByOrderProduct.get(o.id)
+        return {
+          ...o,
+          order_items: o.order_items.map((it) => ({
+            ...it,
+            my_review: byProduct?.get(it.product_id) ?? null
+          }))
+        }
+      }),
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -283,7 +318,33 @@ class OrderService {
       })
     }
 
-    return order
+    if (!isBuyer) {
+      return order
+    }
+
+    const myReviewRows = await prisma.shop_reviews.findMany({
+      where: { order_id: orderId, user_id: userId },
+      select: {
+        id: true,
+        product_id: true,
+        rating: true,
+        comment: true
+      }
+    })
+    const byProduct = new Map(
+      myReviewRows.map((r) => [
+        r.product_id,
+        { id: r.id, rating: r.rating, comment: r.comment }
+      ])
+    )
+
+    return {
+      ...order,
+      order_items: order.order_items.map((it) => ({
+        ...it,
+        my_review: byProduct.get(it.product_id) ?? null
+      }))
+    }
   }
 
   cancelOrder = async ({ orderId, buyerUserId }: { orderId: string; buyerUserId: string }) => {

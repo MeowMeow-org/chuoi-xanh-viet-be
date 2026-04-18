@@ -269,5 +269,35 @@ export const notificationDispatch = {
         entityId: params.postId
       })
     })
+  },
+
+  shopReviewNewForFarmer(params: {
+    farmerUserId: string
+    buyerUserId: string
+    buyerName: string
+    shopId: string
+    shopName: string
+    productId: string
+    productName: string
+    rating: number
+    reviewId: string
+  }) {
+    safeRun(async () => {
+      await notificationService.create({
+        recipientUserId: params.farmerUserId,
+        actorUserId: params.buyerUserId,
+        type: 'review',
+        title: 'Đánh giá mới',
+        body: `${params.buyerName} đã đánh giá ${params.rating} sao cho sản phẩm "${truncate(params.productName, 80)}".`,
+        entityType: NotificationEntityType.SHOP_REVIEW,
+        entityId: params.productId,
+        dedupeKey: `shop_review:${params.reviewId}:notify`,
+        metadata: {
+          reviewId: params.reviewId,
+          shopId: params.shopId,
+          productId: params.productId
+        }
+      })
+    })
   }
 }

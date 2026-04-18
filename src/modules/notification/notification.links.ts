@@ -20,7 +20,7 @@ export function resolveNotificationDeepLink(params: {
   }
 
   if (entityType === NotificationEntityType.CONVERSATION) {
-    if (viewerRole === 'consumer') return `/consumer/messages?chat=${entityId}`
+    if (viewerRole === 'consumer') return `/consumer/messages?c=${entityId}`
     if (viewerRole === 'farmer') return `/farmer/messages?chat=${entityId}`
     return undefined
   }
@@ -36,6 +36,17 @@ export function resolveNotificationDeepLink(params: {
     if (viewerRole === 'farmer') return '/farmer/forum'
     if (viewerRole === 'cooperative') return '/cooperative'
     return undefined
+  }
+
+  if (entityType === NotificationEntityType.SHOP_REVIEW) {
+    if (viewerRole === 'farmer') return '/farmer/marketplace?tab=reviews'
+    if (viewerRole === 'consumer') return `/consumer/product/${entityId}`
+    if (viewerRole === 'admin') return '/admin'
+    return undefined
+  }
+
+  if (viewerRole === 'admin') {
+    return '/admin'
   }
 
   return undefined

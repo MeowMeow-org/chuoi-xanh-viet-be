@@ -43,6 +43,7 @@ const mapOrderRow = (order: {
     unit_price: unknown
     line_total: unknown
     products: { id: string; name: string; unit: string | null; image_url: string | null }
+    my_review?: { id: string; rating: number; comment: string | null } | null
   }>
 }) => ({
   id: order.id,
@@ -86,7 +87,8 @@ const mapOrderRow = (order: {
         name: it.products.name,
         unit: it.products.unit,
         imageUrl: it.products.image_url
-      }
+      },
+      myReview: it.my_review ?? null
     })) ?? []
 })
 

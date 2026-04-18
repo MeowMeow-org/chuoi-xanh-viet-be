@@ -299,6 +299,26 @@ const requireRoles = (roles: user_role[]) => {
   }
 }
 
+const patchMeFullNameSchema: ParamSchema = {
+  optional: true,
+  isString: true,
+  trim: true,
+  isLength: {
+    options: { min: 1, max: 120 },
+    errorMessage: 'fullName must be 1–120 characters'
+  }
+}
+
+const patchMePhoneSchema: ParamSchema = {
+  optional: true,
+  isString: true,
+  trim: true,
+  isLength: {
+    options: { min: 8, max: 20 },
+    errorMessage: 'phone must be 8–20 characters'
+  }
+}
+
 export const patchMeValidator = validate(
   checkSchema(
     {
@@ -312,7 +332,38 @@ export const patchMeValidator = validate(
           },
           errorMessage: USER_MESSAGES.AVATAR_URL_INVALID
         }
+      },
+      fullName: patchMeFullNameSchema,
+      phone: patchMePhoneSchema
+    },
+    ['body']
+  )
+)
+
+const changePasswordConfirmSchema: ParamSchema = {
+  notEmpty: {
+    errorMessage: USER_MESSAGES.CONFIRM_PASSWORD_IS_REQUIRED
+  },
+  isString: {
+    errorMessage: USER_MESSAGES.CONFIRM_PASSWORD_MUST_BE_A_STRING
+  },
+  trim: true,
+  custom: {
+    options: (value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error(USER_MESSAGES.CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD)
       }
+      return true
+    }
+  }
+}
+
+export const changePasswordValidator = validate(
+  checkSchema(
+    {
+      currentPassword: passwordSchema,
+      newPassword: passwordSchema,
+      confirm_password: changePasswordConfirmSchema
     },
     ['body']
   )

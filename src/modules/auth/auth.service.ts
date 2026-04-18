@@ -300,7 +300,14 @@ class AuthService {
     }
   }
 
-  updateMe = async (user_id: string, payload: { avatar_url?: string | null }) => {
+  updateMe = async (
+    user_id: string,
+    payload: {
+      avatar_url?: string | null
+      full_name?: string
+      phone?: string
+    }
+  ) => {
     const data: Prisma.usersUpdateInput = {}
 
     if (payload.avatar_url !== undefined) {
@@ -324,6 +331,37 @@ class AuthService {
       }
     }
 
+    if (payload.full_name !== undefined) {
+      const v = payload.full_name.trim()
+      if (v.length === 0) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.FULL_NAME_IS_REQUIRED
+        })
+      }
+      data.full_name = v
+    }
+
+    if (payload.phone !== undefined) {
+      const v = payload.phone.trim()
+      if (v.length === 0) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.PHONE_IS_REQUIRED
+        })
+      }
+      const taken = await prisma.users.findFirst({
+        where: { phone: v, NOT: { id: user_id } }
+      })
+      if (taken != null) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          message: USER_MESSAGES.PHONE_ALREADY_EXISTS
+        })
+      }
+      data.phone = v
+    }
+
     if (Object.keys(data).length === 0) {
       return this.getMe(user_id)
     }
@@ -333,6 +371,40 @@ class AuthService {
       data
     })
     return this.getMe(user_id)
+  }
+
+  changePassword = async ({
+    user_id,
+    currentPassword,
+    newPassword
+  }: {
+    user_id: string
+    currentPassword: string
+    newPassword: string
+  }) => {
+    const user = await prisma.users.findUnique({
+      where: { id: user_id },
+      select: { password_hash: true }
+    })
+
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    if (user.password_hash == null || user.password_hash !== currentPassword) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.CURRENT_PASSWORD_INCORRECT,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
+    await prisma.users.update({
+      where: { id: user_id },
+      data: { password_hash: newPassword }
+    })
   }
 
   findUserByEmail = async (email: string) => {
