@@ -61,7 +61,7 @@ trở nên thuận tiện nhờ sự phổ biến của điện thoại thông m
 hóa, khả năng tiếp cận sản phẩm từ nhiều vùng miền khác nhau, cùng với các chương trình
 khuyến mãi và chính sách giá cạnh tranh.
 Tuy nhiên, từ góc nhìn của người sản xuất, đặc biệt là nông hộ và hợp tác xã, việc tham gia
-vào hệ sinh thái thương mại điện tử vẫn còn nhiều rào cản. Nhiều nông dân sở hữu tay nghề
+vào hệ sinh thái thương mại điện tử vẫn còn nhiều rào cản. Nhiều nông hộ sở hữu tay nghề
 canh tác tốt và có thể tạo ra các sản phẩm chất lượng cao, nhưng lại gặp khó khăn trong
 việc tiếp cận và sử dụng các công nghệ số. Các thách thức phổ biến bao gồm việc chuẩn
 hóa thông tin sản phẩm, xây dựng thương hiệu, vận hành gian hàng trực tuyến, cũng như

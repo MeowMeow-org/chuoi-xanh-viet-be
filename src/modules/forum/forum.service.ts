@@ -111,7 +111,8 @@ export class ForumService {
         where,
         skip,
         take: safeLimit,
-        orderBy: { created_at: 'desc' },
+        /** Mới nhất trước; `id` phụ để thứ tự ổn định khi cùng `created_at`. */
+        orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
         include: {
           forum_post_labels: true,
           forum_post_images: { orderBy: { sort_order: 'asc' } },
@@ -310,7 +311,10 @@ export class ForumService {
     return this.mapComment(comment)
   }
 
-  async getComments(postId: string, query: { page?: string | number; limit?: string | number }) {
+  async getComments(
+    postId: string,
+    query: { page?: string | number; limit?: string | number; sort?: string }
+  ) {
     const post = await prisma.forum_posts.findUnique({ where: { id: postId } })
     if (!post) {
       throw new ErrorWithStatus({
@@ -324,6 +328,8 @@ export class ForumService {
     const safePage = Number.isFinite(page) && page > 0 ? page : DEFAULT_PAGE
     const safeLimit = Number.isFinite(limit) && limit > 0 && limit <= 100 ? limit : DEFAULT_LIMIT
     const skip = (safePage - 1) * safeLimit
+    const sortDesc =
+      typeof query.sort === 'string' && query.sort.toLowerCase() === 'desc'
 
     const where = { post_id: postId }
 
@@ -332,7 +338,7 @@ export class ForumService {
         where,
         skip,
         take: safeLimit,
-        orderBy: { created_at: 'asc' },
+        orderBy: { created_at: sortDesc ? 'desc' : 'asc' },
         include: {
           users: { select: { id: true, full_name: true, role: true } }
         }

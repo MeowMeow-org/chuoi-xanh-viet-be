@@ -1,5 +1,4 @@
 import { Router } from 'express'
-import anchorRouter from '~/modules/anchor/anchor.router'
 import authRouter from '~/modules/auth/auth.router'
 import cooperativeRouter from '~/modules/cooperative/cooperative.router'
 import diaryRouter from '~/modules/diary/diary.router'
@@ -27,8 +26,6 @@ router.use('/diary', diaryRouter)
 router.use('/inspection', inspectionRouter)
 router.use('/sale-unit', saleUnitRouter)
 router.use('/trace', traceRouter)
-
-router.use('/anchor', anchorRouter)
 
 router.use('/forum', forumRouter)
 

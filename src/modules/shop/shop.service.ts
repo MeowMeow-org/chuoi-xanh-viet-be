@@ -37,7 +37,7 @@ const productSelect = {
 } as const
 
 const SHOP_SUGGEST_SYSTEM_PROMPT = `Bạn là chuyên gia marketing nông sản Việt Nam.
-Nhiệm vụ: Tạo tên gian hàng và mô tả hấp dẫn cho nông dân bán hàng online.
+Nhiệm vụ: Tạo tên gian hàng và mô tả hấp dẫn cho nông hộ bán hàng online.
 
 Quy tắc:
 - Tên gian hàng: ngắn gọn, dễ nhớ, thân thiện, có thể dùng tiếng Việt hoặc kết hợp, tối đa 60 ký tự

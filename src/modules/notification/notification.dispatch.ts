@@ -36,7 +36,7 @@ function orderItemsSummary(orderItems: Array<{ qty: unknown; products: { name: s
 function buyerStatusMessage(status: order_status): { title: string; body: string } {
   switch (status) {
     case 'confirmed':
-      return { title: 'Đơn hàng đã xác nhận', body: 'Nông dân đã xác nhận đơn hàng của bạn.' }
+      return { title: 'Đơn hàng đã xác nhận', body: 'Nông hộ đã xác nhận đơn hàng của bạn.' }
     case 'shipping':
       return { title: 'Đơn hàng đang giao', body: 'Đơn hàng của bạn đang được giao.' }
     case 'delivered':

@@ -506,7 +506,7 @@ class SeasonService {
           status: 'pending',
           anchored_at: new Date(),
           anchor_meta: {
-            canonicalSchemaVersion: 1,
+            canonicalSchemaVersion: 2,
             trigger: 'status_change_to_anchored'
           }
         },
