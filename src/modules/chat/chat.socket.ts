@@ -4,6 +4,7 @@ import { TokenType } from '~/constants/enums'
 import type { TokenPayLoad } from '../auth/auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
 import chatService from './chat.service'
+import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 
 let ioRef: Server | null = null
 
@@ -26,10 +27,7 @@ export function registerChatSocket(io: Server) {
       if (!raw) {
         return next(new Error('Unauthorized'))
       }
-      const decoded = jwt.verify(
-        raw,
-        process.env.JWT_ACCESS_TOKEN_SECRET as string
-      ) as TokenPayLoad
+      const decoded = jwt.verify(raw, process.env.JWT_ACCESS_TOKEN_SECRET as string) as TokenPayLoad
       if (decoded.token_type !== TokenType.AccessToken) {
         return next(new Error('Unauthorized'))
       }
@@ -70,10 +68,7 @@ export function registerChatSocket(io: Server) {
 
     socket.on(
       'chat:send',
-      async (
-        payload: { conversationId: string; content: string },
-        cb?: (err?: Error, data?: unknown) => void
-      ) => {
+      async (payload: { conversationId: string; content: string }, cb?: (err?: Error, data?: unknown) => void) => {
         try {
           const { conversationId, content } = payload ?? {}
           if (!conversationId || typeof content !== 'string') {
@@ -86,6 +81,10 @@ export function registerChatSocket(io: Server) {
             content
           })
           io.to(roomName(conversationId)).emit('chat:message', msg)
+          notificationDispatch.chatMessageForPeer({
+            conversationId,
+            senderUserId: socket.data.userId
+          })
           cb?.(undefined, msg)
         } catch (e) {
           if (e instanceof ErrorWithStatus) {

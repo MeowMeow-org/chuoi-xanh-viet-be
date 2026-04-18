@@ -4,6 +4,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
 import cooperativeService from './cooperative.service'
+import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 import type {
   GetHtxListQuery,
   GetMyMembershipsQuery,
@@ -18,8 +19,7 @@ export const listHtxController = async (
 ) => {
   const page = req.query.page !== undefined ? Number(req.query.page) : undefined
   const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
-  const searchTerm =
-    typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
+  const searchTerm = typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
 
   const { items, meta } = await cooperativeService.listHtx({
     page,
@@ -51,26 +51,16 @@ export const listMyMembershipsController = async (
   _next: NextFunction
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
-  const page =
-    req.query.page !== undefined ? Number(req.query.page) : undefined
-  const limit =
-    req.query.limit !== undefined ? Number(req.query.limit) : undefined
-  const status =
-    typeof req.query.status === 'string' ? req.query.status : undefined
+  const page = req.query.page !== undefined ? Number(req.query.page) : undefined
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
+  const status = typeof req.query.status === 'string' ? req.query.status : undefined
 
-  const { items, meta } = await cooperativeService.listMembershipsForCooperative(
-    {
-      cooperativeUserId: user_id,
-      status: status as
-        | 'pending'
-        | 'approved'
-        | 'rejected'
-        | 'removed'
-        | undefined,
-      page,
-      limit
-    }
-  )
+  const { items, meta } = await cooperativeService.listMembershipsForCooperative({
+    cooperativeUserId: user_id,
+    status: status as 'pending' | 'approved' | 'rejected' | 'removed' | undefined,
+    page,
+    limit
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -111,9 +101,15 @@ export const approveMembershipController = async (
   const { user_id } = req.decoded_authorization as TokenPayLoad
   const membershipId = req.params.membershipId
 
-  await cooperativeService.approveMembership({
+  const approved = await cooperativeService.approveMembership({
     membershipId,
     cooperativeUserId: user_id
+  })
+
+  notificationDispatch.cooperativeApprovedForFarmer({
+    farmerUserId: approved.farmerUserId,
+    cooperativeUserId: user_id,
+    farmId: approved.farmId
   })
 
   return res.sendResponse({
@@ -132,9 +128,16 @@ export const rejectMembershipController = async (
   const membershipId = req.params.membershipId
   const note = req.body.note
 
-  await cooperativeService.rejectMembership({
+  const rejected = await cooperativeService.rejectMembership({
     membershipId,
     cooperativeUserId: user_id,
+    note
+  })
+
+  notificationDispatch.cooperativeRejectedForFarmer({
+    farmerUserId: rejected.farmerUserId,
+    cooperativeUserId: user_id,
+    farmId: rejected.farmId,
     note
   })
 
@@ -204,6 +207,13 @@ export const requestJoinCooperativeController = async (
     farmerUserId: user_id,
     cooperativeUserId: req.body.cooperative_user_id,
     farmId: req.body.farm_id
+  })
+
+  notificationDispatch.cooperativeJoinRequested({
+    cooperativeUserId: row.cooperative_user_id,
+    farmerUserId: user_id,
+    farmId: row.farm_id,
+    membershipId: row.id
   })
 
   return res.sendResponse({

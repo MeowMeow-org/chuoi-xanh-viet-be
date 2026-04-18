@@ -4,6 +4,7 @@ import USER_MESSAGES from '~/constants/messages'
 import { isAllowedForumLabel } from '~/constants/forum-labels'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
+import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 import type {
   CreateForumCommentBody,
   CreateForumPostBody,
@@ -306,6 +307,16 @@ export class ForumService {
         users: { select: { id: true, full_name: true, role: true } }
       }
     })
+
+    if (post.author_user_id !== authorUserId) {
+      notificationDispatch.forumNewComment({
+        postAuthorUserId: post.author_user_id,
+        commentAuthorUserId: authorUserId,
+        commentAuthorName: comment.users.full_name.trim() || 'Thành viên',
+        postId,
+        postTitle: post.title
+      })
+    }
 
     return this.mapComment(comment)
   }

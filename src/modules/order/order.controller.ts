@@ -4,12 +4,9 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
 import orderService from './order.service'
-import type {
-  CreateOrderRequestBody,
-  GetOrdersQuery,
-  UpdateOrderStatusBody
-} from './order.request'
+import type { CreateOrderRequestBody, GetOrdersQuery, UpdateOrderStatusBody } from './order.request'
 import type { order_status } from '@prisma/client'
+import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 
 const mapOrderRow = (order: {
   id: string
@@ -99,6 +96,7 @@ export const createOrderController = async (
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   const order = await orderService.createOrder({ buyerUserId: user_id, payload: req.body })
+  notificationDispatch.orderCreatedForFarmer(order as any)
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.CREATED,
@@ -153,10 +151,7 @@ export const getShopOrdersController = async (
   })
 }
 
-export const getOrderByIdController = async (
-  req: Request<{ order_id: string }>,
-  res: Response
-) => {
+export const getOrderByIdController = async (req: Request<{ order_id: string }>, res: Response) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   const order = await orderService.getOrderById({ orderId: req.params.order_id, userId: user_id })
 
@@ -167,12 +162,10 @@ export const getOrderByIdController = async (
   })
 }
 
-export const cancelOrderController = async (
-  req: Request<{ order_id: string }>,
-  res: Response
-) => {
+export const cancelOrderController = async (req: Request<{ order_id: string }>, res: Response) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   const order = await orderService.cancelOrder({ orderId: req.params.order_id, buyerUserId: user_id })
+  notificationDispatch.orderCancelledForFarmer(order as any)
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -191,6 +184,7 @@ export const updateOrderStatusController = async (
     farmerUserId: user_id,
     nextStatus: req.body.status
   })
+  notificationDispatch.orderStatusChangedForBuyer(order as any)
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
