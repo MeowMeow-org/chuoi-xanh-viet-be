@@ -189,6 +189,7 @@ model products {
   updated_at  DateTime      @default(now()) @db.Timestamp(6)
   sale_unit_id String?       @unique @db.Uuid
   order_items  order_items[]
+  shop_reviews shop_reviews[]
   seasons      seasons?      @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_season")
   shops        shops         @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_shop")
   sale_unit    sale_units?   @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_sale_unit")
@@ -282,6 +283,7 @@ model shop_reviews {
   user_id              String   @db.Uuid
   order_id             String   @db.Uuid
   shop_id              String   @db.Uuid
+  product_id           String   @db.Uuid
   rating               Int
   comment              String?
   is_verified_purchase Boolean  @default(true)
@@ -290,10 +292,12 @@ model shop_reviews {
   updated_at           DateTime @default(now()) @db.Timestamp(6)
   orders               orders   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_order")
   shops                shops    @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_shop")
+  products             products @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_product")
   users                users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_user")
 
-  @@unique([user_id, order_id, shop_id], map: "uq_shop_reviews_user_order_shop")
+  @@unique([user_id, order_id, product_id], map: "uq_shop_reviews_user_order_product")
   @@index([shop_id, created_at], map: "idx_shop_reviews_shop_created_at")
+  @@index([product_id, created_at], map: "idx_shop_reviews_product_created_at")
 }
 
 model shops {

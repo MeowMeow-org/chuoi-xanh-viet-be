@@ -44,6 +44,77 @@ Quy tắc:
 - Nếu thông tin farm không đầy đủ, hãy tự sáng tạo phù hợp`
 
 class ShopService {
+  /** Gắn điểm TB + số lượt đánh giá (shop_reviews theo product_id) cho danh sách sản phẩm */
+  private async attachProductReviewAggregates<T extends { id: string }>(
+    items: T[]
+  ): Promise<Array<T & { average_rating: number | null; review_count: number }>> {
+    if (items.length === 0) return []
+
+    const ids = items.map((i) => i.id)
+    const groups = await prisma.shop_reviews.groupBy({
+      by: ['product_id'],
+      where: { product_id: { in: ids } },
+      _avg: { rating: true },
+      _count: { _all: true }
+    })
+    const statByProduct = new Map(
+      groups.map((g) => [
+        g.product_id,
+        {
+          average_rating:
+            g._avg.rating != null ? Math.round(Number(g._avg.rating) * 10) / 10 : null,
+          review_count: g._count._all
+        }
+      ])
+    )
+
+    return items.map((it) => {
+      const s = statByProduct.get(it.id)
+      return {
+        ...it,
+        average_rating: s?.average_rating ?? null,
+        review_count: s?.review_count ?? 0
+      }
+    })
+  }
+
+  /** Điểm TB + số lượt đánh giá gắn với gian hàng (mọi shop_reviews của shop). */
+  private async getShopReviewStatsByShopIds(
+    shopIds: string[]
+  ): Promise<Map<string, { average_rating: number | null; review_count: number }>> {
+    if (shopIds.length === 0) return new Map()
+
+    const unique = [...new Set(shopIds)]
+    const groups = await prisma.shop_reviews.groupBy({
+      by: ['shop_id'],
+      where: { shop_id: { in: unique } },
+      _avg: { rating: true },
+      _count: { _all: true }
+    })
+    return new Map(
+      groups.map((g) => [
+        g.shop_id,
+        {
+          average_rating:
+            g._avg.rating != null ? Math.round(Number(g._avg.rating) * 10) / 10 : null,
+          review_count: g._count._all
+        }
+      ])
+    )
+  }
+
+  private mergeShopReviewStats<T extends { id: string }>(
+    shop: T,
+    map: Map<string, { average_rating: number | null; review_count: number }>
+  ): T & { average_rating: number | null; review_count: number } {
+    const s = map.get(shop.id)
+    return {
+      ...shop,
+      average_rating: s?.average_rating ?? null,
+      review_count: s?.review_count ?? 0
+    }
+  }
+
   private async ensureFarmOwner(farmId: string, userId: string) {
     const farm = await prisma.farms.findFirst({
       where: { id: farmId, owner_user_id: userId },
@@ -179,7 +250,8 @@ class ShopService {
     if (!shop) {
       throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
     }
-    return shop
+    const statsMap = await this.getShopReviewStatsByShopIds([shop.id])
+    return this.mergeShopReviewStats(shop, statsMap)
   }
 
   getMyShop = async (userId: string) => {
@@ -191,7 +263,8 @@ class ShopService {
       },
       orderBy: { created_at: 'desc' }
     })
-    return shops
+    const statsMap = await this.getShopReviewStatsByShopIds(shops.map((s) => s.id))
+    return shops.map((s) => this.mergeShopReviewStats(s, statsMap))
   }
 
   getShops = async ({
@@ -235,8 +308,9 @@ class ShopService {
     ])
 
     const totalPages = Math.ceil(total / safeLimit)
+    const statsMap = await this.getShopReviewStatsByShopIds(items.map((s) => s.id))
     return {
-      items,
+      items: items.map((s) => this.mergeShopReviewStats(s, statsMap)),
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -416,7 +490,7 @@ class ShopService {
           ? payload.image_url.trim() || null
           : null
 
-    return prisma.products.create({
+    const created = await prisma.products.create({
       data: {
         shop_id: shopId,
         season_id: saleUnit.season_id,
@@ -430,6 +504,8 @@ class ShopService {
       },
       select: productSelect
     })
+    const [withStats] = await this.attachProductReviewAggregates([created])
+    return withStats
   }
 
   getProducts = async ({ shopId, page = 1, limit = 20 }: { shopId: string; page?: number; limit?: number }) => {
@@ -454,9 +530,10 @@ class ShopService {
       prisma.products.count({ where })
     ])
 
+    const itemsWithStats = await this.attachProductReviewAggregates(items)
     const totalPages = Math.ceil(total / safeLimit)
     return {
-      items,
+      items: itemsWithStats,
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -545,9 +622,10 @@ class ShopService {
       prisma.products.count({ where })
     ])
 
+    const itemsWithStats = await this.attachProductReviewAggregates(items)
     const totalPages = Math.ceil(total / safeLimit)
     return {
-      items,
+      items: itemsWithStats,
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -607,7 +685,15 @@ class ShopService {
       })
     }
 
-    return product
+    const [withProductStats] = await this.attachProductReviewAggregates([product])
+    if (!withProductStats.shops) {
+      return withProductStats
+    }
+    const sm = await this.getShopReviewStatsByShopIds([withProductStats.shops.id])
+    return {
+      ...withProductStats,
+      shops: this.mergeShopReviewStats(withProductStats.shops, sm)
+    }
   }
 }
 

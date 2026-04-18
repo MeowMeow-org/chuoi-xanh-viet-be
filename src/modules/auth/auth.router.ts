@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { wrapAsync } from '~/utils/handler'
 import {
+  changePasswordController,
   forgotPasswordController,
   getMeController,
   loginController,
@@ -13,6 +14,7 @@ import {
 } from './auth.controller'
 import {
   accessTokenValidator,
+  changePasswordValidator,
   forgotPasswordValidator,
   loginValidator,
   patchMeValidator,
@@ -48,6 +50,18 @@ authRouter.patch(
   accessTokenValidator,
   patchMeValidator,
   wrapAsync(patchMeController)
+)
+
+/**
+ * @desc Đổi mật khẩu khi đã đăng nhập
+ * @route POST /auth/me/password
+ * @access private
+ */
+authRouter.post(
+  '/me/password',
+  accessTokenValidator,
+  changePasswordValidator,
+  wrapAsync(changePasswordController)
 )
 
 // register

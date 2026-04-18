@@ -3,7 +3,8 @@ export const NotificationEntityType = {
   ORDER: 'order',
   CONVERSATION: 'conversation',
   COOPERATIVE_MEMBERSHIP: 'cooperative_membership',
-  FORUM_POST: 'forum_post'
+  FORUM_POST: 'forum_post',
+  SHOP_REVIEW: 'shop_review'
 } as const
 
 export type NotificationEntityTypeValue = (typeof NotificationEntityType)[keyof typeof NotificationEntityType]

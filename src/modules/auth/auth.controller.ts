@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express'
 import type { ParamsDictionary } from 'express-serve-static-core'
 import type {
+  ChangePasswordRequestBody,
   ForgotPasswordRequestBody,
   RefreshTokenRequestBody,
   LoginRequestBody,
@@ -80,9 +81,23 @@ export const patchMeController = async (
             : body.avatarUrl.trim()
           : undefined
 
-  const user = await authService.updateMe(user_id, {
-    ...(avatarRaw !== undefined ? { avatar_url: avatarRaw } : {})
-  })
+  const payload: {
+    avatar_url?: string | null
+    full_name?: string
+    phone?: string
+  } = {}
+
+  if (avatarRaw !== undefined) {
+    payload.avatar_url = avatarRaw
+  }
+  if (body.fullName !== undefined) {
+    payload.full_name = String(body.fullName).trim()
+  }
+  if (body.phone !== undefined) {
+    payload.phone = String(body.phone).trim()
+  }
+
+  const user = await authService.updateMe(user_id, payload)
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -96,6 +111,27 @@ export const patchMeController = async (
       status: user.status,
       avatarUrl: user.avatar_url ?? null
     }
+  })
+}
+
+export const changePasswordController = async (
+  req: Request<ParamsDictionary, unknown, ChangePasswordRequestBody>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const { currentPassword, newPassword } = req.body
+
+  await authService.changePassword({
+    user_id,
+    currentPassword,
+    newPassword
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.CHANGE_PASSWORD_SUCCESS,
+    data: null
   })
 }
 

@@ -14,6 +14,7 @@ import seasonRouter from '~/modules/season/season.router'
 import traceRouter from '~/modules/trace/trace.router'
 import uploadRouter from '~/modules/upload/upload.router'
 import notificationRouter from '~/modules/notification/notification.router'
+import shopReviewRouter from '~/modules/shop-review/shop-review.router'
 
 const router = Router()
 
@@ -39,5 +40,6 @@ router.use('/chat', chatRouter)
 
 router.use('/upload', uploadRouter)
 router.use('/notification', notificationRouter)
+router.use('/review', shopReviewRouter)
 
 export default router
