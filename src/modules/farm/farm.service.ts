@@ -124,10 +124,28 @@ class FarmService {
       prisma.shops.findUnique({ where: { farm_id }, select: { id: true } })
     ])
 
-    if (seasonCount > 0 || membershipCount > 0 || diaryCount > 0 || shop != null) {
+    if (seasonCount > 0) {
       throw new ErrorWithStatus({
         status: HTTP_STATUS.CONFLICT,
-        message: USER_MESSAGES.FARM_HAS_RELATED_DATA
+        message: USER_MESSAGES.FARM_DELETE_BLOCKED_SEASONS
+      })
+    }
+    if (membershipCount > 0) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.FARM_DELETE_BLOCKED_COOP
+      })
+    }
+    if (diaryCount > 0) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.FARM_DELETE_BLOCKED_DIARY
+      })
+    }
+    if (shop != null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.FARM_DELETE_BLOCKED_SHOP
       })
     }
 

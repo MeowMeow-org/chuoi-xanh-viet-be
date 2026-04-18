@@ -11,8 +11,6 @@
  *     description: Season endpoints
  *   - name: Diary
  *     description: Diary endpoints
- *   - name: Anchor
- *     description: Canonical payload and anchoring endpoints
  *   - name: Forum
  *     description: Q&A forum posts and comments (labels whitelist; optional images from upload service)
  *   - name: Shop
@@ -594,7 +592,7 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [farmId, cropName, startDate]
+ *             required: [farmId, cropName, startDate, estimatedYield]
  *             properties:
  *               farmId: { type: string, format: uuid }
  *               code: { type: string, description: 'Optional; server generates 6 letters + 6 digits if omitted', example: ABCDEF042891 }
@@ -602,7 +600,7 @@
  *               startDate: { type: string, format: date, example: '2026-04-15' }
  *               harvestStartDate: { type: string, format: date, nullable: true }
  *               harvestEndDate: { type: string, format: date, nullable: true }
- *               estimatedYield: { type: number, nullable: true, example: 1500 }
+ *               estimatedYield: { type: number, example: 1500, description: 'Required; must be > 0' }
  *               actualYield: { type: number, nullable: true, example: 1400 }
  *               yieldUnit: { type: string, nullable: true, example: kg }
  *     responses:
@@ -931,107 +929,6 @@
 
 /**
  * @swagger
- * /v1/api/anchor/season/{season_id}/canonical-payload:
- *   get:
- *     summary: Preview canonical payload and SHA-256 hash for season
- *     tags: [Anchor]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: season_id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200:
- *         description: Canonical payload preview generated successfully
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden (role mismatch)
- *       404:
- *         description: Season not found
- *       422:
- *         description: Validation error
- */
-
-/**
- * @swagger
- * /v1/api/anchor/season/{season_id}/checkpoints:
- *   post:
- *     summary: Create new checkpoint anchor for season
- *     tags: [Anchor]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: season_id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     requestBody:
- *       required: false
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               checkpointType: { type: string, maxLength: 30, default: manual }
- *               isFinal: { type: boolean, default: false }
- *               payloadRange: { type: object, nullable: true }
- *     responses:
- *       201:
- *         description: Checkpoint anchor created successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Season not found
- *       409:
- *         description: Season status is not ready_to_anchor/amended
- *       422:
- *         description: Validation error
- *   get:
- *     summary: Get checkpoint anchors of season
- *     tags: [Anchor]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: season_id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200:
- *         description: Checkpoint anchors retrieved successfully
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Season not found
- *
- * /v1/api/anchor/season/{season_id}/checkpoints/{checkpoint_no}/verify:
- *   get:
- *     summary: Verify one checkpoint anchor by current canonical hash
- *     tags: [Anchor]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: season_id
- *         required: true
- *         schema: { type: string, format: uuid }
- *       - in: path
- *         name: checkpoint_no
- *         required: true
- *         schema: { type: integer, minimum: 1 }
- *     responses:
- *       200:
- *         description: Checkpoint anchor verification result
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Checkpoint anchor not found
- *       422:
- *         description: Validation error
- *
  * /v1/api/upload:
  *   post:
  *     summary: Upload images (proxy to image worker)
@@ -1095,7 +992,7 @@
  *
  * /v1/api/forum/posts:
  *   get:
- *     summary: List forum posts (active only)
+ *     summary: List forum posts (active only, newest first by created_at)
  *     tags: [Forum]
  *     security:
  *       - bearerAuth: []

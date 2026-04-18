@@ -473,7 +473,7 @@ const forumPostsSeed: {
     author_email: 'mai@consumer.vn',
     title: 'Giá rau sạch khu Bình Chánh dạo này thế nào?',
     content:
-      'Nhà mình hay mua rau tại chợ đầu mối nhưng muốn ủng hộ nông dân địa phương. Mọi người cho hỏi giá cải ngọt / muống / dưa leo tham khảo tháng 4 khoảng bao nhiêu là hợp lý?',
+      'Nhà mình hay mua rau tại chợ đầu mối nhưng muốn ủng hộ nông hộ địa phương. Mọi người cho hỏi giá cải ngọt / muống / dưa leo tham khảo tháng 4 khoảng bao nhiêu là hợp lý?',
     label: 'thi-truong'
   },
   {
@@ -487,7 +487,7 @@ const forumPostsSeed: {
     author_email: 'nam@consumer.vn',
     title: 'Thu hoạch dưa leo sao cho giòn, để lâu hơn?',
     content:
-      'Mình hay mua dưa về bị mềm nhanh. Nông dân cho biết nên hái lúc quả còn xanh bóng, cuống khô một nửa phải không? Có nên rửa và để ráo trước khi bảo quản lạnh?',
+      'Mình hay mua dưa về bị mềm nhanh. Nông hộ cho biết nên hái lúc quả còn xanh bóng, cuống khô một nửa phải không? Có nên rửa và để ráo trước khi bảo quản lạnh?',
     label: 'thu-hoach'
   },
   {
@@ -707,7 +707,7 @@ async function main() {
       })
     } else {
       await prisma.products.create({
-        data: {
+    data: {
           ...commonData,
           shops: { connect: { id: shopId } },
           seasons: { connect: { id: seasonId } }
@@ -736,15 +736,15 @@ async function main() {
           create: [{ label: p.label }]
         },
         forum_post_images: {
-          create: [
-            {
+                create: [
+                  {
               object_key: `seed/forum/post-${String(i + 1).padStart(2, '0')}.jpg`,
               file_url: fileUrl,
-              sort_order: 0
+                    sort_order: 0
+                  }
+                ]
+              }
             }
-          ]
-        }
-      }
     })
     createdForumPostIds.push(post.id)
   }

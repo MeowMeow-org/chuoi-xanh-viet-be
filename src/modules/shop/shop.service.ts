@@ -12,6 +12,7 @@ const shopSelect = {
   farm_id: true,
   name: true,
   description: true,
+  avatar_url: true,
   status: true,
   is_verified: true,
   certifications: true,
@@ -36,7 +37,7 @@ const productSelect = {
 } as const
 
 const SHOP_SUGGEST_SYSTEM_PROMPT = `Bạn là chuyên gia marketing nông sản Việt Nam.
-Nhiệm vụ: Tạo tên gian hàng và mô tả hấp dẫn cho nông dân bán hàng online.
+Nhiệm vụ: Tạo tên gian hàng và mô tả hấp dẫn cho nông hộ bán hàng online.
 
 Quy tắc:
 - Tên gian hàng: ngắn gọn, dễ nhớ, thân thiện, có thể dùng tiếng Việt hoặc kết hợp, tối đa 60 ký tự
@@ -203,7 +204,8 @@ class ShopService {
       data: {
         farm_id: payload.farm_id,
         name: payload.name,
-        description: payload.description ?? null
+        description: payload.description ?? null,
+        avatar_url: payload.avatar_url ?? null
       },
       select: shopSelect
     })
@@ -223,6 +225,7 @@ class ShopService {
     const data: Prisma.shopsUncheckedUpdateInput = {}
     if (payload.name !== undefined) data.name = payload.name
     if (payload.description !== undefined) data.description = payload.description
+    if (payload.avatar_url !== undefined) data.avatar_url = payload.avatar_url
     if (payload.status !== undefined) data.status = payload.status
 
     return prisma.shops.update({ where: { id: shopId }, data, select: shopSelect })
@@ -259,7 +262,25 @@ class ShopService {
       where: { farms: { owner_user_id: userId } },
       select: {
         ...shopSelect,
-        farms: { select: { id: true, name: true, crop_main: true, province: true, district: true } }
+        farms: {
+          select: {
+            id: true,
+            name: true,
+            crop_main: true,
+            province: true,
+            district: true,
+            cooperative_members: {
+              where: { status: 'approved' },
+              orderBy: { verified_at: 'desc' },
+              take: 1,
+              select: {
+                cooperative_user: {
+                  select: { id: true, full_name: true, avatar_url: true }
+                }
+              }
+            }
+          }
+        }
       },
       orderBy: { created_at: 'desc' }
     })
@@ -267,15 +288,7 @@ class ShopService {
     return shops.map((s) => this.mergeShopReviewStats(s, statsMap))
   }
 
-  getShops = async ({
-    page = 1,
-    limit = 10,
-    searchTerm
-  }: {
-    page?: number
-    limit?: number
-    searchTerm?: string
-  }) => {
+  getShops = async ({ page = 1, limit = 10, searchTerm }: { page?: number; limit?: number; searchTerm?: string }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
     const skip = (safePage - 1) * safeLimit
@@ -466,16 +479,12 @@ class ShopService {
     const farm = saleUnit.seasons.farms
     const addressParts = [farm.address, farm.ward, farm.district, farm.province].filter(Boolean).join(', ')
     const lotLabel = (saleUnit.short_code?.trim() || saleUnit.code).trim()
-    const name =
-      payload.name != null && payload.name.trim().length > 0 ? payload.name.trim() : `Lô ${lotLabel}`
+    const name = payload.name != null && payload.name.trim().length > 0 ? payload.name.trim() : `Lô ${lotLabel}`
 
-    const unit =
-      payload.unit != null && payload.unit.trim().length > 0 ? payload.unit.trim() : saleUnit.unit
+    const unit = payload.unit != null && payload.unit.trim().length > 0 ? payload.unit.trim() : saleUnit.unit
 
     const stockQty =
-      payload.stock_qty !== undefined && payload.stock_qty !== null
-        ? payload.stock_qty
-        : Number(saleUnit.quantity)
+      payload.stock_qty !== undefined && payload.stock_qty !== null ? payload.stock_qty : Number(saleUnit.quantity)
 
     const userDesc = payload.description?.trim()
     const traceLine = saleUnit.qr_url ? `\n\n🔗 Truy xuất lô: ${saleUnit.qr_url}` : ''
@@ -565,10 +574,7 @@ class ShopService {
     const skip = (safePage - 1) * safeLimit
 
     const term = searchTerm?.trim()
-    const andFilters: Prisma.productsWhereInput[] = [
-      { is_active: true },
-      { shops: { status: 'open' } }
-    ]
+    const andFilters: Prisma.productsWhereInput[] = [{ is_active: true }, { shops: { status: 'open' } }]
 
     if (shopId) andFilters.push({ shop_id: shopId })
 

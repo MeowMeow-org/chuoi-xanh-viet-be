@@ -27,7 +27,18 @@ export const createShopBodyValidator = validate(
       description: {
         optional: true,
         isString: true,
-        trim: true
+        trim: true,
+        isLength: { options: { max: 250 }, errorMessage: 'description must be at most 250 characters' }
+      },
+      avatar_url: {
+        optional: { options: { nullable: true } },
+        custom: {
+          options: (value: unknown) =>
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim().length <= 2048),
+          errorMessage: 'avatar_url must be a string at most 2048 characters or null'
+        }
       }
     },
     ['body']
@@ -47,7 +58,18 @@ export const updateShopBodyValidator = validate(
       description: {
         optional: true,
         isString: true,
-        trim: true
+        trim: true,
+        isLength: { options: { max: 250 }, errorMessage: 'description must be at most 250 characters' }
+      },
+      avatar_url: {
+        optional: { options: { nullable: true } },
+        custom: {
+          options: (value: unknown) =>
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim().length <= 2048),
+          errorMessage: 'avatar_url must be a string at most 2048 characters or null'
+        }
       },
       status: {
         optional: true,
@@ -150,7 +172,8 @@ export const addProductBodyValidator = validate(
       description: {
         optional: true,
         isString: true,
-        trim: true
+        trim: true,
+        isLength: { options: { max: 250 }, errorMessage: 'description must be at most 250 characters' }
       },
       price: {
         isFloat: { options: { gt: 0 }, errorMessage: 'price must be a positive number' },

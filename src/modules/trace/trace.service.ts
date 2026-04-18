@@ -30,6 +30,21 @@ const diarySelect = {
   created_at: true
 } as const
 
+/**
+ * Cùng quy tắc cho UI (Neo blockchain) và verify:
+ * ưu tiên bản có tx Sepolia, trong cùng nhóm thì mới nhất trước (lịch sử neo sau `amended` nếu có).
+ */
+export function sortTraceAnchorsReferenceFirst<
+  T extends { tx_hash: string | null; created_at: Date }
+>(anchors: T[]): T[] {
+  return [...anchors].sort((a, b) => {
+    const aOn = a.tx_hash != null && String(a.tx_hash).length > 0 ? 1 : 0
+    const bOn = b.tx_hash != null && String(b.tx_hash).length > 0 ? 1 : 0
+    if (aOn !== bOn) return bOn - aOn
+    return b.created_at.getTime() - a.created_at.getTime()
+  })
+}
+
 class TraceService {
   /**
    * Resolve 1 "code" (short_code hoặc qr_token) thành sale_unit + season.
@@ -123,8 +138,7 @@ class TraceService {
           }
         },
         season_anchors: {
-          orderBy: { created_at: 'desc' },
-          take: 5
+          orderBy: { created_at: 'desc' }
         },
         sale_units: {
           orderBy: { created_at: 'desc' },
@@ -163,26 +177,41 @@ class TraceService {
       })
     }
 
-    return { season }
+    const anchorsSorted = sortTraceAnchorsReferenceFirst(season.season_anchors).slice(0, 5)
+
+    return {
+      season: {
+        ...season,
+        season_anchors: anchorsSorted
+      }
+    }
   }
 
   /**
-   * Verify hash: so sánh canonical hash tính lại từ DB hiện tại với hash đã lưu trong anchor mới nhất.
-   * Trả về `match: true` nếu khớp — chứng tỏ dữ liệu chưa bị sửa đổi sau khi anchor.
+   * Verify hash: so sánh canonical hash tính lại từ DB với **cùng** bản anchor tham chiếu như UI truy xuất
+   * (ưu tiên có tx_hash / neo chain, không dùng `is_final` vì dễ lệch với `anchors[0]`).
    */
   verifySeason = async ({ seasonId }: { seasonId: string }) => {
-    const latestAnchor = await prisma.season_anchors.findFirst({
-      where: { season_id: seasonId, is_final: true },
-      orderBy: { created_at: 'desc' }
+    const anchorRows = await prisma.season_anchors.findMany({
+      where: { season_id: seasonId }
     })
+    const reference = sortTraceAnchorsReferenceFirst(anchorRows)[0] ?? null
 
-    const canonical = await anchorService.buildCanonicalPayloadPublic(seasonId)
+    const canonical = await anchorService.buildCanonicalForVerify(
+      seasonId,
+      reference
+        ? {
+            anchor_meta: reference.anchor_meta,
+            checkpoint_type: reference.checkpoint_type
+          }
+        : null
+    )
 
     return {
       currentHash: canonical.payloadHash,
-      onChainHash: latestAnchor?.data_hash ?? null,
-      match: latestAnchor ? canonical.payloadHash === latestAnchor.data_hash : null,
-      anchor: latestAnchor
+      onChainHash: reference?.data_hash ?? null,
+      match: reference ? canonical.payloadHash === reference.data_hash : null,
+      anchor: reference
     }
   }
 }

@@ -61,7 +61,7 @@ dùng.
 
 3. Phạm vi và đối tượng
 Đối tượng:
-• Nông dân: Các nông hộ, hộ sản xuất nhỏ có nhu cầu chuyển đổi số
+• Nông hộ: Các nông hộ, hộ sản xuất nhỏ có nhu cầu chuyển đổi số
 • Cán bộ khuyến nông, Hợp tác xã: Quản lý, xác minh hộ viên, gắn mức tin
 cậy, không bắt buộc mọi khu vực đều có hợp tác xã.
 • Người tiêu dùng: Sinh viên, dân cư địa phương, người nhu cầu sử dụng rau
@@ -107,7 +107,7 @@ về quy trình kỹ thuật, tiêu chuẩn canh tác xanh (GlobalGAP, VietGAP)
 và hướng dẫn phòng trừ sâu bệnh bằng ngôn ngữ bình dân — không
 dùng thuật ngữ chuyên ngành khó hiểu, phù hợp với nông dân ít tiếp
 cận tài liệu chính thống.
-○ Chẩn đoán bệnh cây qua ảnh (VLM): Nông dân chụp ảnh trực tiếp
+○ Chẩn đoán bệnh cây qua ảnh (VLM): Nông hộ chụp ảnh trực tiếp
 tại ruộng và upload lên chatbot. Hệ thống sử dụng Vision Language
 Model (VLM) để phân tích hình ảnh, nhận diện loại sâu bệnh hoặc vấn
 đề bất thường trên cây trồng, từ đó đưa ra chẩn đoán và đề xuất giải

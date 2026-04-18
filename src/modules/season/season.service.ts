@@ -171,7 +171,7 @@ class SeasonService {
         start_date: start,
         harvest_start_date: harvestStart,
         harvest_end_date: harvestEnd,
-        estimated_yield: payload.estimatedYield ?? null,
+        estimated_yield: payload.estimatedYield,
         actual_yield: payload.actualYield ?? null,
         yield_unit: payload.yieldUnit ?? 'kg',
         created_by: userId
@@ -506,7 +506,7 @@ class SeasonService {
           status: 'pending',
           anchored_at: new Date(),
           anchor_meta: {
-            canonicalSchemaVersion: 1,
+            canonicalSchemaVersion: 2,
             trigger: 'status_change_to_anchored'
           }
         },

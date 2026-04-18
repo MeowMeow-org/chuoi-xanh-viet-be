@@ -7,62 +7,62 @@ datasource db {
 }
 
 model diary_entries {
-  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  season_id          String              @db.Uuid
-  farm_id            String              @db.Uuid
-  actor_user_id      String              @db.Uuid
-  event_type         diary_event_type
-  event_date         DateTime            @db.Date
-  server_timestamp   DateTime            @default(now()) @db.Timestamp(6)
-  description        String?
-  extra_data         Json?
-  created_at         DateTime            @default(now()) @db.Timestamp(6)
-  diary_attachments  diary_attachments[]
-  users              users               @relation(fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_actor")
-  farms              farms               @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_farm")
-  seasons            seasons             @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_season")
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id         String              @db.Uuid
+  farm_id           String              @db.Uuid
+  actor_user_id     String              @db.Uuid
+  event_type        diary_event_type
+  event_date        DateTime            @db.Date
+  server_timestamp  DateTime            @default(now()) @db.Timestamp(6)
+  description       String?
+  extra_data        Json?
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  diary_attachments diary_attachments[]
+  users             users               @relation(fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_actor")
+  farms             farms               @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_farm")
+  seasons           seasons             @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_season")
 
   @@index([season_id, event_date], map: "idx_diary_season_event_date")
   @@index([season_id, server_timestamp], map: "idx_diary_season_server_ts")
 }
 
 model diary_attachments {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  diary_entry_id  String        @db.Uuid
-  file_url        String
-  mime_type       String?       @db.VarChar(120)
-  sort_order      Int           @default(0)
-  meta            Json?
-  created_at      DateTime      @default(now()) @db.Timestamp(6)
-  diary_entries   diary_entries @relation(fields: [diary_entry_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_diary_attachments_entry")
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  diary_entry_id String        @db.Uuid
+  file_url       String
+  mime_type      String?       @db.VarChar(120)
+  sort_order     Int           @default(0)
+  meta           Json?
+  created_at     DateTime      @default(now()) @db.Timestamp(6)
+  diary_entries  diary_entries @relation(fields: [diary_entry_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_diary_attachments_entry")
 
   @@index([diary_entry_id, sort_order], map: "idx_diary_attachments_entry_sort")
 }
 
 model forum_posts {
-  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  author_user_id String             @db.Uuid
-  title          String             @db.VarChar(220)
-  content        String
-  status         forum_post_status  @default(active)
-  created_at     DateTime           @default(now()) @db.Timestamp(6)
-  updated_at     DateTime           @default(now()) @db.Timestamp(6)
-  forum_comments forum_comments[]
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_user_id    String              @db.Uuid
+  title             String              @db.VarChar(220)
+  content           String
+  status            forum_post_status   @default(active)
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  updated_at        DateTime            @default(now()) @db.Timestamp(6)
+  forum_comments    forum_comments[]
   forum_post_images forum_post_images[]
   forum_post_labels forum_post_labels[]
-  users          users              @relation(fields: [author_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_forum_posts_author")
+  users             users               @relation(fields: [author_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_forum_posts_author")
 
   @@index([author_user_id, created_at], map: "idx_forum_posts_author_created")
   @@index([status, created_at], map: "idx_forum_posts_status_created")
 }
 
 model forum_post_images {
-  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  post_id    String      @db.Uuid
-  object_key String      @db.VarChar(2048)
-  file_url   String
-  sort_order Int         @default(0)
-  created_at DateTime    @default(now()) @db.Timestamp(6)
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id     String      @db.Uuid
+  object_key  String      @db.VarChar(2048)
+  file_url    String
+  sort_order  Int         @default(0)
+  created_at  DateTime    @default(now()) @db.Timestamp(6)
   forum_posts forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_forum_post_images_post")
 
   @@index([post_id, sort_order], map: "idx_forum_post_images_post_sort")
@@ -83,10 +83,10 @@ model forum_comments {
 }
 
 model forum_post_labels {
-  id         String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  post_id    String      @db.Uuid
-  label      String      @db.VarChar(80)
-  created_at DateTime    @default(now()) @db.Timestamp(6)
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id     String      @db.Uuid
+  label       String      @db.VarChar(80)
+  created_at  DateTime    @default(now()) @db.Timestamp(6)
   forum_posts forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_forum_labels_post")
 
   @@unique([post_id, label], map: "uq_forum_post_label")
@@ -94,25 +94,25 @@ model forum_post_labels {
 }
 
 model farms {
-  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  owner_user_id String          @db.Uuid
-  name          String          @db.VarChar(180)
-  area_ha       Decimal?        @db.Decimal(10, 2)
-  crop_main     String?         @db.VarChar(120)
-  province      String?         @db.VarChar(100)
-  district      String?         @db.VarChar(100)
-  ward          String?         @db.VarChar(100)
-  address        String?
-  latitude       Decimal?        @db.Decimal(10, 7)
-  longitude      Decimal?        @db.Decimal(10, 7)
-  in_cooperative Boolean         @default(false)
-  created_at     DateTime        @default(now()) @db.Timestamp(6)
-  updated_at     DateTime        @default(now()) @db.Timestamp(6)
+  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  owner_user_id       String                @db.Uuid
+  name                String                @db.VarChar(180)
+  area_ha             Decimal?              @db.Decimal(10, 2)
+  crop_main           String?               @db.VarChar(120)
+  province            String?               @db.VarChar(100)
+  district            String?               @db.VarChar(100)
+  ward                String?               @db.VarChar(100)
+  address             String?
+  latitude            Decimal?              @db.Decimal(10, 7)
+  longitude           Decimal?              @db.Decimal(10, 7)
+  in_cooperative      Boolean               @default(false)
+  created_at          DateTime              @default(now()) @db.Timestamp(6)
+  updated_at          DateTime              @default(now()) @db.Timestamp(6)
   cooperative_members cooperative_members[]
-  diary_entries diary_entries[]
-  users         users           @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
-  seasons       seasons[]
-  shops         shops?
+  diary_entries       diary_entries[]
+  users               users                 @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
+  seasons             seasons[]
+  shops               shops?
 }
 
 model cooperative_members {
@@ -175,18 +175,18 @@ model orders {
 }
 
 model products {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  shop_id     String        @db.Uuid
-  season_id   String?       @db.Uuid
-  name        String        @db.VarChar(180)
-  description String?
-  price       Decimal       @db.Decimal(12, 2)
-  unit        String?       @default("kg") @db.VarChar(20)
-  stock_qty   Decimal?      @default(0) @db.Decimal(10, 2)
-  image_url   String?       @db.VarChar(512)
-  is_active   Boolean       @default(true)
-  created_at  DateTime      @default(now()) @db.Timestamp(6)
-  updated_at  DateTime      @default(now()) @db.Timestamp(6)
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id      String        @db.Uuid
+  season_id    String?       @db.Uuid
+  name         String        @db.VarChar(180)
+  description  String?
+  price        Decimal       @db.Decimal(12, 2)
+  unit         String?       @default("kg") @db.VarChar(20)
+  stock_qty    Decimal?      @default(0) @db.Decimal(10, 2)
+  image_url    String?       @db.VarChar(512)
+  is_active    Boolean       @default(true)
+  created_at   DateTime      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime      @default(now()) @db.Timestamp(6)
   sale_unit_id String?       @unique @db.Uuid
   order_items  order_items[]
   shop_reviews shop_reviews[]
@@ -230,49 +230,49 @@ model sale_units {
 }
 
 model season_anchors {
-  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  season_id     String        @db.Uuid
-  checkpoint_no Int
-  checkpoint_type String      @default("manual") @db.VarChar(30)
-  is_final      Boolean       @default(false)
-  payload_range Json?
-  hash_algo     String        @default("SHA-256") @db.VarChar(20)
-  data_hash     String        @db.VarChar(130)
-  chain_network String?       @default("db_only") @db.VarChar(50)
-  tx_hash       String?       @db.VarChar(120)
-  tx_url        String?
-  status        anchor_status @default(pending)
-  anchored_at   DateTime?     @db.Timestamp(6)
-  anchor_meta   Json?
-  created_at    DateTime      @default(now()) @db.Timestamp(6)
-  seasons       seasons       @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anchor_season")
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id       String        @db.Uuid
+  checkpoint_no   Int
+  checkpoint_type String        @default("manual") @db.VarChar(30)
+  is_final        Boolean       @default(false)
+  payload_range   Json?
+  hash_algo       String        @default("SHA-256") @db.VarChar(20)
+  data_hash       String        @db.VarChar(130)
+  chain_network   String?       @default("db_only") @db.VarChar(50)
+  tx_hash         String?       @db.VarChar(120)
+  tx_url          String?
+  status          anchor_status @default(pending)
+  anchored_at     DateTime?     @db.Timestamp(6)
+  anchor_meta     Json?
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  seasons         seasons       @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anchor_season")
 
   @@unique([season_id, checkpoint_no], map: "uq_season_anchor_checkpoint")
   @@index([season_id, created_at], map: "idx_season_anchors_season_created_at")
 }
 
 model seasons {
-  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  farm_id            String          @db.Uuid
-  code               String          @unique @db.VarChar(80)
-  crop_name          String          @db.VarChar(120)
-  start_date         DateTime        @db.Date
-  harvest_start_date DateTime?       @db.Date
-  harvest_end_date   DateTime?       @db.Date
-  estimated_yield    Decimal?        @db.Decimal(12, 2)
-  actual_yield       Decimal?        @db.Decimal(12, 2)
-  yield_unit         String?         @default("kg") @db.VarChar(20)
-  status             season_status   @default(draft)
-  sealed_at          DateTime?       @db.Timestamp(6)
-  created_by         String          @db.Uuid
-  created_at         DateTime        @default(now()) @db.Timestamp(6)
-  updated_at         DateTime        @default(now()) @db.Timestamp(6)
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farm_id            String           @db.Uuid
+  code               String           @unique @db.VarChar(80)
+  crop_name          String           @db.VarChar(120)
+  start_date         DateTime         @db.Date
+  harvest_start_date DateTime?        @db.Date
+  harvest_end_date   DateTime?        @db.Date
+  estimated_yield    Decimal?         @db.Decimal(12, 2)
+  actual_yield       Decimal?         @db.Decimal(12, 2)
+  yield_unit         String?          @default("kg") @db.VarChar(20)
+  status             season_status    @default(draft)
+  sealed_at          DateTime?        @db.Timestamp(6)
+  created_by         String           @db.Uuid
+  created_at         DateTime         @default(now()) @db.Timestamp(6)
+  updated_at         DateTime         @default(now()) @db.Timestamp(6)
   diary_entries      diary_entries[]
   products           products[]
   sale_units         sale_units[]
   season_anchors     season_anchors[]
-  users              users           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_created_by")
-  farms              farms           @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_farm")
+  users              users            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_created_by")
+  farms              farms            @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_farm")
 
   @@index([farm_id, status], map: "idx_seasons_farm_status")
 }
@@ -305,6 +305,7 @@ model shops {
   farm_id        String         @unique @db.Uuid
   name           String         @db.VarChar(180)
   description    String?
+  avatar_url     String?        @db.VarChar(2048)
   status         String         @default("open") @db.VarChar(20)
   is_verified    Boolean        @default(false)
   certifications Json?
@@ -334,13 +335,13 @@ model trace_scans {
 
 /// Hội thoại 1-1 giữa hai user. Luôn có participant_1_id < participant_2_id (UUID) — một thread / cặp.
 model chat_conversations {
-  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  participant_1_id String           @db.Uuid
-  participant_2_id String           @db.Uuid
-  created_at       DateTime         @default(now()) @db.Timestamp(6)
-  updated_at       DateTime         @default(now()) @db.Timestamp(6)
-  participant_1    users            @relation("chat_participant_1", fields: [participant_1_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p1")
-  participant_2    users            @relation("chat_participant_2", fields: [participant_2_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p2")
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  participant_1_id String          @db.Uuid
+  participant_2_id String          @db.Uuid
+  created_at       DateTime        @default(now()) @db.Timestamp(6)
+  updated_at       DateTime        @default(now()) @db.Timestamp(6)
+  participant_1    users           @relation("chat_participant_1", fields: [participant_1_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p1")
+  participant_2    users           @relation("chat_participant_2", fields: [participant_2_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p2")
   messages         chat_messages[]
 
   @@unique([participant_1_id, participant_2_id], map: "uq_chat_conv_participants")
@@ -361,51 +362,52 @@ model chat_messages {
 }
 
 model users {
-  id                   String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phone                String           @unique @db.VarChar(20)
-  email                String?          @unique @db.VarChar(255)
-  forum_comments       forum_comments[]
-  forum_posts          forum_posts[]
-  password_hash        String?          @db.VarChar(255)
-  full_name            String           @db.VarChar(120)
-  avatar_url           String?          @db.VarChar(2048)
-  role                 user_role        @default(farmer)
-  status               account_status   @default(active)
-  reset_password_token String?          @db.VarChar(255)
-  created_at           DateTime         @default(now()) @db.Timestamp(6)
-  updated_at           DateTime         @default(now()) @db.Timestamp(6)
-  diary_entries        diary_entries[]
+  id                                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone                              String                @unique @db.VarChar(20)
+  email                              String?               @unique @db.VarChar(255)
+  forum_comments                     forum_comments[]
+  forum_posts                        forum_posts[]
+  password_hash                      String?               @db.VarChar(255)
+  full_name                          String                @db.VarChar(120)
+  avatar_url                         String?               @db.VarChar(2048)
+  role                               user_role             @default(farmer)
+  status                             account_status        @default(active)
+  reset_password_token               String?               @db.VarChar(255)
+  created_at                         DateTime              @default(now()) @db.Timestamp(6)
+  updated_at                         DateTime              @default(now()) @db.Timestamp(6)
+  diary_entries                      diary_entries[]
   cooperative_members_as_cooperative cooperative_members[] @relation("cooperative_user_members")
   cooperative_members_as_farmer      cooperative_members[] @relation("farmer_user_members")
   cooperative_members_as_requester   cooperative_members[] @relation("requested_by_members")
   cooperative_members_as_verifier    cooperative_members[] @relation("verified_by_members")
-  farms                farms[]
-  orders               orders[]
-  refresh_tokens       refresh_tokens[]
-  seasons              seasons[]
-  shop_reviews         shop_reviews[]
-  chat_conversations_as_p1 chat_conversations[] @relation("chat_participant_1")
-  chat_conversations_as_p2 chat_conversations[] @relation("chat_participant_2")
-  chat_messages                  chat_messages[]
-  user_notifications_received user_notifications[] @relation("user_notifications_recipient")
-  user_notifications_sent     user_notifications[] @relation("user_notifications_actor")
+  farms                              farms[]
+  orders                             orders[]
+  refresh_tokens                     refresh_tokens[]
+  seasons                            seasons[]
+  shop_reviews                       shop_reviews[]
+  chat_conversations_as_p1           chat_conversations[]  @relation("chat_participant_1")
+  chat_conversations_as_p2           chat_conversations[]  @relation("chat_participant_2")
+  chat_messages                      chat_messages[]
+  user_notifications_received        user_notifications[]  @relation("user_notifications_recipient")
+  user_notifications_sent            user_notifications[]  @relation("user_notifications_actor")
 }
 
 model user_notifications {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  recipient_user_id String              @db.Uuid
-  actor_user_id     String?             @db.Uuid
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipient_user_id String            @db.Uuid
+  actor_user_id     String?           @db.Uuid
   type              notification_type
-  title             String              @db.VarChar(240)
+  title             String            @db.VarChar(240)
   body              String
-  entity_type       String?             @db.VarChar(40)
-  entity_id         String?             @db.Uuid
-  dedupe_key        String?             @db.VarChar(200)
-  read_at           DateTime?           @db.Timestamp(6)
+  entity_type       String?           @db.VarChar(40)
+  entity_id         String?           @db.Uuid
+  dedupe_key        String?           @db.VarChar(200)
+  read_at           DateTime?         @db.Timestamp(6)
   metadata          Json?
-  created_at        DateTime            @default(now()) @db.Timestamp(6)
-  recipient         users               @relation("user_notifications_recipient", fields: [recipient_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_notifications_recipient")
-  actor             users?              @relation("user_notifications_actor", fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_notifications_actor")
+  created_at        DateTime          @default(now()) @db.Timestamp(6)
+
+  recipient users  @relation("user_notifications_recipient", fields: [recipient_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_notifications_recipient")
+  actor     users? @relation("user_notifications_actor", fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_notifications_actor")
 
   @@unique([recipient_user_id, dedupe_key], map: "uq_user_notifications_recipient_dedupe")
   @@index([recipient_user_id, created_at(sort: Desc)], map: "idx_user_notifications_recipient_created")
@@ -476,7 +478,7 @@ enum sale_unit_status {
 }
 
 enum season_status {
-  draft 
+  draft
   ready_to_anchor
   anchored
   amended
