@@ -274,25 +274,17 @@ class CooperativeService {
       })
     }
 
-    const updated = await prisma.cooperative_members.update({
+    await prisma.cooperative_members.update({
       where: { id: membershipId },
       data: {
         status: 'rejected',
         verified_by: cooperativeUserId,
         verified_at: new Date(),
         ...(note != null && note.length > 0 ? { note } : {})
-      },
-      select: {
-        farmer_user_id: true,
-        farm_id: true
       }
     })
 
-    return {
-      membershipId,
-      farmerUserId: updated.farmer_user_id,
-      farmId: updated.farm_id
-    }
+    return { membershipId }
   }
 
   /**

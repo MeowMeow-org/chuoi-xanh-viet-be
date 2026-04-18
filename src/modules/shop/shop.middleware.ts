@@ -28,6 +28,16 @@ export const createShopBodyValidator = validate(
         optional: true,
         isString: true,
         trim: true
+      },
+      avatar_url: {
+        optional: { options: { nullable: true } },
+        custom: {
+          options: (value: unknown) =>
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim().length <= 2048),
+          errorMessage: 'avatar_url must be a string at most 2048 characters or null'
+        }
       }
     },
     ['body']
@@ -48,6 +58,16 @@ export const updateShopBodyValidator = validate(
         optional: true,
         isString: true,
         trim: true
+      },
+      avatar_url: {
+        optional: { options: { nullable: true } },
+        custom: {
+          options: (value: unknown) =>
+            value === null ||
+            value === undefined ||
+            (typeof value === 'string' && value.trim().length <= 2048),
+          errorMessage: 'avatar_url must be a string at most 2048 characters or null'
+        }
       },
       status: {
         optional: true,

@@ -12,6 +12,7 @@ const shopSelect = {
   farm_id: true,
   name: true,
   description: true,
+  avatar_url: true,
   status: true,
   is_verified: true,
   certifications: true,
@@ -132,7 +133,8 @@ class ShopService {
       data: {
         farm_id: payload.farm_id,
         name: payload.name,
-        description: payload.description ?? null
+        description: payload.description ?? null,
+        avatar_url: payload.avatar_url ?? null
       },
       select: shopSelect
     })
@@ -152,6 +154,7 @@ class ShopService {
     const data: Prisma.shopsUncheckedUpdateInput = {}
     if (payload.name !== undefined) data.name = payload.name
     if (payload.description !== undefined) data.description = payload.description
+    if (payload.avatar_url !== undefined) data.avatar_url = payload.avatar_url
     if (payload.status !== undefined) data.status = payload.status
 
     return prisma.shops.update({ where: { id: shopId }, data, select: shopSelect })
@@ -187,7 +190,25 @@ class ShopService {
       where: { farms: { owner_user_id: userId } },
       select: {
         ...shopSelect,
-        farms: { select: { id: true, name: true, crop_main: true, province: true, district: true } }
+        farms: {
+          select: {
+            id: true,
+            name: true,
+            crop_main: true,
+            province: true,
+            district: true,
+            cooperative_members: {
+              where: { status: 'approved' },
+              orderBy: { verified_at: 'desc' },
+              take: 1,
+              select: {
+                cooperative_user: {
+                  select: { id: true, full_name: true, avatar_url: true }
+                }
+              }
+            }
+          }
+        }
       },
       orderBy: { created_at: 'desc' }
     })

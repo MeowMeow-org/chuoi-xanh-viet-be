@@ -13,7 +13,6 @@ import saleUnitRouter from '~/modules/sale-unit/sale-unit.router'
 import seasonRouter from '~/modules/season/season.router'
 import traceRouter from '~/modules/trace/trace.router'
 import uploadRouter from '~/modules/upload/upload.router'
-import notificationRouter from '~/modules/notification/notification.router'
 
 const router = Router()
 
@@ -38,6 +37,5 @@ router.use('/order', orderRouter)
 router.use('/chat', chatRouter)
 
 router.use('/upload', uploadRouter)
-router.use('/notification', notificationRouter)
 
 export default router

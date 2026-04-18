@@ -6,11 +6,13 @@ export interface CreateShopRequestBody {
   farm_id: string
   name: string
   description?: string
+  avatar_url?: string | null
 }
 
 export interface UpdateShopRequestBody {
   name?: string
   description?: string
+  avatar_url?: string | null
   status?: string
 }
 

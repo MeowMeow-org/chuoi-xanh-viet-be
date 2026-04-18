@@ -5,7 +5,6 @@ import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
 import chatService from './chat.service'
 import { broadcastChatMessage } from './chat.socket'
-import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 import type { CreateChatConversationBody, GetChatMessagesQuery, SendChatMessageBody } from './chat.request'
 
 export const createChatConversationController = async (
@@ -20,7 +19,9 @@ export const createChatConversationController = async (
 
   return res.sendResponse({
     statusCode: created ? HTTP_STATUS.CREATED : HTTP_STATUS.OK,
-    message: created ? USER_MESSAGES.CHAT_CONVERSATION_CREATED : USER_MESSAGES.CHAT_CONVERSATION_OPENED,
+    message: created
+      ? USER_MESSAGES.CHAT_CONVERSATION_CREATED
+      : USER_MESSAGES.CHAT_CONVERSATION_OPENED,
     data: conversation
   })
 }
@@ -71,10 +72,6 @@ export const sendChatMessageRestController = async (
   })
 
   broadcastChatMessage(req.params.conversationId, msg as unknown as Record<string, unknown>)
-  notificationDispatch.chatMessageForPeer({
-    conversationId: req.params.conversationId,
-    senderUserId: user_id
-  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.CREATED,

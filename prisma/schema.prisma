@@ -301,6 +301,7 @@ model shops {
   farm_id        String         @unique @db.Uuid
   name           String         @db.VarChar(180)
   description    String?
+  avatar_url     String?        @db.VarChar(2048)
   status         String         @default("open") @db.VarChar(20)
   is_verified    Boolean        @default(false)
   certifications Json?
@@ -383,28 +384,6 @@ model users {
   chat_conversations_as_p1 chat_conversations[] @relation("chat_participant_1")
   chat_conversations_as_p2 chat_conversations[] @relation("chat_participant_2")
   chat_messages                  chat_messages[]
-  user_notifications_received user_notifications[] @relation("user_notifications_recipient")
-  user_notifications_sent     user_notifications[] @relation("user_notifications_actor")
-}
-
-model user_notifications {
-  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  recipient_user_id String              @db.Uuid
-  actor_user_id     String?             @db.Uuid
-  type              notification_type
-  title             String              @db.VarChar(240)
-  body              String
-  entity_type       String?             @db.VarChar(40)
-  entity_id         String?             @db.Uuid
-  dedupe_key        String?             @db.VarChar(200)
-  read_at           DateTime?           @db.Timestamp(6)
-  metadata          Json?
-  created_at        DateTime            @default(now()) @db.Timestamp(6)
-  recipient         users               @relation("user_notifications_recipient", fields: [recipient_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_notifications_recipient")
-  actor             users?              @relation("user_notifications_actor", fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_notifications_actor")
-
-  @@unique([recipient_user_id, dedupe_key], map: "uq_user_notifications_recipient_dedupe")
-  @@index([recipient_user_id, created_at(sort: Desc)], map: "idx_user_notifications_recipient_created")
 }
 
 enum account_status {
@@ -484,13 +463,4 @@ enum user_role {
   farmer
   cooperative
   admin
-}
-
-enum notification_type {
-  order
-  message
-  review
-  system
-  cooperative
-  forum
 }

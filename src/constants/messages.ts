@@ -38,14 +38,10 @@ const USER_MESSAGES = {
   CHANGE_SEASON_STATUS_SUCCESS: 'Change season status successfully',
   SEASON_CODE_ALREADY_EXISTS: 'Mã mùa vụ đã tồn tại',
   SEASON_CODE_GENERATION_FAILED: 'Không tạo được mã mùa vụ, vui lòng thử lại',
-  SEASON_HARVEST_START_BEFORE_SEASON_START:
-    'Ngày bắt đầu thu hoạch không được trước ngày bắt đầu mùa vụ',
-  SEASON_HARVEST_END_BEFORE_HARVEST_START:
-    'Ngày kết thúc thu hoạch phải sau hoặc cùng ngày bắt đầu thu hoạch',
-  SEASON_HARVEST_END_BEFORE_SEASON_START:
-    'Ngày kết thúc thu hoạch không được trước ngày bắt đầu mùa vụ',
-  SEASON_ESTIMATED_YIELD_REQUIRED:
-    'Năng suất dự kiến bắt buộc và phải là số lớn hơn 0',
+  SEASON_HARVEST_START_BEFORE_SEASON_START: 'Ngày bắt đầu thu hoạch không được trước ngày bắt đầu mùa vụ',
+  SEASON_HARVEST_END_BEFORE_HARVEST_START: 'Ngày kết thúc thu hoạch phải sau hoặc cùng ngày bắt đầu thu hoạch',
+  SEASON_HARVEST_END_BEFORE_SEASON_START: 'Ngày kết thúc thu hoạch không được trước ngày bắt đầu mùa vụ',
+  SEASON_ESTIMATED_YIELD_REQUIRED: 'Năng suất dự kiến bắt buộc và phải là số lớn hơn 0',
   CREATE_DIARY_SUCCESS: 'Create diary successfully',
   GET_DIARIES_SUCCESS: 'Get diaries successfully',
   GET_DIARY_DETAIL_SUCCESS: 'Get diary detail successfully',
@@ -67,12 +63,10 @@ const USER_MESSAGES = {
   SEASON_NOT_FOUND: 'Season not found',
   FARM_NOT_FOUND_OR_FORBIDDEN: 'Farm not found or you do not have permission',
   FARM_HAS_RELATED_DATA: 'Farm has related data, cannot be deleted',
-  FARM_DELETE_BLOCKED_SEASONS:
-    'Không xóa được nông trại: vẫn còn mùa vụ. Xóa hoặc xử lý hết mùa vụ trước.',
+  FARM_DELETE_BLOCKED_SEASONS: 'Không xóa được nông trại: vẫn còn mùa vụ. Xóa hoặc xử lý hết mùa vụ trước.',
   FARM_DELETE_BLOCKED_COOP:
     'Không xóa được nông trại: còn hồ sơ hợp tác xã (kể cả đang chờ). Huỷ yêu cầu / rời HTX trước.',
-  FARM_DELETE_BLOCKED_DIARY:
-    'Không xóa được nông trại: vẫn còn nhật ký canh tác gắn nông trại này.',
+  FARM_DELETE_BLOCKED_DIARY: 'Không xóa được nông trại: vẫn còn nhật ký canh tác gắn nông trại này.',
   FARM_DELETE_BLOCKED_SHOP:
     'Không xóa được nông trại: đã tạo gian hàng cho trại này. Cần gỡ gian hàng (hoặc liên hệ hỗ trợ) trước khi xóa trại.',
   SEASON_HAS_RELATED_DATA: 'Season has related data, cannot be deleted',
@@ -165,7 +159,8 @@ const USER_MESSAGES = {
   ORDER_CANNOT_CANCEL: 'Only pending orders can be cancelled',
   ORDER_INVALID_STATUS_TRANSITION: 'Invalid order status transition',
   FORBIDDEN_NOT_CONSUMER: 'Only consumer accounts can place orders',
-  BLOCKCHAIN_NOT_CONFIGURED: 'Blockchain anchoring is not configured (missing env: SEPOLIA_RPC_URL, ANCHOR_WALLET_PRIVATE_KEY, ANCHOR_CONTRACT_ADDRESS)',
+  BLOCKCHAIN_NOT_CONFIGURED:
+    'Blockchain anchoring is not configured (missing env: SEPOLIA_RPC_URL, ANCHOR_WALLET_PRIVATE_KEY, ANCHOR_CONTRACT_ADDRESS)',
   BLOCKCHAIN_ANCHOR_FAILED: 'Failed to send anchor transaction to blockchain',
 
   CREATE_INSPECTION_SUCCESS: 'Inspection recorded successfully',
@@ -176,8 +171,7 @@ const USER_MESSAGES = {
   INSPECTION_FORBIDDEN_NOT_OWNER: 'Only the cooperative inspector who created this inspection can delete it',
   INSPECTION_VERDICT_INVALID: 'verdict must be one of: pass, fail, needs_work',
   INSPECTION_SUMMARY_TOO_LONG: 'summary must be at most 2000 characters',
-  INSPECTION_SEASON_ANCHORED:
-    'Season is anchored, inspection is locked (add a new one after the next amendment cycle)',
+  INSPECTION_SEASON_ANCHORED: 'Season is anchored, inspection is locked (add a new one after the next amendment cycle)',
 
   SALE_UNIT_CREATE_SUCCESS: 'Sale unit created successfully',
   SALE_UNIT_LIST_SUCCESS: 'Get sale units successfully',
@@ -193,11 +187,9 @@ const USER_MESSAGES = {
   SALE_UNIT_LOT_UNIT_INVALID: 'Sale lot unit must be one of: tấn, kg, gam (g)',
   SALE_UNIT_SEASON_UNIT_NOT_CONVERTIBLE:
     'Season yield unit must be convertible to kg (e.g. kg, yến, tạ, tấn, g) to allocate sale lots',
-  SALE_UNIT_EXCEEDS_ACTUAL_YIELD:
-    'Requested quantity exceeds remaining harvested yield for this season',
+  SALE_UNIT_EXCEEDS_ACTUAL_YIELD: 'Requested quantity exceeds remaining harvested yield for this season',
 
-  SEASON_MISSING_YIELD_FOR_ANCHOR:
-    'Season actual yield and yield unit are required before sealing/anchoring',
+  SEASON_MISSING_YIELD_FOR_ANCHOR: 'Season actual yield and yield unit are required before sealing/anchoring',
 
   TRACE_RESOLVE_SUCCESS: 'Trace resolved successfully',
   TRACE_DETAIL_SUCCESS: 'Get trace detail successfully',
