@@ -44,6 +44,8 @@ const USER_MESSAGES = {
     'Ngày kết thúc thu hoạch phải sau hoặc cùng ngày bắt đầu thu hoạch',
   SEASON_HARVEST_END_BEFORE_SEASON_START:
     'Ngày kết thúc thu hoạch không được trước ngày bắt đầu mùa vụ',
+  SEASON_ESTIMATED_YIELD_REQUIRED:
+    'Năng suất dự kiến bắt buộc và phải là số lớn hơn 0',
   CREATE_DIARY_SUCCESS: 'Create diary successfully',
   GET_DIARIES_SUCCESS: 'Get diaries successfully',
   GET_DIARY_DETAIL_SUCCESS: 'Get diary detail successfully',
@@ -65,6 +67,14 @@ const USER_MESSAGES = {
   SEASON_NOT_FOUND: 'Season not found',
   FARM_NOT_FOUND_OR_FORBIDDEN: 'Farm not found or you do not have permission',
   FARM_HAS_RELATED_DATA: 'Farm has related data, cannot be deleted',
+  FARM_DELETE_BLOCKED_SEASONS:
+    'Không xóa được nông trại: vẫn còn mùa vụ. Xóa hoặc xử lý hết mùa vụ trước.',
+  FARM_DELETE_BLOCKED_COOP:
+    'Không xóa được nông trại: còn hồ sơ hợp tác xã (kể cả đang chờ). Huỷ yêu cầu / rời HTX trước.',
+  FARM_DELETE_BLOCKED_DIARY:
+    'Không xóa được nông trại: vẫn còn nhật ký canh tác gắn nông trại này.',
+  FARM_DELETE_BLOCKED_SHOP:
+    'Không xóa được nông trại: đã tạo gian hàng cho trại này. Cần gỡ gian hàng (hoặc liên hệ hỗ trợ) trước khi xóa trại.',
   SEASON_HAS_RELATED_DATA: 'Season has related data, cannot be deleted',
   SEASON_IS_ANCHORED_CANNOT_UPDATE: 'Season is anchored, cannot update base information',
   SEASON_IS_ANCHORED_CANNOT_DELETE: 'Season is anchored, cannot be deleted',

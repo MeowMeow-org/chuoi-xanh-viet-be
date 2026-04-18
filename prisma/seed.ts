@@ -707,7 +707,7 @@ async function main() {
       })
     } else {
       await prisma.products.create({
-        data: {
+    data: {
           ...commonData,
           shops: { connect: { id: shopId } },
           seasons: { connect: { id: seasonId } }
@@ -736,15 +736,15 @@ async function main() {
           create: [{ label: p.label }]
         },
         forum_post_images: {
-          create: [
-            {
+                create: [
+                  {
               object_key: `seed/forum/post-${String(i + 1).padStart(2, '0')}.jpg`,
               file_url: fileUrl,
-              sort_order: 0
+                    sort_order: 0
+                  }
+                ]
+              }
             }
-          ]
-        }
-      }
     })
     createdForumPostIds.push(post.id)
   }

@@ -80,7 +80,13 @@ export const getDiariesController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_DIARIES_SUCCESS,
     data: {
-      items: response.items.map(mapDiaryRow),
+      items: response.items.map((item) => {
+        const { diary_attachments: attachments, ...row } = item
+        return {
+          ...mapDiaryRow(row),
+          attachments: attachments.map(mapAttachmentRow)
+        }
+      }),
       meta: response.meta
     }
   })

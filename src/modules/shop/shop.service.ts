@@ -194,15 +194,7 @@ class ShopService {
     return shops
   }
 
-  getShops = async ({
-    page = 1,
-    limit = 10,
-    searchTerm
-  }: {
-    page?: number
-    limit?: number
-    searchTerm?: string
-  }) => {
+  getShops = async ({ page = 1, limit = 10, searchTerm }: { page?: number; limit?: number; searchTerm?: string }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
     const skip = (safePage - 1) * safeLimit
@@ -392,16 +384,12 @@ class ShopService {
     const farm = saleUnit.seasons.farms
     const addressParts = [farm.address, farm.ward, farm.district, farm.province].filter(Boolean).join(', ')
     const lotLabel = (saleUnit.short_code?.trim() || saleUnit.code).trim()
-    const name =
-      payload.name != null && payload.name.trim().length > 0 ? payload.name.trim() : `Lô ${lotLabel}`
+    const name = payload.name != null && payload.name.trim().length > 0 ? payload.name.trim() : `Lô ${lotLabel}`
 
-    const unit =
-      payload.unit != null && payload.unit.trim().length > 0 ? payload.unit.trim() : saleUnit.unit
+    const unit = payload.unit != null && payload.unit.trim().length > 0 ? payload.unit.trim() : saleUnit.unit
 
     const stockQty =
-      payload.stock_qty !== undefined && payload.stock_qty !== null
-        ? payload.stock_qty
-        : Number(saleUnit.quantity)
+      payload.stock_qty !== undefined && payload.stock_qty !== null ? payload.stock_qty : Number(saleUnit.quantity)
 
     const userDesc = payload.description?.trim()
     const traceLine = saleUnit.qr_url ? `\n\n🔗 Truy xuất lô: ${saleUnit.qr_url}` : ''
@@ -488,10 +476,7 @@ class ShopService {
     const skip = (safePage - 1) * safeLimit
 
     const term = searchTerm?.trim()
-    const andFilters: Prisma.productsWhereInput[] = [
-      { is_active: true },
-      { shops: { status: 'open' } }
-    ]
+    const andFilters: Prisma.productsWhereInput[] = [{ is_active: true }, { shops: { status: 'open' } }]
 
     if (shopId) andFilters.push({ shop_id: shopId })
 
