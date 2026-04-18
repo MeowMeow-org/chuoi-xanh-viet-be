@@ -17,6 +17,7 @@ const mapSaleUnitRow = (row: {
   short_code: string | null
   status: string
   created_at: Date
+  product?: { id: string; is_active: boolean } | null
 }) => ({
   id: row.id,
   seasonId: row.season_id,
@@ -27,7 +28,10 @@ const mapSaleUnitRow = (row: {
   qrUrl: row.qr_url,
   shortCode: row.short_code,
   status: row.status,
-  createdAt: row.created_at
+  createdAt: row.created_at,
+  product: row.product
+    ? { id: row.product.id, isActive: row.product.is_active }
+    : null
 })
 
 export const createSaleUnitController = async (

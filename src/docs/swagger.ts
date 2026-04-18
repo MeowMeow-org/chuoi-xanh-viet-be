@@ -594,7 +594,7 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required: [farmId, cropName, startDate]
+ *             required: [farmId, cropName, startDate, estimatedYield]
  *             properties:
  *               farmId: { type: string, format: uuid }
  *               code: { type: string, description: 'Optional; server generates 6 letters + 6 digits if omitted', example: ABCDEF042891 }
@@ -602,7 +602,7 @@
  *               startDate: { type: string, format: date, example: '2026-04-15' }
  *               harvestStartDate: { type: string, format: date, nullable: true }
  *               harvestEndDate: { type: string, format: date, nullable: true }
- *               estimatedYield: { type: number, nullable: true, example: 1500 }
+ *               estimatedYield: { type: number, example: 1500, description: 'Required; must be > 0' }
  *               actualYield: { type: number, nullable: true, example: 1400 }
  *               yieldUnit: { type: string, nullable: true, example: kg }
  *     responses:

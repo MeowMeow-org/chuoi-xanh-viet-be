@@ -154,7 +154,13 @@ class DiaryService {
         orderBy: [{ event_date: 'desc' }, { server_timestamp: 'desc' }],
         skip,
         take: safeLimit,
-        select: diarySelect
+        select: {
+          ...diarySelect,
+          diary_attachments: {
+            orderBy: [{ sort_order: 'asc' }, { created_at: 'asc' }],
+            select: attachmentSelect
+          }
+        }
       }),
       prisma.diary_entries.count({ where })
     ])

@@ -1,4 +1,5 @@
 import { checkSchema } from 'express-validator'
+import USER_MESSAGES from '~/constants/messages'
 import { validate } from '~/utils/validation'
 
 const seasonStatusValues = ['draft', 'ready_to_anchor', 'anchored', 'amended', 'failed']
@@ -53,10 +54,10 @@ export const createSeasonValidator = validate(
         errorMessage: 'harvestEndDate must be ISO8601 date'
       },
       estimatedYield: {
-        optional: true,
-        isFloat: true,
+        notEmpty: true,
+        isFloat: { options: { gt: 0 } },
         toFloat: true,
-        errorMessage: 'estimatedYield must be a number'
+        errorMessage: USER_MESSAGES.SEASON_ESTIMATED_YIELD_REQUIRED
       },
       actualYield: {
         optional: true,

@@ -15,7 +15,13 @@ const saleUnitSelect = {
   qr_url: true,
   short_code: true,
   status: true,
-  created_at: true
+  created_at: true,
+  product: {
+    select: {
+      id: true,
+      is_active: true
+    }
+  }
 } as const
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // tránh chữ dễ nhầm: I/O/0/1
