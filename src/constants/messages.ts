@@ -193,7 +193,12 @@ const USER_MESSAGES = {
   TRACE_DETAIL_SUCCESS: 'Get trace detail successfully',
   TRACE_VERIFY_SUCCESS: 'Verify trace successfully',
   TRACE_CODE_REQUIRED: 'trace code is required',
-  TRACE_CODE_NOT_FOUND: 'Trace code not found'
+  TRACE_CODE_NOT_FOUND: 'Trace code not found',
+
+  GET_NOTIFICATIONS_SUCCESS: 'Get notifications successfully',
+  MARK_NOTIFICATION_READ_SUCCESS: 'Notification marked as read',
+  MARK_ALL_NOTIFICATIONS_READ_SUCCESS: 'All notifications marked as read',
+  NOTIFICATION_NOT_FOUND: 'Notification not found'
 } as const
 
 export default USER_MESSAGES
