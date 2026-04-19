@@ -114,6 +114,11 @@ export const getShopsQueryValidator = validate(
         optional: true,
         isString: true,
         trim: true
+      },
+      province: {
+        optional: true,
+        isString: true,
+        trim: true
       }
     },
     ['query']

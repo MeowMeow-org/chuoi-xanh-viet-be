@@ -20,6 +20,8 @@ export interface GetShopsQuery {
   page?: string
   limit?: string
   searchTerm?: string
+  /** Lọc theo tỉnh/thành (farm), giống danh sách sản phẩm công khai */
+  province?: string
 }
 
 export interface AddProductRequestBody {

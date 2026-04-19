@@ -1,4 +1,4 @@
-﻿/**
+/**
  * @swagger
  * tags:
  *   - name: Auth
@@ -1675,7 +1675,9 @@
  *       422:
  *         description: Validation error
  *   get:
- *     summary: Get all shops (search + pagination)
+ *     summary: Get shops (open only, search, province filter, pagination)
+ *     description: |
+ *       Chỉ gian hàng status=open. Sắp xếp: điểm sao TB → số đánh giá → đã xác minh → mới hơn → số sản phẩm đang bán.
  *     tags: [Shop]
  *     security:
  *       - bearerAuth: []
@@ -1690,6 +1692,10 @@
  *         name: searchTerm
  *         schema: { type: string }
  *         description: Search in shop name, description, farm province/district
+ *       - in: query
+ *         name: province
+ *         schema: { type: string }
+ *         description: Filter by farm province (e.g. same as product marketplace regions)
  *     responses:
  *       200:
  *         description: Get shops successfully
