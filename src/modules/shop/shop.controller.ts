@@ -95,8 +95,9 @@ export const getShopsController = async (
   const page = req.query.page !== undefined ? Number(req.query.page) : undefined
   const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
   const searchTerm = typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
+  const province = typeof req.query.province === 'string' ? req.query.province : undefined
 
-  const result = await shopService.getShops({ page, limit, searchTerm })
+  const result = await shopService.getShops({ page, limit, searchTerm, province })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
