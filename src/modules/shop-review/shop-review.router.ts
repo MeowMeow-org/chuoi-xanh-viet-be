@@ -32,22 +32,22 @@ shopReviewRouter.post(
 /**
  * @desc Danh sách đánh giá theo shop (theo từng sản phẩm; phân trang + điểm TB)
  * @route GET /review/shop/:shop_id
+ * @access public (guest vẫn xem được)
  */
 shopReviewRouter.get(
   '/shop/:shop_id',
-  accessTokenValidator,
   shopIdInParamsValidator,
   listShopReviewsQueryValidator,
   wrapAsync(listShopReviewsController)
 )
 
 /**
- * @desc Danh sách đánh giá theo sản phẩm (công khai cho người đã đăng nhập)
+ * @desc Danh sách đánh giá theo sản phẩm
  * @route GET /review/product/:product_id
+ * @access public (guest vẫn xem được)
  */
 shopReviewRouter.get(
   '/product/:product_id',
-  accessTokenValidator,
   productIdInParamsValidator,
   listShopReviewsQueryValidator,
   wrapAsync(listProductReviewsController)

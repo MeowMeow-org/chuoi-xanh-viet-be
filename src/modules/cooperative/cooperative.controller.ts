@@ -57,6 +57,8 @@ export const listMyMembershipsController = async (
     req.query.limit !== undefined ? Number(req.query.limit) : undefined
   const status =
     typeof req.query.status === 'string' ? req.query.status : undefined
+  const searchTerm =
+    typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
 
   const { items, meta } = await cooperativeService.listMembershipsForCooperative(
     {
@@ -68,7 +70,8 @@ export const listMyMembershipsController = async (
         | 'removed'
         | undefined,
       page,
-      limit
+      limit,
+      searchTerm
     }
   )
 

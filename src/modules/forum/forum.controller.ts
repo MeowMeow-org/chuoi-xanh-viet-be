@@ -38,8 +38,12 @@ export const getForumPostsController = async (
 }
 
 export const getForumPostDetailController = async (req: Request<ParamsDictionary>, res: Response) => {
-  const { user_id, role } = req.decoded_authorization as TokenPayLoad
-  const data = await forumService.getPostById(req.params.post_id as string, user_id, role ?? '')
+  const decoded = req.decoded_authorization as TokenPayLoad | undefined
+  const data = await forumService.getPostById(
+    req.params.post_id as string,
+    decoded?.user_id ?? '',
+    decoded?.role ?? ''
+  )
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_FORUM_POST_DETAIL_SUCCESS,
