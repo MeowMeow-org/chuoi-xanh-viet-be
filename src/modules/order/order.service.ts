@@ -4,6 +4,73 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import type { CreateOrderRequestBody } from './order.request'
+import { toKg } from '~/utils/unit'
+
+type OrderTx = Prisma.TransactionClient
+
+/**
+ * Ghi các dòng biến động tồn kho cho danh sách order_items và tự động cập nhật
+ * trạng thái sale_units khi cần (sold ↔ active). Hoạt động trong 1 transaction.
+ *
+ * @param sign  -1: xuất (order), +1: nhập lại (cancel/adjust)
+ */
+const recordStockMovements = async ({
+  tx,
+  items,
+  orderId,
+  source,
+  sign
+}: {
+  tx: OrderTx
+  items: Array<{ product_id: string; qty: Prisma.Decimal | number | string }>
+  orderId: string | null
+  source: 'order' | 'cancel' | 'adjust'
+  sign: 1 | -1
+}) => {
+  for (const it of items) {
+    const product = await tx.products.findUnique({
+      where: { id: it.product_id },
+      select: {
+        id: true,
+        unit: true,
+        stock_qty: true,
+        sale_unit_id: true,
+        sale_unit: { select: { id: true, status: true, unit: true } }
+      }
+    })
+    if (!product || !product.sale_unit_id || !product.sale_unit) continue
+
+    const productUnit = product.unit ?? product.sale_unit.unit
+    const deltaKg = toKg(it.qty, productUnit)
+    if (!deltaKg) continue // Không phải đơn vị mass → bỏ qua, không ghi sổ
+
+    const signedKg = sign === 1 ? deltaKg : deltaKg.negated()
+    const currentStock = product.stock_qty ?? new Prisma.Decimal(0)
+    const balanceAfterKg = toKg(currentStock, productUnit) ?? new Prisma.Decimal(0)
+
+    await tx.stock_movements.create({
+      data: {
+        sale_unit_id: product.sale_unit_id,
+        product_id: product.id,
+        order_id: orderId,
+        source,
+        qty_kg: signedKg,
+        balance_after_kg: balanceAfterKg
+      }
+    })
+
+    // Auto status: hết hàng → sold; nhập lại sau khi đã sold → active
+    if (sign === -1) {
+      if (currentStock.isZero() && product.sale_unit.status === 'active') {
+        await tx.sale_units.update({ where: { id: product.sale_unit_id }, data: { status: 'sold' } })
+      }
+    } else {
+      if (!currentStock.isZero() && product.sale_unit.status === 'sold') {
+        await tx.sale_units.update({ where: { id: product.sale_unit_id }, data: { status: 'active' } })
+      }
+    }
+  }
+}
 
 const orderItemSelect = {
   id: true,
@@ -165,6 +232,14 @@ class OrderService {
           }
         },
         select: orderSelect
+      })
+
+      await recordStockMovements({
+        tx,
+        items: mergedItems,
+        orderId: order.id,
+        source: 'order',
+        sign: -1
       })
 
       return order
@@ -386,6 +461,14 @@ class OrderService {
         })
       }
 
+      await recordStockMovements({
+        tx,
+        items: order.order_items,
+        orderId: order.id,
+        source: 'cancel',
+        sign: 1
+      })
+
       const updated = await tx.orders.update({
         where: { id: orderId },
         data: { status: 'cancelled' },
@@ -451,6 +534,13 @@ class OrderService {
             data: { stock_qty: { increment: it.qty } }
           })
         }
+        await recordStockMovements({
+          tx,
+          items: order.order_items,
+          orderId: order.id,
+          source: 'cancel',
+          sign: 1
+        })
       }
 
       // Mark paid for COD when delivered

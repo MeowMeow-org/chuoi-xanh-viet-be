@@ -44,9 +44,9 @@ export const createSeasonValidator = validate(
         errorMessage: 'startDate must be ISO8601 date'
       },
       harvestStartDate: {
-        optional: true,
+        notEmpty: true,
         isISO8601: true,
-        errorMessage: 'harvestStartDate must be ISO8601 date'
+        errorMessage: USER_MESSAGES.SEASON_HARVEST_START_REQUIRED
       },
       harvestEndDate: {
         optional: true,

@@ -33,14 +33,17 @@ function fmtDate(value: Date | null | undefined): string {
 }
 
 async function expireFarmCertificates(today: Date) {
+  // Đã duyệt: hết hạn → expired (ẩn badge).
+  // Chờ duyệt mà ngày hết hạn giấy đã qua: vẫn chuyển expired — hồ sơ không còn hợp lệ để duyệt theo giấy cũ.
   const expired = await prisma.farm_certificates.findMany({
     where: {
-      status: 'approved',
+      status: { in: ['approved', 'pending'] },
       expires_at: { lt: today }
     },
     select: {
       id: true,
       type: true,
+      status: true,
       certificate_no: true,
       expires_at: true,
       farm: {
@@ -65,12 +68,15 @@ async function expireFarmCertificates(today: Date) {
     const typeLabel = CERT_TYPE_LABEL[cert.type] ?? 'Chứng chỉ'
     const farmName = cert.farm?.name ?? 'nông trại'
     const certNo = cert.certificate_no ? ` số ${cert.certificate_no}` : ''
+    const wasPending = cert.status === 'pending'
     try {
       await notificationService.create({
         recipientUserId: cert.farm.owner_user_id,
         type: 'system',
-        title: 'Chứng chỉ đã hết hạn',
-        body: `${typeLabel}${certNo} của ${farmName} đã hết hạn (${fmtDate(cert.expires_at)}). Chứng chỉ sẽ không còn xuất hiện trên gian hàng. Vui lòng nộp chứng chỉ mới nếu bạn đã gia hạn.`,
+        title: wasPending ? 'Hồ sơ chứng chỉ quá hạn giấy' : 'Chứng chỉ đã hết hạn',
+        body: wasPending
+          ? `${typeLabel}${certNo} (${farmName}) — giấy đã hết hạn ngày ${fmtDate(cert.expires_at)} trước khi được duyệt. Hồ sơ chuyển sang Hết hạn. Vui lòng nộp chứng chỉ / bản gia hạn mới nếu cần.`
+          : `${typeLabel}${certNo} của ${farmName} đã hết hạn (${fmtDate(cert.expires_at)}). Chứng chỉ sẽ không còn xuất hiện trên gian hàng. Vui lòng nộp chứng chỉ mới nếu bạn đã gia hạn.`,
         entityType: NotificationEntityType.FARM_CERTIFICATE,
         entityId: cert.id,
         dedupeKey: `cert-expired:farm:${cert.id}`

@@ -57,6 +57,12 @@ export function resolveNotificationDeepLink(params: {
     return undefined
   }
 
+  if (entityType === NotificationEntityType.SEASON_INSPECTION_DUE) {
+    if (viewerRole === 'cooperative') return '/cooperative/inspections'
+    if (viewerRole === 'admin') return '/admin'
+    return undefined
+  }
+
   if (viewerRole === 'admin') {
     return '/admin'
   }
