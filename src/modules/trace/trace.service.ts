@@ -3,6 +3,10 @@ import USER_MESSAGES from '~/constants/messages'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
 import anchorService from '../anchor/anchor.service'
+import {
+  resolveFarmCertificateBadges,
+  serializeBadges
+} from '~/modules/certificate/certificate.badge'
 
 const saleUnitSelect = {
   id: true,
@@ -179,10 +183,16 @@ class TraceService {
 
     const anchorsSorted = sortTraceAnchorsReferenceFirst(season.season_anchors).slice(0, 5)
 
+    const badges = await resolveFarmCertificateBadges(season.farms.id)
+
     return {
       season: {
         ...season,
-        season_anchors: anchorsSorted
+        season_anchors: anchorsSorted,
+        farms: {
+          ...season.farms,
+          badges: serializeBadges(badges)
+        }
       }
     }
   }

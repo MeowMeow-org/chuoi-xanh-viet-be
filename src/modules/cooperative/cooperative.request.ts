@@ -10,6 +10,8 @@ export interface GetMyMembershipsQuery {
   page?: string
   limit?: string
   status?: 'pending' | 'approved' | 'rejected' | 'removed'
+  /** Tìm theo tên nông trại, địa chỉ, tên chủ hộ, email */
+  searchTerm?: string
 }
 
 /** Body for POST .../reject */

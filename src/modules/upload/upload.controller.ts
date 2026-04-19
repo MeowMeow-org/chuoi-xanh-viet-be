@@ -22,3 +22,21 @@ export const uploadImagesController = async (req: Request<ParamsDictionary>, res
     data
   })
 }
+
+export const uploadDocumentsController = async (req: Request<ParamsDictionary>, res: Response) => {
+  const files = req.files as Express.Multer.File[] | undefined
+  const list = files?.length ? files : []
+  if (list.length === 0) {
+    throw new ErrorWithStatus({
+      message: USER_MESSAGES.UPLOAD_DOCUMENTS_REQUIRED,
+      status: HTTP_STATUS.BAD_REQUEST
+    })
+  }
+
+  const data = await uploadService.uploadDocuments(list)
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.UPLOAD_DOCUMENTS_SUCCESS,
+    data
+  })
+}

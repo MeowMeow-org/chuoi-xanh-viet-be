@@ -364,20 +364,46 @@ class CooperativeService {
     cooperativeUserId,
     status,
     page = 1,
-    limit = 10
+    limit = 10,
+    searchTerm
   }: {
     cooperativeUserId: string
     status?: cooperative_member_status
     page?: number
     limit?: number
+    searchTerm?: string
   }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
     const skip = (safePage - 1) * safeLimit
 
+    const term = searchTerm?.trim()
+    const searchWhere: Prisma.cooperative_membersWhereInput | undefined =
+      term && term.length > 0
+        ? {
+            OR: [
+              {
+                farmer_user: {
+                  full_name: { contains: term, mode: 'insensitive' }
+                }
+              },
+              {
+                farmer_user: {
+                  email: { contains: term, mode: 'insensitive' }
+                }
+              },
+              { farms: { name: { contains: term, mode: 'insensitive' } } },
+              { farms: { province: { contains: term, mode: 'insensitive' } } },
+              { farms: { district: { contains: term, mode: 'insensitive' } } },
+              { farms: { ward: { contains: term, mode: 'insensitive' } } }
+            ]
+          }
+        : undefined
+
     const where: Prisma.cooperative_membersWhereInput = {
       cooperative_user_id: cooperativeUserId,
-      ...(status != null ? { status } : {})
+      ...(status != null ? { status } : {}),
+      ...(searchWhere ?? {})
     }
 
     const [rows, total] = await Promise.all([

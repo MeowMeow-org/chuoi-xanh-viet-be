@@ -129,6 +129,32 @@ export const accessTokenValidator = validate(
   )
 )
 
+/**
+ * Optional auth: nếu client có gửi Authorization hợp lệ thì gắn `decoded_authorization`,
+ * nếu không có / token hỏng thì coi như guest và tiếp tục (KHÔNG trả 401).
+ * Dùng cho các endpoint public-read nhưng muốn personalize khi đã đăng nhập.
+ */
+export const optionalAccessTokenValidator = async (req: Request, _res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization
+  const accessToken = authHeader?.split(' ')[1]
+
+  if (!accessToken) {
+    return next()
+  }
+
+  try {
+    const decoded_authorization = await verifyToken({
+      token: accessToken,
+      privateKey: process.env.JWT_ACCESS_TOKEN_SECRET as string
+    })
+    req.decoded_authorization = decoded_authorization
+  } catch {
+    // token hết hạn/hỏng — bỏ qua, request vẫn được xử lý như guest
+  }
+
+  return next()
+}
+
 export const refreshTokenValidator = validate(
   checkSchema(
     {
@@ -373,5 +399,6 @@ export const requireConsumer = requireRoles(['consumer'])
 export const requireFarmer = requireRoles(['farmer'])
 export const requireCooperative = requireRoles(['cooperative'])
 export const requireAdmin = requireRoles(['admin'])
+export const requireCooperativeOrAdmin = requireRoles(['cooperative', 'admin'])
 export const requireFarmerOrCooperativeOrAdmin = requireRoles(['farmer', 'cooperative', 'admin'])
 export const requireForumParticipant = requireRoles(['consumer', 'farmer', 'cooperative', 'admin'])

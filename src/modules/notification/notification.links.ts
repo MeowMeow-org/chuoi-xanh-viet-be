@@ -45,6 +45,18 @@ export function resolveNotificationDeepLink(params: {
     return undefined
   }
 
+  if (entityType === NotificationEntityType.FARM_CERTIFICATE) {
+    if (viewerRole === 'farmer') return '/farmer/certificates'
+    if (viewerRole === 'admin') return '/admin/certificates'
+    return undefined
+  }
+
+  if (entityType === NotificationEntityType.COOP_CERTIFICATE) {
+    if (viewerRole === 'cooperative') return '/cooperative/certificates'
+    if (viewerRole === 'admin') return '/admin/certificates'
+    return undefined
+  }
+
   if (viewerRole === 'admin') {
     return '/admin'
   }

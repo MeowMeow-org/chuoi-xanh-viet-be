@@ -6,6 +6,10 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import type { CreateShopRequestBody, UpdateShopRequestBody, AddProductRequestBody } from './shop.request'
+import {
+  resolveFarmCertificateBadgesMany,
+  serializeBadges
+} from '~/modules/certificate/certificate.badge'
 
 const shopSelect = {
   id: true,
@@ -114,6 +118,19 @@ class ShopService {
       average_rating: s?.average_rating ?? null,
       review_count: s?.review_count ?? 0
     }
+  }
+
+  /** Gắn danh sách badge chứng chỉ (VietGAP…) cho shop/shops dựa trên farm_id */
+  private async attachBadgesToShops<
+    T extends { farm_id: string }
+  >(shops: T[]): Promise<Array<T & { badges: ReturnType<typeof serializeBadges> }>> {
+    if (shops.length === 0) return [] as never
+    const farmIds = Array.from(new Set(shops.map((s) => s.farm_id)))
+    const map = await resolveFarmCertificateBadgesMany(farmIds)
+    return shops.map((s) => ({
+      ...s,
+      badges: serializeBadges(map.get(s.farm_id) ?? [])
+    }))
   }
 
   private async ensureFarmOwner(farmId: string, userId: string) {
@@ -254,7 +271,9 @@ class ShopService {
       throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
     }
     const statsMap = await this.getShopReviewStatsByShopIds([shop.id])
-    return this.mergeShopReviewStats(shop, statsMap)
+    const withStats = this.mergeShopReviewStats(shop, statsMap)
+    const [withBadges] = await this.attachBadgesToShops([withStats])
+    return withBadges
   }
 
   getMyShop = async (userId: string) => {
@@ -285,7 +304,8 @@ class ShopService {
       orderBy: { created_at: 'desc' }
     })
     const statsMap = await this.getShopReviewStatsByShopIds(shops.map((s) => s.id))
-    return shops.map((s) => this.mergeShopReviewStats(s, statsMap))
+    const withStats = shops.map((s) => this.mergeShopReviewStats(s, statsMap))
+    return this.attachBadgesToShops(withStats)
   }
 
   getShops = async ({ page = 1, limit = 10, searchTerm }: { page?: number; limit?: number; searchTerm?: string }) => {
@@ -322,8 +342,10 @@ class ShopService {
 
     const totalPages = Math.ceil(total / safeLimit)
     const statsMap = await this.getShopReviewStatsByShopIds(items.map((s) => s.id))
+    const withStats = items.map((s) => this.mergeShopReviewStats(s, statsMap))
+    const withBadges = await this.attachBadgesToShops(withStats)
     return {
-      items: items.map((s) => this.mergeShopReviewStats(s, statsMap)),
+      items: withBadges,
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -607,7 +629,9 @@ class ShopService {
           shops: {
             select: {
               id: true,
+              farm_id: true,
               name: true,
+              avatar_url: true,
               is_verified: true,
               certifications: true,
               farms: {
@@ -629,9 +653,22 @@ class ShopService {
     ])
 
     const itemsWithStats = await this.attachProductReviewAggregates(items)
+    const shopInputs = itemsWithStats
+      .map((p) => p.shops)
+      .filter(
+        (s): s is NonNullable<typeof s> => !!s && typeof s.farm_id === 'string'
+      )
+    const shopsWithBadges = await this.attachBadgesToShops(shopInputs)
+    const badgeByShopId = new Map(shopsWithBadges.map((s) => [s.id, s.badges]))
+    const itemsFinal = itemsWithStats.map((p) => ({
+      ...p,
+      shops: p.shops
+        ? { ...p.shops, badges: badgeByShopId.get(p.shops.id) ?? [] }
+        : p.shops
+    }))
     const totalPages = Math.ceil(total / safeLimit)
     return {
-      items: itemsWithStats,
+      items: itemsFinal,
       meta: {
         page: safePage,
         limit: safeLimit,
@@ -651,8 +688,10 @@ class ShopService {
         shops: {
           select: {
             id: true,
+            farm_id: true,
             name: true,
             description: true,
+            avatar_url: true,
             is_verified: true,
             certifications: true,
             farms: {
@@ -696,9 +735,11 @@ class ShopService {
       return withProductStats
     }
     const sm = await this.getShopReviewStatsByShopIds([withProductStats.shops.id])
+    const shopsMerged = this.mergeShopReviewStats(withProductStats.shops, sm)
+    const [shopWithBadges] = await this.attachBadgesToShops([shopsMerged])
     return {
       ...withProductStats,
-      shops: this.mergeShopReviewStats(withProductStats.shops, sm)
+      shops: shopWithBadges
     }
   }
 }

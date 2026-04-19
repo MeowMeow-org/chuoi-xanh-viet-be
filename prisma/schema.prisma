@@ -94,25 +94,27 @@ model forum_post_labels {
 }
 
 model farms {
-  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  owner_user_id       String                @db.Uuid
-  name                String                @db.VarChar(180)
-  area_ha             Decimal?              @db.Decimal(10, 2)
-  crop_main           String?               @db.VarChar(120)
-  province            String?               @db.VarChar(100)
-  district            String?               @db.VarChar(100)
-  ward                String?               @db.VarChar(100)
-  address             String?
-  latitude            Decimal?              @db.Decimal(10, 7)
-  longitude           Decimal?              @db.Decimal(10, 7)
-  in_cooperative      Boolean               @default(false)
-  created_at          DateTime              @default(now()) @db.Timestamp(6)
-  updated_at          DateTime              @default(now()) @db.Timestamp(6)
-  cooperative_members cooperative_members[]
-  diary_entries       diary_entries[]
-  users               users                 @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
-  seasons             seasons[]
-  shops               shops?
+  id                            String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  owner_user_id                 String                           @db.Uuid
+  name                          String                           @db.VarChar(180)
+  area_ha                       Decimal?                         @db.Decimal(10, 2)
+  crop_main                     String?                          @db.VarChar(120)
+  province                      String?                          @db.VarChar(100)
+  district                      String?                          @db.VarChar(100)
+  ward                          String?                          @db.VarChar(100)
+  address                       String?
+  latitude                      Decimal?                         @db.Decimal(10, 7)
+  longitude                     Decimal?                         @db.Decimal(10, 7)
+  in_cooperative                Boolean                          @default(false)
+  created_at                    DateTime                         @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime                         @default(now()) @db.Timestamp(6)
+  cooperative_members           cooperative_members[]
+  diary_entries                 diary_entries[]
+  users                         users                            @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
+  seasons                       seasons[]
+  shops                         shops?
+  farm_certificates             farm_certificates[]
+  cooperative_certificate_scope cooperative_certificate_scope[]
 }
 
 model cooperative_members {
@@ -362,9 +364,9 @@ model chat_messages {
 }
 
 model users {
-  id                                 String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  phone                              String                @unique @db.VarChar(20)
-  email                              String?               @unique @db.VarChar(255)
+  id                                 String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone                              String                           @unique @db.VarChar(20)
+  email                              String?                          @unique @db.VarChar(255)
   forum_comments                     forum_comments[]
   forum_posts                        forum_posts[]
   password_hash                      String?               @db.VarChar(255)
@@ -390,6 +392,11 @@ model users {
   chat_messages                      chat_messages[]
   user_notifications_received        user_notifications[]  @relation("user_notifications_recipient")
   user_notifications_sent            user_notifications[]  @relation("user_notifications_actor")
+  cooperative_certificates_owned     cooperative_certificates[]     @relation("coop_cert_owner")
+  cooperative_certificates_revoked   cooperative_certificates[]     @relation("coop_cert_revoker")
+  cooperative_certificate_scope_added cooperative_certificate_scope[] @relation("coop_cert_scope_added_by")
+  farm_certificates_reviewed         farm_certificates[]            @relation("farm_cert_reviewer_user")
+  farm_certificates_reviewer_coop    farm_certificates[]            @relation("farm_cert_reviewer_coop")
 }
 
 model user_notifications {
@@ -411,6 +418,95 @@ model user_notifications {
 
   @@unique([recipient_user_id, dedupe_key], map: "uq_user_notifications_recipient_dedupe")
   @@index([recipient_user_id, created_at(sort: Desc)], map: "idx_user_notifications_recipient_created")
+}
+
+model cooperative_certificates {
+  id                  String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cooperative_user_id String                          @db.Uuid
+  type                cert_type
+  certificate_no      String?                         @db.VarChar(120)
+  issuer              String?                         @db.VarChar(240)
+  issued_at           DateTime?                       @db.Date
+  expires_at          DateTime?                       @db.Date
+  file_url            String                          @db.VarChar(2048)
+  status              coop_cert_status                @default(active)
+  revoked_by          String?                         @db.Uuid
+  revoked_at          DateTime?                       @db.Timestamp(6)
+  revoke_reason       String?
+  created_at          DateTime                        @default(now()) @db.Timestamp(6)
+  updated_at          DateTime                        @default(now()) @db.Timestamp(6)
+  cooperative         users                           @relation("coop_cert_owner", fields: [cooperative_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_certs_user")
+  revoker             users?                          @relation("coop_cert_revoker", fields: [revoked_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_certs_revoker")
+  scope               cooperative_certificate_scope[]
+
+  @@index([cooperative_user_id, status], map: "idx_coop_certs_user_status")
+  @@index([type, status], map: "idx_coop_certs_type_status")
+}
+
+model cooperative_certificate_scope {
+  id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  certificate_id String                  @db.Uuid
+  farm_id        String                  @db.Uuid
+  added_by       String?                 @db.Uuid
+  added_at       DateTime                @default(now()) @db.Timestamp(6)
+  certificate    cooperative_certificates @relation(fields: [certificate_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_coop_cert_scope_cert")
+  farm           farms                   @relation(fields: [farm_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_coop_cert_scope_farm")
+  adder          users?                  @relation("coop_cert_scope_added_by", fields: [added_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_cert_scope_adder")
+
+  @@unique([certificate_id, farm_id], map: "uq_coop_cert_scope")
+  @@index([farm_id], map: "idx_coop_cert_scope_farm")
+}
+
+model farm_certificates {
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farm_id                 String                   @db.Uuid
+  type                    cert_type
+  certificate_no          String?                  @db.VarChar(120)
+  issuer                  String?                  @db.VarChar(240)
+  issued_at               DateTime?                @db.Date
+  expires_at              DateTime?                @db.Date
+  file_url                String                   @db.VarChar(2048)
+  status                  farm_cert_status         @default(pending)
+  approver_scope          farm_cert_approver_scope
+  reviewer_cooperative_id String?                  @db.Uuid
+  reviewed_by             String?                  @db.Uuid
+  reviewed_at             DateTime?                @db.Timestamp(6)
+  reject_reason           String?
+  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  updated_at              DateTime                 @default(now()) @db.Timestamp(6)
+  farm                    farms                    @relation(fields: [farm_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_farm_certs_farm")
+  reviewer_cooperative    users?                   @relation("farm_cert_reviewer_coop", fields: [reviewer_cooperative_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farm_certs_reviewer_coop")
+  reviewer_user           users?                   @relation("farm_cert_reviewer_user", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farm_certs_reviewer_user")
+
+  @@index([farm_id, status], map: "idx_farm_certs_farm_status")
+  @@index([reviewer_cooperative_id, status], map: "idx_farm_certs_reviewer")
+  @@index([type, status], map: "idx_farm_certs_type_status")
+}
+
+enum cert_type {
+  vietgap
+  globalgap
+  organic
+  other
+}
+
+enum coop_cert_status {
+  active
+  revoked
+  expired
+}
+
+enum farm_cert_status {
+  pending
+  approved
+  rejected
+  revoked
+  expired
+}
+
+enum farm_cert_approver_scope {
+  cooperative
+  admin
 }
 
 enum account_status {

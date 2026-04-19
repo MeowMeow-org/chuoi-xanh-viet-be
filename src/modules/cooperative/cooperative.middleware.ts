@@ -53,6 +53,11 @@ export const listMyMembershipsQueryValidator = validate(
           options: [['pending', 'approved', 'rejected', 'removed']],
           errorMessage: 'status must be pending, approved, rejected, or removed'
         }
+      },
+      searchTerm: {
+        optional: true,
+        isString: true,
+        trim: true
       }
     },
     ['query']

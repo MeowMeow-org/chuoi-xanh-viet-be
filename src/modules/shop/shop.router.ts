@@ -58,33 +58,23 @@ shopRouter.get('/available-seasons', accessTokenValidator, requireFarmer, wrapAs
 /**
  * @desc list active products across all shops (consumer marketplace)
  * @route GET /shop/products?page=&limit=&searchTerm=&province=&shopId=
- * @access private
+ * @access public (guest vẫn xem được)
  */
-shopRouter.get(
-  '/products',
-  accessTokenValidator,
-  getPublicProductsQueryValidator,
-  wrapAsync(getPublicProductsController)
-)
+shopRouter.get('/products', getPublicProductsQueryValidator, wrapAsync(getPublicProductsController))
 
 /**
  * @desc public product detail with shop + farm origin + season
  * @route GET /shop/products/:product_id
- * @access private
+ * @access public (guest vẫn xem được)
  */
-shopRouter.get(
-  '/products/:product_id',
-  accessTokenValidator,
-  productIdParamValidator,
-  wrapAsync(getPublicProductByIdController)
-)
+shopRouter.get('/products/:product_id', productIdParamValidator, wrapAsync(getPublicProductByIdController))
 
 /**
  * @desc get all shops (search + pagination)
  * @route GET /shop/
- * @access private
+ * @access public (guest vẫn xem được)
  */
-shopRouter.get('/', accessTokenValidator, getShopsQueryValidator, wrapAsync(getShopsController))
+shopRouter.get('/', getShopsQueryValidator, wrapAsync(getShopsController))
 
 /**
  * @desc sale units on shop's farm that can still be listed (active, not yet a product)
@@ -102,9 +92,9 @@ shopRouter.get(
 /**
  * @desc get shop detail
  * @route GET /shop/:shop_id
- * @access private
+ * @access public (guest vẫn xem được)
  */
-shopRouter.get('/:shop_id', accessTokenValidator, shopIdParamValidator, wrapAsync(getShopByIdController))
+shopRouter.get('/:shop_id', shopIdParamValidator, wrapAsync(getShopByIdController))
 
 /**
  * @desc create shop for a farm
@@ -150,11 +140,10 @@ shopRouter.post(
 /**
  * @desc list products in a shop
  * @route GET /shop/:shop_id/products
- * @access private
+ * @access public (guest vẫn xem được)
  */
 shopRouter.get(
   '/:shop_id/products',
-  accessTokenValidator,
   shopIdParamValidator,
   getShopsQueryValidator,
   wrapAsync(getProductsController)

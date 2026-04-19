@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { accessTokenValidator, requireForumParticipant } from '../auth/auth.middleware'
+import { accessTokenValidator, optionalAccessTokenValidator, requireForumParticipant } from '../auth/auth.middleware'
 import { wrapAsync } from '~/utils/handler'
 import {
   createForumCommentController,
@@ -25,14 +25,15 @@ import {
 
 const forumRouter = Router()
 
-forumRouter.get(
-  '/posts',
-  accessTokenValidator,
-  requireForumParticipant,
-  getForumPostsQueryValidator,
-  wrapAsync(getForumPostsController)
-)
+/**
+ * @desc Danh sách bài viết — public read.
+ * Guest xem được; nếu có token hợp lệ thì controller vẫn nhận `decoded_authorization` để personalize.
+ */
+forumRouter.get('/posts', optionalAccessTokenValidator, getForumPostsQueryValidator, wrapAsync(getForumPostsController))
 
+/**
+ * @desc Tạo bài — cần login + role thuộc forum participant.
+ */
 forumRouter.post(
   '/posts',
   accessTokenValidator,
@@ -41,15 +42,20 @@ forumRouter.post(
   wrapAsync(createForumPostController)
 )
 
+/**
+ * @desc Danh sách comment của 1 bài — public read.
+ */
 forumRouter.get(
   '/posts/:post_id/comments',
-  accessTokenValidator,
-  requireForumParticipant,
+  optionalAccessTokenValidator,
   forumPostIdValidator,
   getForumCommentsQueryValidator,
   wrapAsync(getForumCommentsController)
 )
 
+/**
+ * @desc Tạo comment — cần login + role thuộc forum participant.
+ */
 forumRouter.post(
   '/posts/:post_id/comments',
   accessTokenValidator,
@@ -59,10 +65,12 @@ forumRouter.post(
   wrapAsync(createForumCommentController)
 )
 
+/**
+ * @desc Chi tiết 1 bài — public read. Token optional để author/admin xem bài hidden.
+ */
 forumRouter.get(
   '/posts/:post_id',
-  accessTokenValidator,
-  requireForumParticipant,
+  optionalAccessTokenValidator,
   forumPostIdValidator,
   wrapAsync(getForumPostDetailController)
 )
