@@ -370,6 +370,8 @@ model users {
   password_hash                      String?               @db.VarChar(255)
   full_name                          String                @db.VarChar(120)
   avatar_url                         String?               @db.VarChar(2048)
+  /** Zalo user_id (Official Account) — nông dân nhập sau khi đã quan tâm OA để nhận tin nhắn */
+  zalo_user_id                       String?               @db.VarChar(50)
   role                               user_role             @default(farmer)
   status                             account_status        @default(active)
   reset_password_token               String?               @db.VarChar(255)

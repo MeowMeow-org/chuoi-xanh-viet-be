@@ -118,7 +118,8 @@ class AuthService {
         phone: user.phone,
         role: user.role,
         status: user.status,
-        avatar_url: user.avatar_url ?? null
+        avatar_url: user.avatar_url ?? null,
+        zalo_user_id: user.zalo_user_id ?? null
       }
     }
   }
@@ -172,7 +173,8 @@ class AuthService {
         phone: user.phone,
         role: user.role,
         status: user.status,
-        avatar_url: user.avatar_url ?? null
+        avatar_url: user.avatar_url ?? null,
+        zalo_user_id: user.zalo_user_id ?? null
       }
     }
   }
@@ -273,6 +275,7 @@ class AuthService {
     role: user_role
     status: account_status
     avatar_url: string | null
+    zalo_user_id: string | null
   }> => {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
@@ -283,7 +286,8 @@ class AuthService {
         phone: true,
         role: true,
         status: true,
-        avatar_url: true
+        avatar_url: true,
+        zalo_user_id: true
       }
     })
 
@@ -296,7 +300,8 @@ class AuthService {
 
     return {
       ...user,
-      avatar_url: user.avatar_url ?? null
+      avatar_url: user.avatar_url ?? null,
+      zalo_user_id: user.zalo_user_id ?? null
     }
   }
 
@@ -306,6 +311,7 @@ class AuthService {
       avatar_url?: string | null
       full_name?: string
       phone?: string
+      zalo_user_id?: string | null
     }
   ) => {
     const data: Prisma.usersUpdateInput = {}
@@ -360,6 +366,27 @@ class AuthService {
         })
       }
       data.phone = v
+    }
+
+    if (payload.zalo_user_id !== undefined) {
+      const raw = payload.zalo_user_id
+      if (raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+        data.zalo_user_id = null
+      } else if (typeof raw === 'string') {
+        const v = raw.trim()
+        if (!/^\d{1,50}$/.test(v)) {
+          throw new ErrorWithStatus({
+            status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            message: USER_MESSAGES.ZALO_USER_ID_INVALID
+          })
+        }
+        data.zalo_user_id = v
+      } else {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.ZALO_USER_ID_INVALID
+        })
+      }
     }
 
     if (Object.keys(data).length === 0) {

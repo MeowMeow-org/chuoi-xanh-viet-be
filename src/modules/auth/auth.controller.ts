@@ -38,7 +38,8 @@ export const loginController = async (
         phone: response.user.phone,
         role: response.user.role,
         status: response.user.status,
-        avatarUrl: response.user.avatar_url ?? null
+        avatarUrl: response.user.avatar_url ?? null,
+        zaloUserId: response.user.zalo_user_id ?? null
       }
     }
   })
@@ -58,7 +59,8 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
       phone: user.phone,
       role: user.role,
       status: user.status,
-      avatarUrl: user.avatar_url ?? null
+      avatarUrl: user.avatar_url ?? null,
+      zaloUserId: user.zalo_user_id ?? null
     }
   })
 }
@@ -81,10 +83,22 @@ export const patchMeController = async (
             : body.avatarUrl.trim()
           : undefined
 
+  const zaloRaw =
+    body.zaloUserId === undefined
+      ? undefined
+      : body.zaloUserId === null
+        ? null
+        : typeof body.zaloUserId === 'string'
+          ? body.zaloUserId.trim() === ''
+            ? null
+            : body.zaloUserId.trim()
+          : undefined
+
   const payload: {
     avatar_url?: string | null
     full_name?: string
     phone?: string
+    zalo_user_id?: string | null
   } = {}
 
   if (avatarRaw !== undefined) {
@@ -95,6 +109,9 @@ export const patchMeController = async (
   }
   if (body.phone !== undefined) {
     payload.phone = String(body.phone).trim()
+  }
+  if (zaloRaw !== undefined) {
+    payload.zalo_user_id = zaloRaw
   }
 
   const user = await authService.updateMe(user_id, payload)
@@ -109,7 +126,8 @@ export const patchMeController = async (
       phone: user.phone,
       role: user.role,
       status: user.status,
-      avatarUrl: user.avatar_url ?? null
+      avatarUrl: user.avatar_url ?? null,
+      zaloUserId: user.zalo_user_id ?? null
     }
   })
 }
@@ -156,7 +174,8 @@ export const registerController = async (
         phone: response.user.phone,
         role: response.user.role,
         status: response.user.status,
-        avatarUrl: response.user.avatar_url ?? null
+        avatarUrl: response.user.avatar_url ?? null,
+        zaloUserId: response.user.zalo_user_id ?? null
       }
     }
   })

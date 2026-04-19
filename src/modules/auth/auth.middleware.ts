@@ -334,7 +334,20 @@ export const patchMeValidator = validate(
         }
       },
       fullName: patchMeFullNameSchema,
-      phone: patchMePhoneSchema
+      phone: patchMePhoneSchema,
+      zaloUserId: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            if (typeof value !== 'string') return false
+            const t = value.trim()
+            if (t === '') return true
+            return /^\d{1,50}$/.test(t)
+          },
+          errorMessage: USER_MESSAGES.ZALO_USER_ID_INVALID
+        }
+      }
     },
     ['body']
   )

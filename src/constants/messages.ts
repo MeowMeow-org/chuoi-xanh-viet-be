@@ -11,6 +11,7 @@ const USER_MESSAGES = {
   INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
   GET_ME_SUCCESS: 'Get my profile successfully',
   UPDATE_PROFILE_SUCCESS: 'Profile updated successfully',
+  ZALO_USER_ID_INVALID: 'zaloUserId must be 1–50 digits (Zalo OA user id)',
   CHANGE_PASSWORD_SUCCESS: 'Password changed successfully',
   CURRENT_PASSWORD_INCORRECT: 'Current password is incorrect',
   AVATAR_URL_INVALID: 'avatarUrl must be a valid URL string (max 2048 characters)',
