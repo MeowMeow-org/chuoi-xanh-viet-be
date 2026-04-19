@@ -64,16 +64,34 @@ export const marketQueryController = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { crop, region, conversationHistory } = req.body
+  const rawMessage = String(req.body.message ?? '').trim()
+  const rawCrop = String(req.body.crop ?? '').trim()
+  const region = String(req.body.region ?? '').trim() || undefined
+  const { conversationHistory } = req.body
 
-  const result = await chatbotService.queryMarketPrice(crop, region, conversationHistory)
+  const primary = rawMessage || rawCrop
+  if (!primary) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      message: 'Cần có message (nội dung chat) hoặc crop'
+    })
+  }
+
+  const cropHintForModel = rawCrop && rawCrop !== primary ? rawCrop : undefined
+
+  const result = await chatbotService.queryMarketPrice(
+    primary,
+    { cropHint: cropHintForModel, region },
+    conversationHistory ?? []
+  )
 
   res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: 'Tư vấn thị trường thành công',
     data: {
       advice: result.advice,
-      crop,
+      message: primary,
+      crop: rawCrop || null,
       region: region || null,
       sources: result.searchResults,
       usage: result.usage

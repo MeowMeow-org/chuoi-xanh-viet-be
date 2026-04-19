@@ -1,6 +1,6 @@
 import OpenAI from 'openai'
 import fs from 'fs'
-import { searchCropPrice, type SearchResult } from './search.service'
+import { searchMarketFromUserMessage, type SearchResult } from './search.service'
 
 let _openai: OpenAI | null = null
 const getOpenAI = () => {
@@ -30,9 +30,11 @@ const buildMarketSystemPrompt = (searchResults: SearchResult[]) => {
 
   if (searchResults.length === 0) {
     return `Bạn là chuyên gia tư vấn thị trường nông sản của nền tảng Chuỗi Xanh Việt.
-Hôm nay là ${today}. Không tìm được dữ liệu giá thực tế, hãy tư vấn dựa trên kiến thức chung về thị trường.
-Luôn nhắc người dùng kiểm tra thêm tại agromonitor.vn hoặc chợ đầu mối địa phương.
-Luôn trả lời bằng tiếng Việt.`
+Hôm nay là ${today}. Kết quả tìm kiếm web chưa trả về nguồn cụ thể — hãy VẪN trả lời hữu ích, không từ chối:
+- Tổng hợp mức giá **tham khảo** theo vùng miền / thành phố người dùng nhắc (nếu có), khoảng dao động VNĐ/kg hoặc VNĐ/tạ tại chợ đầu mối khi phù hợp với loại nông sản hỏi.
+- Nêu rõ số liệu là **ước lượng / mang tính tham khảo**, khuyên đối chiếu chợ đầu mối, siêu thị hoặc trang địa phương cùng ngày.
+- KHÔNG nói "không thể cập nhật giá" hay từ chối trả lời — luôn đưa gợi ý định hướng và mức giá khoảng thường thấy tại Việt Nam khi có thể suy ra từ loại cây trồng và khu vực.
+Luôn trả lời bằng tiếng Việt, ngắn gọn, thực tế.`
   }
 
   const context = searchResults
@@ -148,32 +150,47 @@ export const diagnoseFromImage = async (imagePath: string, mimeType: string, not
   }
 }
 
+export type MarketPriceOptions = {
+  /** Gợi ý từ ô form — thêm vào ngữ cảnh, không thay câu hỏi chính */
+  cropHint?: string
+  region?: string
+}
+
 export const queryMarketPrice = async (
-  crop: string,
-  region?: string,
+  /** Nội dung chat của người dùng — luôn ưu tiên (tìm kiếm + lượt hỏi GPT) */
+  message: string,
+  options: MarketPriceOptions = {},
   conversationHistory: { role: 'user' | 'assistant'; content: string }[] = []
 ) => {
-  // Bước 1: Search DuckDuckGo lấy giá thực tế hôm nay
+  const userText = message.trim()
+
+  const region = options.region?.trim()
+  const cropHint = options.cropHint?.trim()
+
+  // Bước 1: Search theo câu hỏi thật; có region thì thêm vào query
   let searchResults: SearchResult[] = []
   try {
-    searchResults = await searchCropPrice(crop, region)
-    console.log(`[Search] Found ${searchResults.length} results for "${crop}"`)
+    searchResults = await searchMarketFromUserMessage(userText, region)
+    console.log(`[Search] Found ${searchResults.length} results for query based on user message`)
   } catch (err) {
     console.error('[Search] Failed:', (err as Error).message)
-    // Nếu search thất bại thì vẫn tiếp tục với GPT knowledge
   }
 
-  // Bước 2: Build system prompt có nhúng dữ liệu search
   const systemPrompt = buildMarketSystemPrompt(searchResults)
 
-  const userMessage = region
-    ? `Tôi muốn hỏi về giá ${crop} tại khu vực ${region}. Hãy tư vấn dựa trên dữ liệu thực tế trên.`
-    : `Tôi muốn hỏi về giá ${crop}. Hãy tư vấn dựa trên dữ liệu thực tế trên.`
+  // Lượt user gửi model: câu chat + gợi ý khu vực / ô form (nếu có)
+  let finalUserContent = userText
+  if (region) {
+    finalUserContent += `\n\n(Khu vực quan tâm: ${region})`
+  }
+  if (cropHint) {
+    finalUserContent += `\n\n(Gợi ý chủ đề từ biểu mẫu — chỉ dùng nếu liên quan: ${cropHint})`
+  }
 
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...conversationHistory,
-    { role: 'user', content: userMessage }
+    { role: 'user', content: finalUserContent }
   ]
 
   // Bước 3: GPT tổng hợp từ dữ liệu thực

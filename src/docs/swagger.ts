@@ -695,6 +695,9 @@
  * /v1/api/chatbot/market:
  *   post:
  *     summary: Query agricultural market prices
+ *     description: |
+ *       Ưu tiên **message** (nội dung chat). Tìm kiếm web và trả lời GPT dựa trên câu hỏi thực tế.
+ *       **crop** (ô gợi ý) chỉ là bối cảnh thêm khi khác với message. Bắt buộc có ít nhất message hoặc crop.
  *     tags: [Chatbot]
  *     security:
  *       - bearerAuth: []
@@ -704,15 +707,18 @@
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - crop
  *             properties:
+ *               message:
+ *                 type: string
+ *                 description: Câu hỏi / chat của người dùng — luôn ưu tiên (vd. "giá cà rốt hôm nay")
+ *                 example: giá cà rốt bao nhiêu
  *               crop:
  *                 type: string
- *                 example: chuối
+ *                 description: Gợi ý từ biểu mẫu (tuỳ chọn); thêm ngữ cảnh nếu khác message
+ *                 example: Bưởi
  *               region:
  *                 type: string
- *                 description: Optional region/province to narrow down market data
+ *                 description: Khu vực (tuỳ chọn)
  *                 example: Lâm Đồng
  *               conversationHistory:
  *                 type: array
@@ -744,9 +750,13 @@
  *                   properties:
  *                     advice:
  *                       type: string
+ *                     message:
+ *                       type: string
+ *                       description: Nội dung câu hỏi đã dùng (message hoặc crop)
  *                     crop:
  *                       type: string
- *                       example: chuối
+ *                       nullable: true
+ *                       description: Giá trị ô gợi ý nếu có
  *                     region:
  *                       type: string
  *                       nullable: true
@@ -760,7 +770,7 @@
  *       401:
  *         description: Access token is invalid, expired, or missing
  *       422:
- *         description: Validation error
+ *         description: Validation error or missing both message and crop
  */
 
 /**

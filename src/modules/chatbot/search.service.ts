@@ -85,3 +85,19 @@ export const searchCropPrice = async (crop: string, region?: string): Promise<Se
 
   return searchDuckDuckGo(query, 5)
 }
+
+/**
+ * Tìm kiếm theo câu hỏi thực tế của người dùng (ưu tiên nội dung chat).
+ */
+export const searchMarketFromUserMessage = async (userMessage: string, region?: string): Promise<SearchResult[]> => {
+  const trimmed = userMessage.trim()
+  if (!trimmed) return []
+
+  const today = new Date()
+  const dateStr = `${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}`
+  const query = region?.trim()
+    ? `${trimmed} giá nông sản ${region.trim()} ${dateStr} Việt Nam`
+    : `${trimmed} giá nông sản ${dateStr} Việt Nam`
+
+  return searchDuckDuckGo(query, 5)
+}

@@ -1,3 +1,4 @@
+import fs from 'fs'
 import { checkSchema } from 'express-validator'
 import multer from 'multer'
 import path from 'path'
@@ -27,15 +28,28 @@ export const chatValidator = validate(
 export const marketQueryValidator = validate(
   checkSchema(
     {
+      message: {
+        optional: true,
+        isString: { errorMessage: 'message phải là chuỗi ký tự' },
+        trim: true,
+        isLength: {
+          options: { max: 2000 },
+          errorMessage: 'message không được vượt quá 2000 ký tự'
+        }
+      },
       crop: {
-        isString: { errorMessage: 'Tên nông sản phải là chuỗi ký tự' },
-        notEmpty: { errorMessage: 'Tên nông sản không được để trống' },
+        optional: true,
+        isString: { errorMessage: 'crop phải là chuỗi ký tự' },
         trim: true
       },
       region: {
         optional: true,
         isString: { errorMessage: 'Vùng địa lý phải là chuỗi ký tự' },
         trim: true
+      },
+      conversationHistory: {
+        optional: true,
+        isArray: { errorMessage: 'conversationHistory phải là mảng' }
       }
     },
     ['body']
@@ -47,7 +61,9 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, 'uploads/chatbot/')
+    const dir = path.join(process.cwd(), 'uploads', 'chatbot')
+    fs.mkdirSync(dir, { recursive: true })
+    cb(null, dir)
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`
