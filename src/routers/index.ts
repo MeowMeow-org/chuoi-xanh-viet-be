@@ -3,6 +3,7 @@ import authRouter from '~/modules/auth/auth.router'
 import cooperativeRouter from '~/modules/cooperative/cooperative.router'
 import diaryRouter from '~/modules/diary/diary.router'
 import farmRouter from '~/modules/farm/farm.router'
+import chatbotRouter from '~/modules/chatbot/chatbot.router'
 import forumRouter from '~/modules/forum/forum.router'
 import inspectionRouter from '~/modules/inspection/inspection.router'
 import shopRouter from '~/modules/shop/shop.router'
@@ -19,8 +20,8 @@ import certificateRouter from '~/modules/certificate/certificate.router'
 const router = Router()
 
 router.use('/auth', authRouter)
-
 router.use('/farm', farmRouter)
+router.use('/chatbot', chatbotRouter)
 
 router.use('/cooperative', cooperativeRouter)
 router.use('/season', seasonRouter)

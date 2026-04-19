@@ -1,10 +1,12 @@
-/**
+﻿/**
  * @swagger
  * tags:
  *   - name: Auth
  *     description: Authentication endpoints
  *   - name: Farm
  *     description: Farm endpoints
+ *   - name: Chatbot
+ *     description: AI chatbot endpoints (farming advice, disease diagnosis, market prices)
  *   - name: Cooperative
  *     description: Cooperative (HTX) and farmer applicant registration
  *   - name: Season
@@ -66,7 +68,7 @@
  *               role:
  *                 type: string
  *                 enum: [consumer, farmer]
- *                 description: Người tiêu dùng (consumer) hoặc Nông hộ (farmer)
+ *                 description: Ng╞░ß╗¥i ti├¬u d├╣ng (consumer) hoß║╖c N├┤ng hß╗Ö (farmer)
  *     responses:
  *       201:
  *         description: Register successful
@@ -351,7 +353,7 @@
  *                   nullable: true
  *                   example: null
  *       401:
- *         description: Token error messages - "Link đặt lại mật khẩu đã hết hạn" or "Link đặt lại mật khẩu không hợp lệ"
+ *         description: Token error messages - "Link ─æß║╖t lß║íi mß║¡t khß║⌐u ─æ├ú hß║┐t hß║ín" or "Link ─æß║╖t lß║íi mß║¡t khß║⌐u kh├┤ng hß╗úp lß╗ç"
  *       422:
  *         description: Validation error
  */
@@ -401,7 +403,7 @@
  *                   nullable: true
  *                   example: null
  *       401:
- *         description: Token error messages - "Link đặt lại mật khẩu đã hết hạn" or "Link đặt lại mật khẩu không hợp lệ"
+ *         description: Token error messages - "Link ─æß║╖t lß║íi mß║¡t khß║⌐u ─æ├ú hß║┐t hß║ín" or "Link ─æß║╖t lß║íi mß║¡t khß║⌐u kh├┤ng hß╗úp lß╗ç"
  *       422:
  *         description: Validation error
  */
@@ -576,6 +578,199 @@
  *         description: Access token is invalid, expired, or missing
  *       422:
  *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/chatbot/chat:
+ *   post:
+ *     summary: Chat with farming assistant (VietGAP/GlobalGAP, pests, cultivation techniques)
+ *     tags: [Chatbot]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 example: Cây chuối bị vàng lá, cần xử lý thế nào?
+ *               conversationHistory:
+ *                 type: array
+ *                 description: Previous messages for multi-turn conversation
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                       enum: [user, assistant]
+ *                     content:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Chat response successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Chatbot trả lời thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     reply:
+ *                       type: string
+ *                     usage:
+ *                       type: object
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
+ * /v1/api/chatbot/diagnose:
+ *   post:
+ *     summary: Diagnose plant disease via image (Vision Language Model)
+ *     tags: [Chatbot]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - image
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Plant image to diagnose
+ *               note:
+ *                 type: string
+ *                 description: Optional additional note about the plant condition
+ *                 example: Lá bắt đầu vàng từ 3 ngày trước
+ *     responses:
+ *       200:
+ *         description: Diagnosis successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Diagnose successful
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     diagnosis:
+ *                       type: string
+ *                     usage:
+ *                       type: object
+ *       400:
+ *         description: Missing image file
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ */
+
+/**
+ * @swagger
+ * /v1/api/chatbot/market:
+ *   post:
+ *     summary: Query agricultural market prices
+ *     description: |
+ *       Ưu tiên **message** (nội dung chat). Tìm kiếm web và trả lời GPT dựa trên câu hỏi thực tế.
+ *       **crop** (ô gợi ý) chỉ là bối cảnh thêm khi khác với message. Bắt buộc có ít nhất message hoặc crop.
+ *     tags: [Chatbot]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: Câu hỏi / chat của người dùng — luôn ưu tiên (vd. "giá cà rốt hôm nay")
+ *                 example: giá cà rốt bao nhiêu
+ *               crop:
+ *                 type: string
+ *                 description: Gợi ý từ biểu mẫu (tuỳ chọn); thêm ngữ cảnh nếu khác message
+ *                 example: Bưởi
+ *               region:
+ *                 type: string
+ *                 description: Khu vực (tuỳ chọn)
+ *                 example: Lâm Đồng
+ *               conversationHistory:
+ *                 type: array
+ *                 description: Previous messages for multi-turn conversation
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                       enum: [user, assistant]
+ *                     content:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Market query successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Tư vấn thị trường thành công
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     advice:
+ *                       type: string
+ *                     message:
+ *                       type: string
+ *                       description: Nội dung câu hỏi đã dùng (message hoặc crop)
+ *                     crop:
+ *                       type: string
+ *                       nullable: true
+ *                       description: Giá trị ô gợi ý nếu có
+ *                     region:
+ *                       type: string
+ *                       nullable: true
+ *                       example: Lâm Đồng
+ *                     sources:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     usage:
+ *                       type: object
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error or missing both message and crop
  */
 
 /**
@@ -981,7 +1176,7 @@
  *                           forumImage:
  *                             type: object
  *                             properties:
- *                               objectKey: { type: string, description: Worker file id — store as objectKey }
+ *                               objectKey: { type: string, description: Worker file id ΓÇö store as objectKey }
  *                               url: { type: string, format: uri }
  *       400:
  *         description: No files
@@ -1346,7 +1541,7 @@
  *               peerUserId: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Existing conversation (same consumer–farmer pair)
+ *         description: Existing conversation (same consumerΓÇôfarmer pair)
  *       201:
  *         description: New conversation created
  *       400:
@@ -1442,8 +1637,8 @@
  *                 data:
  *                   type: object
  *                   properties:
- *                     suggestedName: { type: string, example: Nhà Vườn Chuối Xanh Lâm Đồng }
- *                     suggestedDescription: { type: string, example: Gian hàng nông sản sạch từ vùng đất Lâm Đồng... }
+ *                     suggestedName: { type: string, example: Nh├á V╞░ß╗¥n Chuß╗æi Xanh L├óm ─Éß╗ông }
+ *                     suggestedDescription: { type: string, example: Gian h├áng n├┤ng sß║ún sß║ích tß╗½ v├╣ng ─æß║Ñt L├óm ─Éß╗ông... }
  *       401:
  *         description: Unauthorized
  *       403:
@@ -1466,8 +1661,8 @@
  *             required: [farm_id, name]
  *             properties:
  *               farm_id: { type: string, format: uuid }
- *               name: { type: string, maxLength: 180, example: Nhà Vườn Chuối Xanh }
- *               description: { type: string, example: Gian hàng nông sản sạch... }
+ *               name: { type: string, maxLength: 180, example: Nh├á V╞░ß╗¥n Chuß╗æi Xanh }
+ *               description: { type: string, example: Gian h├áng n├┤ng sß║ún sß║ích... }
  *     responses:
  *       201:
  *         description: Shop created successfully
@@ -1616,7 +1811,7 @@
  *             properties:
  *               sale_unit_id: { type: string, format: uuid, description: Active sale unit on the same farm as the shop; not already listed }
  *               name: { type: string, maxLength: 180, description: Optional; default name from lot code }
- *               description: { type: string, example: Chuối sạch từ vườn... }
+ *               description: { type: string, example: Chuß╗æi sß║ích tß╗½ v╞░ß╗¥n... }
  *               price: { type: number, example: 25000 }
  *               unit: { type: string, description: Optional; defaults to lot unit }
  *               stock_qty: { type: number, description: Optional; defaults to lot quantity }
