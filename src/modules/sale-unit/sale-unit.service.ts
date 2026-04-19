@@ -215,7 +215,7 @@ class SaleUnitService {
 
   private buildQrUrl(shortCode: string): string {
     const base = process.env.PUBLIC_APP_URL?.trim().replace(/\/+$/, '') ?? 'http://localhost:3000'
-    return `${base}/trace/${shortCode}`
+    return `${base}/truy-xuat/${encodeURIComponent(shortCode)}`
   }
 
   createSaleUnit = async ({ userId, payload }: { userId: string; payload: CreateSaleUnitRequestBody }) => {

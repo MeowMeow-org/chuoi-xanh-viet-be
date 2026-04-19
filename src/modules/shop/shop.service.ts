@@ -1,5 +1,5 @@
 import { SchemaType } from '@google/generative-ai'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import geminiService from '~/lib/gemini'
 import HTTP_STATUS from '~/constants/httpStatus'
@@ -10,6 +10,7 @@ import {
   resolveFarmCertificateBadgesMany,
   serializeBadges
 } from '~/modules/certificate/certificate.badge'
+import { isUnitCompatible, normalizeUnit, toKg } from '~/utils/unit'
 
 const shopSelect = {
   id: true,
@@ -503,10 +504,47 @@ class ShopService {
     const lotLabel = (saleUnit.short_code?.trim() || saleUnit.code).trim()
     const name = payload.name != null && payload.name.trim().length > 0 ? payload.name.trim() : `Lô ${lotLabel}`
 
-    const unit = payload.unit != null && payload.unit.trim().length > 0 ? payload.unit.trim() : saleUnit.unit
+    // Đơn vị sản phẩm: mặc định = đơn vị của lô. Nếu farmer chọn khác, chỉ chấp nhận khi
+    // cùng nhóm mass (kg/g/tấn…) để BE có thể quy đổi stock_qty tương ứng.
+    const requestedUnit =
+      payload.unit != null && payload.unit.trim().length > 0 ? payload.unit.trim() : saleUnit.unit
+    if (!isUnitCompatible(requestedUnit, saleUnit.unit)) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.PRODUCT_UNIT_INCOMPATIBLE
+      })
+    }
+    const unit = requestedUnit
+
+    // Khối lượng còn lại của lô quy ra đơn vị sản phẩm (để check tồn kho không vượt lô).
+    // Cùng đơn vị → dùng trực tiếp quantity.
+    // Cùng nhóm mass khác đơn vị → quy đổi: lotQtyInProductUnit = lotKg / factor(productUnit)
+    let lotMaxInProductUnit: Prisma.Decimal
+    if (normalizeUnit(unit) === normalizeUnit(saleUnit.unit)) {
+      lotMaxInProductUnit = new Prisma.Decimal(saleUnit.quantity)
+    } else {
+      const lotKg = toKg(saleUnit.quantity, saleUnit.unit)
+      const oneUnitInKg = toKg(1, unit)
+      if (!lotKg || !oneUnitInKg || oneUnitInKg.isZero()) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.PRODUCT_UNIT_INCOMPATIBLE
+        })
+      }
+      lotMaxInProductUnit = lotKg.div(oneUnitInKg)
+    }
 
     const stockQty =
-      payload.stock_qty !== undefined && payload.stock_qty !== null ? payload.stock_qty : Number(saleUnit.quantity)
+      payload.stock_qty !== undefined && payload.stock_qty !== null
+        ? new Prisma.Decimal(payload.stock_qty)
+        : lotMaxInProductUnit
+
+    if (stockQty.greaterThan(lotMaxInProductUnit)) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.PRODUCT_STOCK_EXCEEDS_LOT
+      })
+    }
 
     const userDesc = payload.description?.trim()
     const traceLine = saleUnit.qr_url ? `\n\n🔗 Truy xuất lô: ${saleUnit.qr_url}` : ''

@@ -10,7 +10,8 @@ export interface CreateSeasonRequestBody {
   code?: string
   cropName: string
   startDate: string
-  harvestStartDate?: string
+  /** Bắt buộc: ngày dự kiến thu hoạch. Dùng để HTX lên lịch kiểm tra trước thu hoạch. */
+  harvestStartDate: string
   harvestEndDate?: string
   estimatedYield: number
   actualYield?: number

@@ -168,9 +168,10 @@ model orders {
   created_at       DateTime       @default(now()) @db.Timestamp(6)
   updated_at       DateTime       @default(now()) @db.Timestamp(6)
   order_items      order_items[]
-  users            users          @relation(fields: [buyer_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_buyer")
-  shops            shops          @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_shop")
+  users            users             @relation(fields: [buyer_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_buyer")
+  shops            shops             @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_shop")
   shop_reviews     shop_reviews[]
+  stock_movements  stock_movements[]
 
   @@index([buyer_user_id, status, created_at], map: "idx_orders_buyer_status_created_at")
   @@index([shop_id, status, created_at], map: "idx_orders_shop_status_created_at")
@@ -190,11 +191,12 @@ model products {
   created_at   DateTime      @default(now()) @db.Timestamp(6)
   updated_at   DateTime      @default(now()) @db.Timestamp(6)
   sale_unit_id String?       @unique @db.Uuid
-  order_items  order_items[]
-  shop_reviews shop_reviews[]
-  seasons      seasons?      @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_season")
-  shops        shops         @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_shop")
-  sale_unit    sale_units?   @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_sale_unit")
+  order_items     order_items[]
+  shop_reviews    shop_reviews[]
+  stock_movements stock_movements[]
+  seasons         seasons?          @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_season")
+  shops           shops             @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_shop")
+  sale_unit       sale_units?       @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_sale_unit")
 
   @@index([shop_id, is_active], map: "idx_products_shop_active")
 }
@@ -214,21 +216,42 @@ model refresh_tokens {
 }
 
 model sale_units {
-  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  season_id   String           @db.Uuid
-  code        String           @unique @db.VarChar(80)
-  quantity    Decimal          @db.Decimal(10, 2)
-  unit        String           @default("kg") @db.VarChar(20)
-  qr_token    String           @unique @db.VarChar(120)
-  qr_url      String
-  short_code  String?          @unique @db.VarChar(30)
-  status      sale_unit_status @default(active)
-  created_at  DateTime         @default(now()) @db.Timestamp(6)
-  seasons     seasons          @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sale_units_season")
-  trace_scans trace_scans[]
-  product     products?
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id       String             @db.Uuid
+  code            String             @unique @db.VarChar(80)
+  quantity        Decimal            @db.Decimal(10, 2)
+  unit            String             @default("kg") @db.VarChar(20)
+  qr_token        String             @unique @db.VarChar(120)
+  qr_url          String
+  short_code      String?            @unique @db.VarChar(30)
+  status          sale_unit_status   @default(active)
+  created_at      DateTime           @default(now()) @db.Timestamp(6)
+  seasons         seasons            @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sale_units_season")
+  trace_scans     trace_scans[]
+  product         products?
+  stock_movements stock_movements[]
 
   @@index([season_id, status], map: "idx_sale_units_season_status")
+}
+
+/// Sổ biến động tồn theo lô (CXV-xxx). Mỗi lần bán/huỷ/điều chỉnh ghi 1 dòng.
+/// qty_kg DƯƠNG = nhập lại kho (cancel/adjust tăng), ÂM = xuất kho (order).
+model stock_movements {
+  id               String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sale_unit_id     String                 @db.Uuid
+  product_id       String?                @db.Uuid
+  order_id         String?                @db.Uuid
+  source           stock_movement_source
+  qty_kg           Decimal                @db.Decimal(14, 3)
+  balance_after_kg Decimal                @db.Decimal(14, 3)
+  note             String?
+  created_at       DateTime               @default(now()) @db.Timestamp(6)
+  sale_unit        sale_units             @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_movements_sale_unit")
+  product          products?              @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_movements_product")
+  order            orders?                @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_movements_order")
+
+  @@index([sale_unit_id, created_at], map: "idx_stock_movements_sale_unit_created")
+  @@index([order_id], map: "idx_stock_movements_order")
 }
 
 model season_anchors {
@@ -573,6 +596,12 @@ enum sale_unit_status {
   active
   sold
   disabled
+}
+
+enum stock_movement_source {
+  order
+  cancel
+  adjust
 }
 
 enum season_status {
