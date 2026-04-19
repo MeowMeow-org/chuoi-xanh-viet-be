@@ -1829,6 +1829,9 @@
  *         description: Validation error
  *   get:
  *     summary: List products in a shop
+ *     description: |
+ *       Sắp xếp theo điểm tổng hợp rank_score (0–1).
+ *       Công thức: 0.4×độ mới đăng + 0.4×điểm sao TB + 0.2×lượt scan (trace) chuẩn hoá trong danh sách.
  *     tags: [Shop]
  *     security:
  *       - bearerAuth: []
@@ -1845,7 +1848,7 @@
  *         schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
  *     responses:
  *       200:
- *         description: Products retrieved successfully
+ *         description: Products retrieved successfully (sorted by rank_score)
  *       401:
  *         description: Unauthorized
  */
