@@ -41,6 +41,8 @@ export interface PatchMeRequestBody {
   avatarUrl?: string | null
   fullName?: string
   phone?: string
+  /** Zalo user_id (OA) để nhận tin nhắn từ Official Account — lấy sau khi user quan tâm OA. Gửi null hoặc rỗng để bỏ liên kết. */
+  zaloUserId?: string | null
 }
 
 export interface ChangePasswordRequestBody {

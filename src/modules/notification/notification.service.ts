@@ -5,6 +5,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import { resolveNotificationDeepLink } from './notification.links'
+import { notifyFarmerZaloAfterInAppNotificationSafe } from '~/modules/zalo/zaloFarmerNotify'
 
 export type NotificationCreateInput = {
   recipientUserId: string
@@ -89,10 +90,23 @@ class NotificationService {
         data: [data],
         skipDuplicates: true
       })
-      return count > 0
+      const created = count > 0
+      if (created) {
+        notifyFarmerZaloAfterInAppNotificationSafe({
+          recipientUserId: input.recipientUserId,
+          title: input.title,
+          body: input.body
+        })
+      }
+      return created
     }
 
     await prisma.user_notifications.create({ data })
+    notifyFarmerZaloAfterInAppNotificationSafe({
+      recipientUserId: input.recipientUserId,
+      title: input.title,
+      body: input.body
+    })
     return true
   }
 
