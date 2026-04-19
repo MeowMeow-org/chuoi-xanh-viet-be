@@ -96,8 +96,10 @@ export const getShopsController = async (
   const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
   const searchTerm = typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
   const province = typeof req.query.province === 'string' ? req.query.province : undefined
+  const district = typeof req.query.district === 'string' ? req.query.district : undefined
+  const ward = typeof req.query.ward === 'string' ? req.query.ward : undefined
 
-  const result = await shopService.getShops({ page, limit, searchTerm, province })
+  const result = await shopService.getShops({ page, limit, searchTerm, province, district, ward })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -182,9 +184,25 @@ export const getPublicProductsController = async (
   const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
   const searchTerm = typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
   const province = typeof req.query.province === 'string' ? req.query.province : undefined
+  const district = typeof req.query.district === 'string' ? req.query.district : undefined
+  const ward = typeof req.query.ward === 'string' ? req.query.ward : undefined
   const shopId = typeof req.query.shopId === 'string' ? req.query.shopId : undefined
+  const sort = typeof req.query.sort === 'string' ? req.query.sort : undefined
+  const minPrice = req.query.minPrice !== undefined ? Number(req.query.minPrice) : undefined
+  const maxPrice = req.query.maxPrice !== undefined ? Number(req.query.maxPrice) : undefined
 
-  const result = await shopService.getPublicProducts({ page, limit, searchTerm, province, shopId })
+  const result = await shopService.getPublicProducts({
+    page,
+    limit,
+    searchTerm,
+    province,
+    district,
+    ward,
+    shopId,
+    sort,
+    minPrice: Number.isFinite(minPrice) ? minPrice : undefined,
+    maxPrice: Number.isFinite(maxPrice) ? maxPrice : undefined
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,

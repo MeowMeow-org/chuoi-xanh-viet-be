@@ -16,14 +16,6 @@ export interface UpdateShopRequestBody {
   status?: string
 }
 
-export interface GetShopsQuery {
-  page?: string
-  limit?: string
-  searchTerm?: string
-  /** Lọc theo tỉnh/thành (farm), giống danh sách sản phẩm công khai */
-  province?: string
-}
-
 export interface AddProductRequestBody {
   /** Lô đã phân (QR); bắt buộc — mùa vụ & tồn kho lấy từ lô */
   sale_unit_id: string
@@ -44,5 +36,20 @@ export interface GetPublicProductsQuery {
   limit?: string
   searchTerm?: string
   province?: string
+  district?: string
+  ward?: string
   shopId?: string
+  /** newest | price_asc | price_desc */
+  sort?: string
+  minPrice?: string
+  maxPrice?: string
+}
+
+export interface GetShopsQuery {
+  page?: string
+  limit?: string
+  searchTerm?: string
+  province?: string
+  district?: string
+  ward?: string
 }

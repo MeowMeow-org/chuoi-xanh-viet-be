@@ -376,19 +376,23 @@ class ShopService {
   }
 
   /**
-   * Danh sách gian hàng (mở cửa): lọc theo tỉnh + tìm kiếm.
+   * Danh sách gian hàng (mở cửa): lọc theo địa phương + tìm kiếm.
    * Sắp xếp: sao TB ↓, số đánh giá ↓, đã xác minh trước, mới hơn (created_at) ↓, số SP đang bán ↓.
    */
   getShops = async ({
     page = 1,
     limit = 10,
     searchTerm,
-    province
+    province,
+    district,
+    ward
   }: {
     page?: number
     limit?: number
     searchTerm?: string
     province?: string
+    district?: string
+    ward?: string
   }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
@@ -398,21 +402,35 @@ class ShopService {
     const provinceFilter = province?.trim()
 
     const andFilters: Prisma.shopsWhereInput[] = [{ status: 'open' }]
+
     if (provinceFilter && provinceFilter.length > 0) {
       andFilters.push({
         farms: { province: { contains: provinceFilter, mode: 'insensitive' } }
       })
     }
+
+    const dist = district?.trim()
+    if (dist && dist.length > 0) {
+      andFilters.push({ farms: { district: { contains: dist, mode: 'insensitive' } } })
+    }
+
+    const w = ward?.trim()
+    if (w && w.length > 0) {
+      andFilters.push({ farms: { ward: { contains: w, mode: 'insensitive' } } })
+    }
+
     if (term && term.length > 0) {
       andFilters.push({
         OR: [
           { name: { contains: term, mode: 'insensitive' } },
           { description: { contains: term, mode: 'insensitive' } },
           { farms: { province: { contains: term, mode: 'insensitive' } } },
-          { farms: { district: { contains: term, mode: 'insensitive' } } }
+          { farms: { district: { contains: term, mode: 'insensitive' } } },
+          { farms: { ward: { contains: term, mode: 'insensitive' } } }
         ]
       })
     }
+
     const where: Prisma.shopsWhereInput = { AND: andFilters }
 
     const minimal = await prisma.shops.findMany({
@@ -490,7 +508,9 @@ class ShopService {
       where: { id: { in: pageIds } },
       select: {
         ...shopSelect,
-        farms: { select: { id: true, name: true, crop_main: true, province: true, district: true } }
+        farms: {
+          select: { id: true, name: true, crop_main: true, province: true, district: true, ward: true }
+        }
       }
     })
     const byId = new Map(itemsRaw.map((i) => [i.id, i]))
@@ -798,13 +818,23 @@ class ShopService {
     limit = 20,
     searchTerm,
     province,
-    shopId
+    district,
+    ward,
+    shopId,
+    sort,
+    minPrice,
+    maxPrice
   }: {
     page?: number
     limit?: number
     searchTerm?: string
     province?: string
+    district?: string
+    ward?: string
     shopId?: string
+    sort?: string
+    minPrice?: number
+    maxPrice?: number
   }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
@@ -827,11 +857,122 @@ class ShopService {
 
     if (province && province.trim().length > 0) {
       andFilters.push({
-        shops: { farms: { province: { contains: province, mode: 'insensitive' } } }
+        shops: { farms: { province: { contains: province.trim(), mode: 'insensitive' } } }
       })
     }
 
+    if (district && district.trim().length > 0) {
+      andFilters.push({
+        shops: { farms: { district: { contains: district.trim(), mode: 'insensitive' } } }
+      })
+    }
+
+    if (ward && ward.trim().length > 0) {
+      andFilters.push({
+        shops: { farms: { ward: { contains: ward.trim(), mode: 'insensitive' } } }
+      })
+    }
+
+    let lo = minPrice
+    let hi = maxPrice
+    if (lo !== undefined && hi !== undefined && lo > hi) {
+      const t = lo
+      lo = hi
+      hi = t
+    }
+    const priceCond: Prisma.DecimalFilter = {}
+    if (lo !== undefined && Number.isFinite(lo)) priceCond.gte = lo
+    if (hi !== undefined && Number.isFinite(hi)) priceCond.lte = hi
+    if (Object.keys(priceCond).length > 0) {
+      andFilters.push({ price: priceCond })
+    }
+
     const where: Prisma.productsWhereInput = { AND: andFilters }
+
+    const publicProductListSelect = {
+      ...productSelect,
+      shops: {
+        select: {
+          id: true,
+          farm_id: true,
+          name: true,
+          avatar_url: true,
+          is_verified: true,
+          certifications: true,
+          farms: {
+            select: {
+              id: true,
+              name: true,
+              province: true,
+              district: true,
+              ward: true
+            }
+          }
+        }
+      },
+      seasons: { select: { id: true, code: true, crop_name: true } },
+      sale_unit: { select: { id: true, code: true, short_code: true, qr_url: true } }
+    }
+
+    const useDbSort = sort === 'price_asc' || sort === 'price_desc' || sort === 'newest'
+
+    if (useDbSort) {
+      let orderBy: Prisma.productsOrderByWithRelationInput
+      if (sort === 'price_asc') orderBy = { price: 'asc' }
+      else if (sort === 'price_desc') orderBy = { price: 'desc' }
+      else orderBy = { created_at: 'desc' }
+
+      const [itemsRaw, total] = await Promise.all([
+        prisma.products.findMany({
+          where,
+          orderBy,
+          skip,
+          take: safeLimit,
+          select: publicProductListSelect
+        }),
+        prisma.products.count({ where })
+      ])
+
+      if (itemsRaw.length === 0) {
+        const totalPages = Math.ceil(total / safeLimit)
+        return {
+          items: [],
+          meta: {
+            page: safePage,
+            limit: safeLimit,
+            total,
+            totalPages,
+            previousPage: safePage > 1 ? safePage - 1 : null,
+            nextPage: null
+          }
+        }
+      }
+
+      const itemsWithStats = await this.attachProductReviewAggregates(itemsRaw)
+      const shopInputs = itemsWithStats
+        .map((p) => p.shops)
+        .filter((s): s is NonNullable<typeof s> => !!s && typeof s.farm_id === 'string')
+      const shopsWithBadges = await this.attachBadgesToShops(shopInputs)
+      const badgeByShopId = new Map(shopsWithBadges.map((s) => [s.id, s.badges]))
+      const itemsFinal = itemsWithStats.map((p) => ({
+        ...p,
+        shops: p.shops
+          ? { ...p.shops, badges: badgeByShopId.get(p.shops.id) ?? [] }
+          : p.shops
+      }))
+      const totalPages = Math.ceil(total / safeLimit)
+      return {
+        items: itemsFinal,
+        meta: {
+          page: safePage,
+          limit: safeLimit,
+          total,
+          totalPages,
+          previousPage: safePage > 1 ? safePage - 1 : null,
+          nextPage: totalPages > 0 && safePage < totalPages ? safePage + 1 : null
+        }
+      }
+    }
 
     const { orderedIds, scoreById } = await this.orderProductIdsByAggregateScore(where)
     const total = orderedIds.length
@@ -854,30 +995,7 @@ class ShopService {
 
     const itemsRaw = await prisma.products.findMany({
       where: { id: { in: pageIds } },
-      select: {
-        ...productSelect,
-        shops: {
-          select: {
-            id: true,
-            farm_id: true,
-            name: true,
-            avatar_url: true,
-            is_verified: true,
-            certifications: true,
-            farms: {
-              select: {
-                id: true,
-                name: true,
-                province: true,
-                district: true,
-                ward: true
-              }
-            }
-          }
-        },
-        seasons: { select: { id: true, code: true, crop_name: true } },
-        sale_unit: { select: { id: true, code: true, short_code: true, qr_url: true } }
-      }
+      select: publicProductListSelect
     })
     const byId = new Map(itemsRaw.map((i) => [i.id, i]))
     const itemsOrdered = pageIds
