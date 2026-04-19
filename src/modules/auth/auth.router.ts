@@ -1,10 +1,12 @@
 import { Router } from 'express'
 import { wrapAsync } from '~/utils/handler'
 import {
+  changePasswordController,
   forgotPasswordController,
   getMeController,
   loginController,
   logoutController,
+  patchMeController,
   refreshTokenController,
   registerController,
   resetPasswordController,
@@ -12,9 +14,10 @@ import {
 } from './auth.controller'
 import {
   accessTokenValidator,
+  changePasswordValidator,
   forgotPasswordValidator,
   loginValidator,
-  logoutValidator,
+  patchMeValidator,
   refreshTokenValidator,
   registerValidator,
   resetPasswordValidator,
@@ -37,6 +40,30 @@ authRouter.post('/login', loginValidator, wrapAsync(loginController))
  */
 authRouter.get('/me', accessTokenValidator, wrapAsync(getMeController))
 
+/**
+ * @desc Update current user profile (e.g. avatarUrl from image upload)
+ * @route PATCH /auth/me
+ * @access private
+ */
+authRouter.patch(
+  '/me',
+  accessTokenValidator,
+  patchMeValidator,
+  wrapAsync(patchMeController)
+)
+
+/**
+ * @desc Đổi mật khẩu khi đã đăng nhập
+ * @route POST /auth/me/password
+ * @access private
+ */
+authRouter.post(
+  '/me/password',
+  accessTokenValidator,
+  changePasswordValidator,
+  wrapAsync(changePasswordController)
+)
+
 // register
 /**
  * @desc Register new user account
@@ -56,9 +83,9 @@ authRouter.post('/refresh-token', refreshTokenValidator, wrapAsync(refreshTokenC
 /**
  * @desc Logout (revoke refresh token session)
  * @route POST /auth/logout
- * @access public (requires valid refresh token in body)
+ * @access public — body.refreshToken must be a valid JWT (verified like /refresh-token)
  */
-authRouter.post('/logout', logoutValidator, wrapAsync(logoutController))
+authRouter.post('/logout', refreshTokenValidator, wrapAsync(logoutController))
 
 // login-google
 

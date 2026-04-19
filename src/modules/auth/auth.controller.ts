@@ -1,10 +1,12 @@
 import { NextFunction, Request, Response } from 'express'
 import type { ParamsDictionary } from 'express-serve-static-core'
 import type {
+  ChangePasswordRequestBody,
   ForgotPasswordRequestBody,
   RefreshTokenRequestBody,
   LoginRequestBody,
   LogoutRequestBody,
+  PatchMeRequestBody,
   RegisterRequestBody,
   ResetPasswordRequestBody,
   TokenPayLoad,
@@ -35,7 +37,9 @@ export const loginController = async (
         email: response.user.email,
         phone: response.user.phone,
         role: response.user.role,
-        status: response.user.status
+        status: response.user.status,
+        avatarUrl: response.user.avatar_url ?? null,
+        zaloUserId: response.user.zalo_user_id ?? null
       }
     }
   })
@@ -54,8 +58,98 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
       email: user.email,
       phone: user.phone,
       role: user.role,
-      status: user.status
+      status: user.status,
+      avatarUrl: user.avatar_url ?? null,
+      zaloUserId: user.zalo_user_id ?? null
     }
+  })
+}
+
+export const patchMeController = async (
+  req: Request<ParamsDictionary, unknown, PatchMeRequestBody>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const body = req.body
+  const avatarRaw =
+    body.avatarUrl === undefined
+      ? undefined
+      : body.avatarUrl === null
+        ? null
+        : typeof body.avatarUrl === 'string'
+          ? body.avatarUrl.trim() === ''
+            ? null
+            : body.avatarUrl.trim()
+          : undefined
+
+  const zaloRaw =
+    body.zaloUserId === undefined
+      ? undefined
+      : body.zaloUserId === null
+        ? null
+        : typeof body.zaloUserId === 'string'
+          ? body.zaloUserId.trim() === ''
+            ? null
+            : body.zaloUserId.trim()
+          : undefined
+
+  const payload: {
+    avatar_url?: string | null
+    full_name?: string
+    phone?: string
+    zalo_user_id?: string | null
+  } = {}
+
+  if (avatarRaw !== undefined) {
+    payload.avatar_url = avatarRaw
+  }
+  if (body.fullName !== undefined) {
+    payload.full_name = String(body.fullName).trim()
+  }
+  if (body.phone !== undefined) {
+    payload.phone = String(body.phone).trim()
+  }
+  if (zaloRaw !== undefined) {
+    payload.zalo_user_id = zaloRaw
+  }
+
+  const user = await authService.updateMe(user_id, payload)
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.UPDATE_PROFILE_SUCCESS,
+    data: {
+      id: user.id,
+      fullName: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      avatarUrl: user.avatar_url ?? null,
+      zaloUserId: user.zalo_user_id ?? null
+    }
+  })
+}
+
+export const changePasswordController = async (
+  req: Request<ParamsDictionary, unknown, ChangePasswordRequestBody>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const { currentPassword, newPassword } = req.body
+
+  await authService.changePassword({
+    user_id,
+    currentPassword,
+    newPassword
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.CHANGE_PASSWORD_SUCCESS,
+    data: null
   })
 }
 
@@ -79,7 +173,9 @@ export const registerController = async (
         email: response.user.email,
         phone: response.user.phone,
         role: response.user.role,
-        status: response.user.status
+        status: response.user.status,
+        avatarUrl: response.user.avatar_url ?? null,
+        zaloUserId: response.user.zalo_user_id ?? null
       }
     }
   })

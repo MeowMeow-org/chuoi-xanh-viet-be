@@ -1,3 +1,4 @@
+import type { Prisma, account_status, user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
@@ -23,11 +24,13 @@ class AuthService {
     return new Date(Date.now() + ttl)
   }
 
-  private signAccessToken(user_id: string) {
+  private signAccessToken({ user_id, role, status }: { user_id: string; role: user_role; status: account_status }) {
     return signToken({
       privateKey: process.env.JWT_ACCESS_TOKEN_SECRET as string,
       payload: {
         user_id,
+        role,
+        status,
         token_type: TokenType.AccessToken
       },
       options: { expiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN as StringValue }
@@ -56,6 +59,32 @@ class AuthService {
     })
   }
 
+  createAuthSessionForUser = async ({
+    user_id,
+    role,
+    status
+  }: {
+    user_id: string
+    role: user_role
+    status: account_status
+  }) => {
+    const [access_token, refresh_token] = await Promise.all([
+      this.signAccessToken({ user_id, role, status }),
+      this.signRefreshToken(user_id)
+    ])
+
+    await prisma.refresh_tokens.create({
+      data: {
+        user_id,
+        token_hash: refresh_token,
+        device_id: '',
+        expires_at: this.getRefreshTokenExpiresAt()
+      }
+    })
+
+    return { access_token, refresh_token }
+  }
+
   login = async (payload: LoginRequestBody) => {
     const { email, password } = payload
     const user = await prisma.users.findFirst({
@@ -73,20 +102,10 @@ class AuthService {
     }
 
     const user_id = user.id.toString()
-
-    //sign token
-    const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
-      this.signRefreshToken(user_id)
-    ])
-
-    await prisma.refresh_tokens.create({
-      data: {
-        user_id,
-        token_hash: refresh_token, //
-        device_id: '',
-        expires_at: this.getRefreshTokenExpiresAt()
-      }
+    const { access_token, refresh_token } = await this.createAuthSessionForUser({
+      user_id,
+      role: user.role,
+      status: user.status
     })
 
     return {
@@ -98,13 +117,15 @@ class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        status: user.status
+        status: user.status,
+        avatar_url: user.avatar_url ?? null,
+        zalo_user_id: user.zalo_user_id ?? null
       }
     }
   }
 
   register = async (payload: RegisterRequestBody) => {
-    const { email, password, full_name, phone } = payload
+    const { email, password, full_name, phone, role } = payload
 
     const [existingEmail, existingPhone] = await Promise.all([
       prisma.users.findFirst({ where: { email } }),
@@ -114,14 +135,14 @@ class AuthService {
     if (existingEmail != null) {
       throw new ErrorWithStatus({
         message: USER_MESSAGES.EMAIL_ALREADY_EXISTS,
-        status: HTTP_STATUS.CONFLICT
+        status: HTTP_STATUS.UNPROCESSABLE_ENTITY
       })
     }
 
     if (existingPhone != null) {
       throw new ErrorWithStatus({
         message: USER_MESSAGES.PHONE_ALREADY_EXISTS,
-        status: HTTP_STATUS.CONFLICT
+        status: HTTP_STATUS.UNPROCESSABLE_ENTITY
       })
     }
 
@@ -130,23 +151,16 @@ class AuthService {
         email,
         password_hash: password, // keeping same strategy as current login
         full_name,
-        phone
+        phone,
+        role
       }
     })
 
     const user_id = user.id.toString()
-    const [access_token, refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
-      this.signRefreshToken(user_id)
-    ])
-
-    await prisma.refresh_tokens.create({
-      data: {
-        user_id,
-        token_hash: refresh_token,
-        device_id: '',
-        expires_at: this.getRefreshTokenExpiresAt()
-      }
+    const { access_token, refresh_token } = await this.createAuthSessionForUser({
+      user_id,
+      role: user.role,
+      status: user.status
     })
 
     return {
@@ -158,7 +172,9 @@ class AuthService {
         email: user.email,
         phone: user.phone,
         role: user.role,
-        status: user.status
+        status: user.status,
+        avatar_url: user.avatar_url ?? null,
+        zalo_user_id: user.zalo_user_id ?? null
       }
     }
   }
@@ -208,8 +224,23 @@ class AuthService {
       })
     }
 
+    const user = await prisma.users.findUnique({
+      where: { id: user_id },
+      select: {
+        role: true,
+        status: true
+      }
+    })
+
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
     const [access_token, new_refresh_token] = await Promise.all([
-      this.signAccessToken(user_id),
+      this.signAccessToken({ user_id, role: user.role, status: user.status }),
       this.signRefreshToken(user_id)
     ])
 
@@ -234,7 +265,18 @@ class AuthService {
     }
   }
 
-  getMe = async (user_id: string) => {
+  getMe = async (
+    user_id: string
+  ): Promise<{
+    id: string
+    full_name: string
+    email: string | null
+    phone: string
+    role: user_role
+    status: account_status
+    avatar_url: string | null
+    zalo_user_id: string | null
+  }> => {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
       select: {
@@ -243,7 +285,9 @@ class AuthService {
         email: true,
         phone: true,
         role: true,
-        status: true
+        status: true,
+        avatar_url: true,
+        zalo_user_id: true
       }
     })
 
@@ -254,7 +298,140 @@ class AuthService {
       })
     }
 
-    return user
+    return {
+      ...user,
+      avatar_url: user.avatar_url ?? null,
+      zalo_user_id: user.zalo_user_id ?? null
+    }
+  }
+
+  updateMe = async (
+    user_id: string,
+    payload: {
+      avatar_url?: string | null
+      full_name?: string
+      phone?: string
+      zalo_user_id?: string | null
+    }
+  ) => {
+    const data: Prisma.usersUpdateInput = {}
+
+    if (payload.avatar_url !== undefined) {
+      const raw = payload.avatar_url
+      if (raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+        data.avatar_url = null
+      } else if (typeof raw === 'string') {
+        const v = raw.trim()
+        if (v.length > 2048) {
+          throw new ErrorWithStatus({
+            status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            message: USER_MESSAGES.AVATAR_URL_INVALID
+          })
+        }
+        data.avatar_url = v
+      } else {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.AVATAR_URL_INVALID
+        })
+      }
+    }
+
+    if (payload.full_name !== undefined) {
+      const v = payload.full_name.trim()
+      if (v.length === 0) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.FULL_NAME_IS_REQUIRED
+        })
+      }
+      data.full_name = v
+    }
+
+    if (payload.phone !== undefined) {
+      const v = payload.phone.trim()
+      if (v.length === 0) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.PHONE_IS_REQUIRED
+        })
+      }
+      const taken = await prisma.users.findFirst({
+        where: { phone: v, NOT: { id: user_id } }
+      })
+      if (taken != null) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          message: USER_MESSAGES.PHONE_ALREADY_EXISTS
+        })
+      }
+      data.phone = v
+    }
+
+    if (payload.zalo_user_id !== undefined) {
+      const raw = payload.zalo_user_id
+      if (raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+        data.zalo_user_id = null
+      } else if (typeof raw === 'string') {
+        const v = raw.trim()
+        if (!/^\d{1,50}$/.test(v)) {
+          throw new ErrorWithStatus({
+            status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            message: USER_MESSAGES.ZALO_USER_ID_INVALID
+          })
+        }
+        data.zalo_user_id = v
+      } else {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.ZALO_USER_ID_INVALID
+        })
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      return this.getMe(user_id)
+    }
+
+    await prisma.users.update({
+      where: { id: user_id },
+      data
+    })
+    return this.getMe(user_id)
+  }
+
+  changePassword = async ({
+    user_id,
+    currentPassword,
+    newPassword
+  }: {
+    user_id: string
+    currentPassword: string
+    newPassword: string
+  }) => {
+    const user = await prisma.users.findUnique({
+      where: { id: user_id },
+      select: { password_hash: true }
+    })
+
+    if (user == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+
+    if (user.password_hash == null || user.password_hash !== currentPassword) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.CURRENT_PASSWORD_INCORRECT,
+        status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
+    await prisma.users.update({
+      where: { id: user_id },
+      data: { password_hash: newPassword }
+    })
   }
 
   findUserByEmail = async (email: string) => {

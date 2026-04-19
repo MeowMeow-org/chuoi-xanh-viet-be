@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "Z:\\self-learning\\project\\chuoi-xanh-viet\\chuoi-xanh-viet-be\\contracts\\DiaryAnchor.sol": {
+      "lastModificationDate": 1776437369767,
+      "contentHash": "2f43fd7beabf22a0f9835eaf7ac201b0",
+      "sourceName": "contracts/DiaryAnchor.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "DiaryAnchor"
+      ]
+    }
+  }
+}
