@@ -97,7 +97,7 @@ model farms {
   id                            String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   owner_user_id                 String                           @db.Uuid
   name                          String                           @db.VarChar(180)
-  area_ha                       Decimal?                         @db.Decimal(10, 2)
+  area_ha                       Decimal?                         @db.Decimal(14, 6)
   crop_main                     String?                          @db.VarChar(120)
   province                      String?                          @db.VarChar(100)
   district                      String?                          @db.VarChar(100)

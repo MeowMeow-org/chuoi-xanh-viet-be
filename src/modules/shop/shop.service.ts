@@ -309,23 +309,54 @@ class ShopService {
     return this.attachBadgesToShops(withStats)
   }
 
-  getShops = async ({ page = 1, limit = 10, searchTerm }: { page?: number; limit?: number; searchTerm?: string }) => {
+  getShops = async ({
+    page = 1,
+    limit = 10,
+    searchTerm,
+    province,
+    district,
+    ward
+  }: {
+    page?: number
+    limit?: number
+    searchTerm?: string
+    province?: string
+    district?: string
+    ward?: string
+  }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
     const skip = (safePage - 1) * safeLimit
 
     const term = searchTerm?.trim()
-    const where: Prisma.shopsWhereInput =
-      term && term.length > 0
-        ? {
-            OR: [
-              { name: { contains: term, mode: 'insensitive' } },
-              { description: { contains: term, mode: 'insensitive' } },
-              { farms: { province: { contains: term, mode: 'insensitive' } } },
-              { farms: { district: { contains: term, mode: 'insensitive' } } }
-            ]
-          }
-        : {}
+    const andFilters: Prisma.shopsWhereInput[] = []
+
+    if (term && term.length > 0) {
+      andFilters.push({
+        OR: [
+          { name: { contains: term, mode: 'insensitive' } },
+          { description: { contains: term, mode: 'insensitive' } },
+          { farms: { province: { contains: term, mode: 'insensitive' } } },
+          { farms: { district: { contains: term, mode: 'insensitive' } } },
+          { farms: { ward: { contains: term, mode: 'insensitive' } } }
+        ]
+      })
+    }
+
+    const pv = province?.trim()
+    if (pv && pv.length > 0) {
+      andFilters.push({ farms: { province: { contains: pv, mode: 'insensitive' } } })
+    }
+    const dist = district?.trim()
+    if (dist && dist.length > 0) {
+      andFilters.push({ farms: { district: { contains: dist, mode: 'insensitive' } } })
+    }
+    const w = ward?.trim()
+    if (w && w.length > 0) {
+      andFilters.push({ farms: { ward: { contains: w, mode: 'insensitive' } } })
+    }
+
+    const where: Prisma.shopsWhereInput = andFilters.length > 0 ? { AND: andFilters } : {}
 
     const [items, total] = await Promise.all([
       prisma.shops.findMany({
@@ -335,7 +366,9 @@ class ShopService {
         take: safeLimit,
         select: {
           ...shopSelect,
-          farms: { select: { id: true, name: true, crop_main: true, province: true, district: true } }
+          farms: {
+            select: { id: true, name: true, crop_main: true, province: true, district: true, ward: true }
+          }
         }
       }),
       prisma.shops.count({ where })
@@ -621,13 +654,23 @@ class ShopService {
     limit = 20,
     searchTerm,
     province,
-    shopId
+    district,
+    ward,
+    shopId,
+    sort,
+    minPrice,
+    maxPrice
   }: {
     page?: number
     limit?: number
     searchTerm?: string
     province?: string
+    district?: string
+    ward?: string
     shopId?: string
+    sort?: string
+    minPrice?: number
+    maxPrice?: number
   }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
@@ -650,16 +693,47 @@ class ShopService {
 
     if (province && province.trim().length > 0) {
       andFilters.push({
-        shops: { farms: { province: { contains: province, mode: 'insensitive' } } }
+        shops: { farms: { province: { contains: province.trim(), mode: 'insensitive' } } }
       })
+    }
+
+    if (district && district.trim().length > 0) {
+      andFilters.push({
+        shops: { farms: { district: { contains: district.trim(), mode: 'insensitive' } } }
+      })
+    }
+
+    if (ward && ward.trim().length > 0) {
+      andFilters.push({
+        shops: { farms: { ward: { contains: ward.trim(), mode: 'insensitive' } } }
+      })
+    }
+
+    let lo = minPrice
+    let hi = maxPrice
+    if (lo !== undefined && hi !== undefined && lo > hi) {
+      const t = lo
+      lo = hi
+      hi = t
+    }
+    const priceCond: Prisma.DecimalFilter = {}
+    if (lo !== undefined && Number.isFinite(lo)) priceCond.gte = lo
+    if (hi !== undefined && Number.isFinite(hi)) priceCond.lte = hi
+    if (Object.keys(priceCond).length > 0) {
+      andFilters.push({ price: priceCond })
     }
 
     const where: Prisma.productsWhereInput = { AND: andFilters }
 
+    let orderBy: Prisma.productsOrderByWithRelationInput = { created_at: 'desc' }
+    if (sort === 'price_asc') orderBy = { price: 'asc' }
+    else if (sort === 'price_desc') orderBy = { price: 'desc' }
+    else orderBy = { created_at: 'desc' }
+
     const [items, total] = await Promise.all([
       prisma.products.findMany({
         where,
-        orderBy: { created_at: 'desc' },
+        orderBy,
         skip,
         take: safeLimit,
         select: {

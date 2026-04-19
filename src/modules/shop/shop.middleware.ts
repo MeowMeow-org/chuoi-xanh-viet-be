@@ -114,7 +114,10 @@ export const getShopsQueryValidator = validate(
         optional: true,
         isString: true,
         trim: true
-      }
+      },
+      province: { optional: true, isString: true, trim: true },
+      district: { optional: true, isString: true, trim: true },
+      ward: { optional: true, isString: true, trim: true }
     },
     ['query']
   )
@@ -137,9 +140,30 @@ export const getPublicProductsQueryValidator = validate(
       },
       searchTerm: { optional: true, isString: true, trim: true },
       province: { optional: true, isString: true, trim: true },
+      district: { optional: true, isString: true, trim: true },
+      ward: { optional: true, isString: true, trim: true },
       shopId: {
         optional: true,
         isUUID: { errorMessage: 'shopId must be a valid UUID' }
+      },
+      sort: {
+        optional: true,
+        isIn: {
+          options: [['newest', 'price_asc', 'price_desc']],
+          errorMessage: 'sort must be one of: newest, price_asc, price_desc'
+        }
+      },
+      minPrice: {
+        optional: true,
+        isFloat: { options: { min: 0 } },
+        toFloat: true,
+        errorMessage: 'minPrice must be a non-negative number'
+      },
+      maxPrice: {
+        optional: true,
+        isFloat: { options: { min: 0 } },
+        toFloat: true,
+        errorMessage: 'maxPrice must be a non-negative number'
       }
     },
     ['query']
