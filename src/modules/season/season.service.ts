@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 
-import type { Prisma, season_status } from '@prisma/client'
+import { Prisma, type season_status } from '@prisma/client'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { domainEvents, DomainEventName } from '~/events/domain-events'
@@ -9,6 +9,17 @@ import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
 import anchorService from '../anchor/anchor.service'
 import type { CreateSeasonRequestBody, GetSeasonsQuery, UpdateSeasonRequestBody } from './season.request'
+
+/** Năng suất mùa vụ lưu Decimal(12,2) — chuẩn hoá để tránh lệch kiểu 899.99 vs 900 do float JS. */
+function toYieldDecimal2(value: number | null | undefined): Prisma.Decimal | null {
+  if (value === null || value === undefined) return null
+  if (!Number.isFinite(value)) return null
+  return new Prisma.Decimal(value).toDecimalPlaces(2)
+}
+
+function toYieldDecimal2Required(value: number): Prisma.Decimal {
+  return new Prisma.Decimal(value).toDecimalPlaces(2)
+}
 
 const seasonSelect = {
   id: true,
@@ -318,11 +329,12 @@ class SeasonService {
     if (payload.harvestEndDate !== undefined) {
       data.harvest_end_date = payload.harvestEndDate ? new Date(payload.harvestEndDate) : null
     }
-    if (payload.estimatedYield !== undefined) {
-      data.estimated_yield = payload.estimatedYield
+    if (payload.estimatedYield !== undefined && payload.estimatedYield !== null) {
+      data.estimated_yield = toYieldDecimal2Required(payload.estimatedYield)
     }
     if (payload.actualYield !== undefined) {
-      data.actual_yield = payload.actualYield
+      data.actual_yield =
+        payload.actualYield === null ? null : toYieldDecimal2(payload.actualYield)
     }
     if (payload.yieldUnit !== undefined) {
       data.yield_unit = payload.yieldUnit
@@ -506,7 +518,7 @@ class SeasonService {
           status: 'pending',
           anchored_at: new Date(),
           anchor_meta: {
-            canonicalSchemaVersion: 2,
+            canonicalSchemaVersion: 3,
             trigger: 'status_change_to_anchored'
           }
         },

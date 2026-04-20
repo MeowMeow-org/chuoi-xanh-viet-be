@@ -1,244 +1,488 @@
 const USER_MESSAGES = {
-  LOGIN_SUCCESS: 'Login successfully',
-  REGISTER_SUCCESS: 'Register successfully',
-  REGISTER_ROLE_REQUIRED: 'role is required',
-  REGISTER_ROLE_INVALID: 'role must be consumer or farmer',
-  LOGOUT_SUCCESS: 'Logout successfully',
-  REFRESH_TOKEN_SUCCESS: 'Refresh token successfully',
-  VERIFY_EMAIL_SUCCESS: 'Verify email successfully',
-  FORGOT_PASSWORD_SUCCESS: 'Forgot password successfully',
-  RESET_PASSWORD_SUCCESS: 'Reset password successfully',
-  INCORRECT_EMAIL_OR_PASSWORD: 'Incorrect email or password',
-  GET_ME_SUCCESS: 'Get my profile successfully',
-  UPDATE_PROFILE_SUCCESS: 'Profile updated successfully',
-  ZALO_USER_ID_INVALID: 'zaloUserId must be 1–50 digits (Zalo OA user id)',
-  CHANGE_PASSWORD_SUCCESS: 'Password changed successfully',
-  CURRENT_PASSWORD_INCORRECT: 'Current password is incorrect',
-  AVATAR_URL_INVALID: 'avatarUrl must be a valid URL string (max 2048 characters)',
-  GET_FARMS_SUCCESS: 'Get farms successfully',
-  CREATE_FARM_SUCCESS: 'Create farm successfully',
-  UPDATE_FARM_SUCCESS: 'Update farm successfully',
-  DELETE_FARM_SUCCESS: 'Delete farm successfully',
-  GET_MY_FARMS_SUCCESS: 'Get my farms successfully',
-  EMAIL_IS_REQUIRED: 'Email is required',
-  ACCESS_TOKEN_IS_REQUIRED: 'Access token is required',
-  PASSWORD_IS_REQUIRED: 'Password is required',
-  EMAIL_IS_NOT_EXISTED: 'Email is not existed',
-  USER_NOT_FOUND: 'User not found',
-  CHECK_YOUR_EMAIL_TO_RESET_PASSWORD: 'Check your email to reset password',
-  FORGOT_PASSWORD_TOKEN_IS_REQUIRED: 'Forgot password token is required',
-  VERIFY_FORGOT_PASSWORD_IS_INVALID: 'Verify forgot password is invalid',
-  VERIFY_FORGOT_PASSWORD_IS_EXPIRED: 'Verify forgot password is expired',
-  VERIFY_FORGOT_PASSWORD_TOKEN_SUCCESS: 'Verify forgot password token successfully',
-  CONFIRM_PASSWORD_IS_REQUIRED: 'Confirm password is required',
-  CONFIRM_PASSWORD_MUST_BE_A_STRING: 'Confirm password must be a string',
-  CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD: 'Confirm password does not match password',
-  CREATE_SEASON_SUCCESS: 'Create season successfully',
-  GET_SEASONS_SUCCESS: 'Get seasons successfully',
-  GET_SEASON_DETAIL_SUCCESS: 'Get season detail successfully',
-  UPDATE_SEASON_SUCCESS: 'Update season successfully',
-  DELETE_SEASON_SUCCESS: 'Delete season successfully',
-  CHANGE_SEASON_STATUS_SUCCESS: 'Change season status successfully',
+
+  LOGIN_SUCCESS: 'Đăng nhập thành công',
+
+  REGISTER_SUCCESS: 'Đăng ký thành công',
+
+  REGISTER_ROLE_REQUIRED: 'Vui lòng chọn vai trò',
+
+  REGISTER_ROLE_INVALID: 'Vai trò phải là khách hàng (consumer) hoặc nông dân (farmer)',
+
+  LOGOUT_SUCCESS: 'Đăng xuất thành công',
+
+  REFRESH_TOKEN_SUCCESS: 'Làm mới phiên đăng nhập thành công',
+
+  VERIFY_EMAIL_SUCCESS: 'Xác minh email thành công',
+
+  FORGOT_PASSWORD_SUCCESS: 'Đã gửi hướng dẫn đặt lại mật khẩu',
+
+  RESET_PASSWORD_SUCCESS: 'Đặt lại mật khẩu thành công',
+
+  INCORRECT_EMAIL_OR_PASSWORD: 'Email hoặc mật khẩu không đúng',
+
+  GET_ME_SUCCESS: 'Lấy thông tin tài khoản thành công',
+
+  UPDATE_PROFILE_SUCCESS: 'Cập nhật hồ sơ thành công',
+
+  ZALO_USER_ID_INVALID: 'zaloUserId phải gồm 1–50 chữ số (ID người dùng Zalo OA)',
+
+  CHANGE_PASSWORD_SUCCESS: 'Đổi mật khẩu thành công',
+
+  CURRENT_PASSWORD_INCORRECT: 'Mật khẩu hiện tại không đúng',
+
+  AVATAR_URL_INVALID: 'avatarUrl phải là URL hợp lệ (tối đa 2048 ký tự)',
+
+  GET_FARMS_SUCCESS: 'Lấy danh sách nông trại thành công',
+
+  CREATE_FARM_SUCCESS: 'Tạo nông trại thành công',
+
+  UPDATE_FARM_SUCCESS: 'Cập nhật nông trại thành công',
+
+  DELETE_FARM_SUCCESS: 'Xóa nông trại thành công',
+
+  GET_MY_FARMS_SUCCESS: 'Lấy danh sách nông trại của bạn thành công',
+
+  EMAIL_IS_REQUIRED: 'Vui lòng nhập email',
+
+  ACCESS_TOKEN_IS_REQUIRED: 'Vui lòng cung cấp access token',
+
+  PASSWORD_IS_REQUIRED: 'Vui lòng nhập mật khẩu',
+
+  EMAIL_IS_NOT_EXISTED: 'Email chưa được đăng ký',
+
+  USER_NOT_FOUND: 'Không tìm thấy người dùng',
+
+  CHECK_YOUR_EMAIL_TO_RESET_PASSWORD: 'Vui lòng kiểm tra email để đặt lại mật khẩu',
+
+  FORGOT_PASSWORD_TOKEN_IS_REQUIRED: 'Vui lòng cung cấp token quên mật khẩu',
+
+  VERIFY_FORGOT_PASSWORD_IS_INVALID: 'Xác minh quên mật khẩu không hợp lệ',
+
+  VERIFY_FORGOT_PASSWORD_IS_EXPIRED: 'Liên kết đặt lại mật khẩu đã hết hạn',
+
+  VERIFY_FORGOT_PASSWORD_TOKEN_SUCCESS: 'Xác minh token quên mật khẩu thành công',
+
+  CONFIRM_PASSWORD_IS_REQUIRED: 'Vui lòng nhập lại mật khẩu',
+
+  CONFIRM_PASSWORD_MUST_BE_A_STRING: 'Xác nhận mật khẩu phải là chuỗi',
+
+  CONFIRM_PASSWORD_DOES_NOT_MATCH_PASSWORD: 'Mật khẩu xác nhận không khớp',
+
+  CREATE_SEASON_SUCCESS: 'Tạo mùa vụ thành công',
+
+  GET_SEASONS_SUCCESS: 'Lấy danh sách mùa vụ thành công',
+
+  GET_SEASON_DETAIL_SUCCESS: 'Lấy chi tiết mùa vụ thành công',
+
+  UPDATE_SEASON_SUCCESS: 'Cập nhật mùa vụ thành công',
+
+  DELETE_SEASON_SUCCESS: 'Xóa mùa vụ thành công',
+
+  CHANGE_SEASON_STATUS_SUCCESS: 'Đổi trạng thái mùa vụ thành công',
+
   SEASON_CODE_ALREADY_EXISTS: 'Mã mùa vụ đã tồn tại',
+
   SEASON_CODE_GENERATION_FAILED: 'Không tạo được mã mùa vụ, vui lòng thử lại',
+
   SEASON_HARVEST_START_BEFORE_SEASON_START: 'Ngày bắt đầu thu hoạch không được trước ngày bắt đầu mùa vụ',
+
   SEASON_HARVEST_END_BEFORE_HARVEST_START: 'Ngày kết thúc thu hoạch phải sau hoặc cùng ngày bắt đầu thu hoạch',
+
   SEASON_HARVEST_END_BEFORE_SEASON_START: 'Ngày kết thúc thu hoạch không được trước ngày bắt đầu mùa vụ',
+
   SEASON_ESTIMATED_YIELD_REQUIRED: 'Năng suất dự kiến bắt buộc và phải là số lớn hơn 0',
+
   SEASON_HARVEST_START_REQUIRED: 'Vui lòng nhập ngày dự kiến thu hoạch (để HTX lên lịch kiểm tra trước thu hoạch)',
-  CREATE_DIARY_SUCCESS: 'Create diary successfully',
-  GET_DIARIES_SUCCESS: 'Get diaries successfully',
-  GET_DIARY_DETAIL_SUCCESS: 'Get diary detail successfully',
-  UPDATE_DIARY_SUCCESS: 'Update diary successfully',
-  DELETE_DIARY_SUCCESS: 'Delete diary successfully',
-  ADD_DIARY_ATTACHMENT_SUCCESS: 'Add diary attachment successfully',
-  DELETE_DIARY_ATTACHMENT_SUCCESS: 'Delete diary attachment successfully',
-  DIARY_ATTACHMENT_NOT_FOUND: 'Diary attachment not found',
-  DIARY_NOT_FOUND: 'Diary not found',
-  DIARY_FARM_SEASON_MISMATCH: 'farmId does not belong to seasonId',
-  DIARY_SEASON_IS_ANCHORED_CANNOT_UPDATE: 'Season is anchored, cannot update diary',
-  DIARY_SEASON_IS_ANCHORED_CANNOT_DELETE: 'Season is anchored, cannot delete diary',
-  SEASON_NOT_FOUND: 'Season not found',
-  FARM_NOT_FOUND_OR_FORBIDDEN: 'Farm not found or you do not have permission',
-  FARM_HAS_RELATED_DATA: 'Farm has related data, cannot be deleted',
+
+  CREATE_DIARY_SUCCESS: 'Tạo nhật ký thành công',
+
+  GET_DIARIES_SUCCESS: 'Lấy danh sách nhật ký thành công',
+
+  GET_DIARY_DETAIL_SUCCESS: 'Lấy chi tiết nhật ký thành công',
+
+  UPDATE_DIARY_SUCCESS: 'Cập nhật nhật ký thành công',
+
+  DELETE_DIARY_SUCCESS: 'Xóa nhật ký thành công',
+
+  ADD_DIARY_ATTACHMENT_SUCCESS: 'Thêm tệp đính kèm nhật ký thành công',
+
+  DELETE_DIARY_ATTACHMENT_SUCCESS: 'Xóa tệp đính kèm nhật ký thành công',
+
+  DIARY_ATTACHMENT_NOT_FOUND: 'Không tìm thấy tệp đính kèm nhật ký',
+
+  DIARY_NOT_FOUND: 'Không tìm thấy nhật ký',
+
+  DIARY_FARM_SEASON_MISMATCH: 'farmId không thuộc seasonId đã chọn',
+
+  DIARY_SEASON_IS_ANCHORED_CANNOT_UPDATE: 'Mùa vụ đã niêm phong, không thể sửa nhật ký',
+
+  DIARY_SEASON_IS_ANCHORED_CANNOT_DELETE: 'Mùa vụ đã niêm phong, không thể xóa nhật ký',
+
+  SEASON_NOT_FOUND: 'Không tìm thấy mùa vụ',
+
+  FARM_NOT_FOUND_OR_FORBIDDEN: 'Không tìm thấy nông trại hoặc bạn không có quyền',
+
+  FARM_HAS_RELATED_DATA: 'Nông trại còn dữ liệu liên quan, không thể xóa',
+
   FARM_DELETE_BLOCKED_SEASONS: 'Không xóa được nông trại: vẫn còn mùa vụ. Xóa hoặc xử lý hết mùa vụ trước.',
+
   FARM_DELETE_BLOCKED_COOP:
+
     'Không xóa được nông trại: còn hồ sơ hợp tác xã (kể cả đang chờ). Huỷ yêu cầu / rời HTX trước.',
+
   FARM_DELETE_BLOCKED_DIARY: 'Không xóa được nông trại: vẫn còn nhật ký canh tác gắn nông trại này.',
+
   FARM_DELETE_BLOCKED_SHOP:
+
     'Không xóa được nông trại: đã tạo gian hàng cho trại này. Cần gỡ gian hàng (hoặc liên hệ hỗ trợ) trước khi xóa trại.',
-  SEASON_HAS_RELATED_DATA: 'Season has related data, cannot be deleted',
-  SEASON_IS_ANCHORED_CANNOT_UPDATE: 'Season is anchored, cannot update base information',
-  SEASON_IS_ANCHORED_CANNOT_DELETE: 'Season is anchored, cannot be deleted',
-  INVALID_SEASON_STATUS_TRANSITION: 'Invalid season status transition',
-  REFRESH_TOKEN_IS_REQUIRED: 'Refresh token is required',
-  REFRESH_TOKEN_IS_INVALID: 'Refresh token is invalid',
-  REFRESH_TOKEN_NOT_FOUND: 'Refresh token not found',
-  EMAIL_ALREADY_EXISTS: 'Email already exists',
-  PHONE_ALREADY_EXISTS: 'Phone already exists',
-  FULL_NAME_IS_REQUIRED: 'Full name is required',
-  PHONE_IS_REQUIRED: 'Phone is required',
-  GET_HTX_LIST_SUCCESS: 'Get cooperatives list successfully',
-  GET_COOPERATIVE_MEMBERSHIPS_SUCCESS: 'Get cooperative memberships successfully',
-  COOPERATIVE_USER_NOT_FOUND: 'Cooperative account not found or inactive',
-  COOPERATIVE_MEMBERSHIP_NOT_FOUND: 'Cooperative membership not found',
-  COOPERATIVE_MEMBERSHIP_FORBIDDEN: 'You cannot manage this membership',
-  COOPERATIVE_MEMBERSHIP_APPROVE_SUCCESS: 'Membership approved; user is now a farmer',
-  COOPERATIVE_MEMBERSHIP_REJECT_SUCCESS: 'Membership rejected',
-  COOPERATIVE_MEMBERSHIP_INVALID_STATE: 'Membership is not pending',
-  FORBIDDEN_NOT_COOPERATIVE: 'Only cooperative accounts can perform this action',
-  FORBIDDEN_NOT_FARMER: 'Only farmer accounts can perform this action',
-  FARM_NAME_IS_REQUIRED: 'Farm name is required',
-  COOPERATIVE_USER_ID_IS_REQUIRED: 'Cooperative user id is required',
-  COOPERATIVE_JOIN_REQUEST_SUCCESS: 'Join request submitted; pending cooperative approval',
-  FARM_ID_IS_REQUIRED: 'farm_id is required',
-  FARM_ALREADY_LINKED_TO_COOPERATIVE: 'Farm is already linked to a cooperative',
-  COOPERATIVE_JOIN_PENDING_EXISTS: 'A join request is already pending for this farm',
-  CREATE_FORUM_POST_SUCCESS: 'Create forum post successfully',
-  GET_FORUM_POSTS_SUCCESS: 'Get forum posts successfully',
-  GET_FORUM_POST_DETAIL_SUCCESS: 'Get forum post detail successfully',
-  UPDATE_FORUM_POST_SUCCESS: 'Update forum post successfully',
-  DELETE_FORUM_POST_SUCCESS: 'Delete forum post successfully',
-  CREATE_FORUM_COMMENT_SUCCESS: 'Create forum comment successfully',
-  GET_FORUM_COMMENTS_SUCCESS: 'Get forum comments successfully',
-  UPDATE_FORUM_COMMENT_SUCCESS: 'Update forum comment successfully',
-  DELETE_FORUM_COMMENT_SUCCESS: 'Delete forum comment successfully',
-  FORUM_POST_NOT_FOUND: 'Forum post not found',
-  FORUM_COMMENT_NOT_FOUND: 'Forum comment not found',
-  FORUM_LABELS_INVALID: 'At least one valid label is required',
-  FORUM_FORBIDDEN_NOT_AUTHOR: 'You can only modify your own post',
-  FORUM_FORBIDDEN_NOT_COMMENT_AUTHOR: 'You can only modify your own comment',
-  FORUM_ONLY_ADMIN_CAN_CHANGE_STATUS: 'Only admin can change post status',
-  FORUM_POST_LOCKED_NO_COMMENTS: 'This post is locked; new comments are disabled',
-  FORUM_PATCH_EMPTY: 'Provide at least one field to update',
-  FORUM_IMAGES_INVALID: 'images must be at most 3 items, each with non-empty objectKey and url',
-  UPLOAD_IMAGES_SUCCESS: 'Upload images successfully',
-  UPLOAD_IMAGES_REQUIRED: 'At least one file is required (field name: images)',
-  UPLOAD_SERVICE_NOT_CONFIGURED: 'Image upload service is not configured',
-  UPLOAD_SERVICE_FAILED: 'Image upload service returned an error',
-  UPLOAD_DOCUMENTS_SUCCESS: 'Upload documents successfully',
-  UPLOAD_DOCUMENTS_REQUIRED: 'At least one file is required (field name: documents)',
-  DOCUMENT_UPLOAD_SERVICE_NOT_CONFIGURED: 'Document upload service is not configured',
-  DOCUMENT_UPLOAD_SERVICE_FAILED: 'Document upload service returned an error',
-  DOCUMENT_FILE_TYPE_NOT_ALLOWED: 'Only PDF or image files are allowed (e.g. VietGAP certificate scans)',
-  CERT_CREATE_SUCCESS: 'Certificate created successfully',
-  CERT_UPDATE_SUCCESS: 'Certificate updated successfully',
-  CERT_DELETE_SUCCESS: 'Certificate deleted successfully',
-  CERT_GET_SUCCESS: 'Get certificate successfully',
-  CERT_LIST_SUCCESS: 'Get certificates successfully',
-  CERT_APPROVE_SUCCESS: 'Certificate approved',
-  CERT_REJECT_SUCCESS: 'Certificate rejected',
-  CERT_REVOKE_SUCCESS: 'Certificate revoked',
-  CERT_SCOPE_ADD_SUCCESS: 'Farm added to certificate scope',
-  CERT_SCOPE_REMOVE_SUCCESS: 'Farm removed from certificate scope',
-  CERT_NOT_FOUND: 'Certificate not found',
-  CERT_FORBIDDEN: 'You do not have permission to access this certificate',
-  CERT_INVALID_STATE: 'Invalid state for this action',
-  CERT_FILE_URL_REQUIRED: 'file_url is required',
-  CERT_TYPE_INVALID: 'type must be one of: vietgap, globalgap, organic, other',
-  CERT_EXPIRES_BEFORE_ISSUED: 'expires_at must be after issued_at',
-  CERT_SCOPE_FARM_NOT_MEMBER: 'Farm is not an approved member of this cooperative',
-  CERT_SCOPE_ALREADY_EXISTS: 'Farm is already in this certificate scope',
-  CERT_SCOPE_NOT_FOUND: 'Farm is not in this certificate scope',
-  CERT_FARM_UPLOAD_SUCCESS: 'Farm certificate submitted for review',
-  CERT_FARM_NOT_FOUND_OR_FORBIDDEN: 'Farm not found or you are not the owner',
-  CERT_REJECT_REASON_REQUIRED: 'reject_reason is required',
-  CERT_REVOKE_REASON_REQUIRED: 'revoke_reason is required',
-  CHAT_CONVERSATION_CREATED: 'Chat conversation created',
-  CHAT_CONVERSATION_OPENED: 'Chat conversation opened (existing thread)',
-  CHAT_CONVERSATIONS_LIST_SUCCESS: 'Get chat conversations successfully',
-  CHAT_MESSAGES_LIST_SUCCESS: 'Get chat messages successfully',
-  CHAT_MESSAGE_SENT: 'Message sent',
-  CHAT_PEER_INVALID: 'Peer must be another active user (not yourself)',
-  CHAT_CONVERSATION_NOT_FOUND: 'Chat conversation not found',
-  CHAT_FORBIDDEN: 'You are not a participant in this conversation',
-  SHOP_SUGGEST_SUCCESS: 'Shop suggestion generated successfully',
-  CREATE_SHOP_SUCCESS: 'Create shop successfully',
-  UPDATE_SHOP_SUCCESS: 'Update shop successfully',
-  GET_SHOP_SUCCESS: 'Get shop successfully',
-  GET_MY_SHOP_SUCCESS: 'Get my shop successfully',
-  GET_SHOPS_SUCCESS: 'Get shops successfully',
-  SHOP_NOT_FOUND_OR_FORBIDDEN: 'Shop not found or you do not have permission',
-  SHOP_ALREADY_EXISTS_FOR_FARM: 'This farm already has a shop',
-  AI_GENERATION_FAILED: 'AI generation failed. Please try again later',
-  GET_AVAILABLE_SEASONS_SUCCESS: 'Get available seasons successfully',
-  GET_AVAILABLE_SALE_UNITS_SUCCESS: 'Get available sale units successfully',
-  ADD_PRODUCT_SUCCESS: 'Add product successfully',
+
+  SEASON_HAS_RELATED_DATA: 'Mùa vụ còn dữ liệu liên quan, không thể xóa',
+
+  SEASON_IS_ANCHORED_CANNOT_UPDATE: 'Mùa vụ đã niêm phong, không thể sửa thông tin cơ bản',
+
+  SEASON_IS_ANCHORED_CANNOT_DELETE: 'Mùa vụ đã niêm phong, không thể xóa',
+
+  INVALID_SEASON_STATUS_TRANSITION: 'Chuyển trạng thái mùa vụ không hợp lệ',
+
+  REFRESH_TOKEN_IS_REQUIRED: 'Vui lòng cung cấp refresh token',
+
+  REFRESH_TOKEN_IS_INVALID: 'Refresh token không hợp lệ',
+
+  REFRESH_TOKEN_NOT_FOUND: 'Không tìm thấy refresh token',
+
+  EMAIL_ALREADY_EXISTS: 'Email đã được sử dụng',
+
+  PHONE_ALREADY_EXISTS: 'Số điện thoại đã được sử dụng',
+
+  FULL_NAME_IS_REQUIRED: 'Vui lòng nhập họ tên',
+
+  PHONE_IS_REQUIRED: 'Vui lòng nhập số điện thoại',
+
+  GET_HTX_LIST_SUCCESS: 'Lấy danh sách hợp tác xã thành công',
+
+  GET_COOPERATIVE_MEMBERSHIPS_SUCCESS: 'Lấy danh sách thành viên HTX thành công',
+
+  COOPERATIVE_USER_NOT_FOUND: 'Tài khoản HTX không tồn tại hoặc đã ngưng hoạt động',
+
+  COOPERATIVE_MEMBERSHIP_NOT_FOUND: 'Không tìm thấy thành viên HTX',
+
+  COOPERATIVE_MEMBERSHIP_FORBIDDEN: 'Bạn không thể quản lý thành viên này',
+
+  COOPERATIVE_MEMBERSHIP_APPROVE_SUCCESS: 'Đã duyệt thành viên; người dùng hiện là nông dân',
+
+  COOPERATIVE_MEMBERSHIP_REJECT_SUCCESS: 'Đã từ chối thành viên',
+
+  COOPERATIVE_MEMBERSHIP_INVALID_STATE: 'Thành viên không ở trạng thái chờ duyệt',
+
+  FORBIDDEN_NOT_COOPERATIVE: 'Chỉ tài khoản hợp tác xã mới thực hiện được thao tác này',
+
+  FORBIDDEN_NOT_FARMER: 'Chỉ tài khoản nông dân mới thực hiện được thao tác này',
+
+  FARM_NAME_IS_REQUIRED: 'Vui lòng nhập tên nông trại',
+
+  COOPERATIVE_USER_ID_IS_REQUIRED: 'Vui lòng nhập ID tài khoản HTX',
+
+  COOPERATIVE_JOIN_REQUEST_SUCCESS: 'Đã gửi yêu cầu tham gia; đang chờ HTX duyệt',
+
+  FARM_ID_IS_REQUIRED: 'Vui lòng nhập farm_id',
+
+  FARM_ALREADY_LINKED_TO_COOPERATIVE: 'Nông trại đã được liên kết với một hợp tác xã',
+
+  COOPERATIVE_JOIN_PENDING_EXISTS: 'Đã có yêu cầu tham gia đang chờ duyệt cho nông trại này',
+
+  CREATE_FORUM_POST_SUCCESS: 'Đăng bài diễn đàn thành công',
+
+  GET_FORUM_POSTS_SUCCESS: 'Lấy danh sách bài viết thành công',
+
+  GET_FORUM_POST_DETAIL_SUCCESS: 'Lấy chi tiết bài viết thành công',
+
+  UPDATE_FORUM_POST_SUCCESS: 'Cập nhật bài viết thành công',
+
+  DELETE_FORUM_POST_SUCCESS: 'Xóa bài viết thành công',
+
+  CREATE_FORUM_COMMENT_SUCCESS: 'Gửi bình luận thành công',
+
+  GET_FORUM_COMMENTS_SUCCESS: 'Lấy danh sách bình luận thành công',
+
+  UPDATE_FORUM_COMMENT_SUCCESS: 'Cập nhật bình luận thành công',
+
+  DELETE_FORUM_COMMENT_SUCCESS: 'Xóa bình luận thành công',
+
+  FORUM_POST_NOT_FOUND: 'Không tìm thấy bài viết',
+
+  FORUM_COMMENT_NOT_FOUND: 'Không tìm thấy bình luận',
+
+  FORUM_LABELS_INVALID: 'Cần ít nhất một nhãn hợp lệ',
+
+  FORUM_FORBIDDEN_NOT_AUTHOR: 'Bạn chỉ có thể sửa bài viết của chính mình',
+
+  FORUM_FORBIDDEN_NOT_COMMENT_AUTHOR: 'Bạn chỉ có thể sửa bình luận của chính mình',
+
+  FORUM_ONLY_ADMIN_CAN_CHANGE_STATUS: 'Chỉ quản trị viên mới đổi được trạng thái bài viết',
+
+  FORUM_POST_LOCKED_NO_COMMENTS: 'Bài viết đã khoá; không thể thêm bình luận mới',
+
+  FORUM_PATCH_EMPTY: 'Vui lòng gửi ít nhất một trường cần cập nhật',
+
+  FORUM_IMAGES_INVALID: 'images tối đa 3 ảnh, mỗi ảnh có objectKey và url không rỗng',
+
+  UPLOAD_IMAGES_SUCCESS: 'Tải ảnh lên thành công',
+
+  UPLOAD_IMAGES_REQUIRED: 'Cần ít nhất một tệp (tên trường: images)',
+
+  UPLOAD_SERVICE_NOT_CONFIGURED: 'Dịch vụ tải ảnh chưa được cấu hình',
+
+  UPLOAD_SERVICE_FAILED: 'Dịch vụ tải ảnh trả về lỗi',
+
+  UPLOAD_DOCUMENTS_SUCCESS: 'Tải tài liệu lên thành công',
+
+  UPLOAD_DOCUMENTS_REQUIRED: 'Cần ít nhất một tệp (tên trường: documents)',
+
+  DOCUMENT_UPLOAD_SERVICE_NOT_CONFIGURED: 'Dịch vụ tải tài liệu chưa được cấu hình',
+
+  DOCUMENT_UPLOAD_SERVICE_FAILED: 'Dịch vụ tải tài liệu trả về lỗi',
+
+  DOCUMENT_FILE_TYPE_NOT_ALLOWED: 'Chỉ chấp nhận PDF hoặc ảnh (ví dụ bản quét chứng chỉ VietGAP)',
+
+  CERT_CREATE_SUCCESS: 'Tạo chứng chỉ thành công',
+
+  CERT_UPDATE_SUCCESS: 'Cập nhật chứng chỉ thành công',
+
+  CERT_DELETE_SUCCESS: 'Xóa chứng chỉ thành công',
+
+  CERT_GET_SUCCESS: 'Lấy thông tin chứng chỉ thành công',
+
+  CERT_LIST_SUCCESS: 'Lấy danh sách chứng chỉ thành công',
+
+  CERT_APPROVE_SUCCESS: 'Đã duyệt chứng chỉ',
+
+  CERT_REJECT_SUCCESS: 'Đã từ chối chứng chỉ',
+
+  CERT_REVOKE_SUCCESS: 'Đã thu hồi chứng chỉ',
+
+  CERT_SCOPE_ADD_SUCCESS: 'Đã thêm nông trại vào phạm vi chứng chỉ',
+
+  CERT_SCOPE_REMOVE_SUCCESS: 'Đã gỡ nông trại khỏi phạm vi chứng chỉ',
+
+  CERT_NOT_FOUND: 'Không tìm thấy chứng chỉ',
+
+  CERT_FORBIDDEN: 'Bạn không có quyền truy cập chứng chỉ này',
+
+  CERT_INVALID_STATE: 'Trạng thái chứng chỉ không phù hợp với thao tác này',
+
+  CERT_FILE_URL_REQUIRED: 'Vui lòng nhập file_url',
+
+  CERT_TYPE_INVALID: 'type phải là một trong: vietgap, globalgap, organic, other',
+
+  CERT_EXPIRES_BEFORE_ISSUED: 'expires_at phải sau issued_at',
+
+  CERT_SCOPE_FARM_NOT_MEMBER: 'Nông trại chưa là thành viên được duyệt của HTX này',
+
+  CERT_SCOPE_ALREADY_EXISTS: 'Nông trại đã nằm trong phạm vi chứng chỉ này',
+
+  CERT_SCOPE_NOT_FOUND: 'Nông trại không nằm trong phạm vi chứng chỉ này',
+
+  CERT_FARM_UPLOAD_SUCCESS: 'Đã gửi chứng chỉ nông trại để duyệt',
+
+  CERT_FARM_NOT_FOUND_OR_FORBIDDEN: 'Không tìm thấy nông trại hoặc bạn không phải chủ trại',
+
+  CERT_REJECT_REASON_REQUIRED: 'Vui lòng nhập reject_reason',
+
+  CERT_REVOKE_REASON_REQUIRED: 'Vui lòng nhập revoke_reason',
+
+  CHAT_CONVERSATION_CREATED: 'Đã tạo cuộc trò chuyện',
+
+  CHAT_CONVERSATION_OPENED: 'Đã mở cuộc trò chuyện (đã có sẵn)',
+
+  CHAT_CONVERSATIONS_LIST_SUCCESS: 'Lấy danh sách cuộc trò chuyện thành công',
+
+  CHAT_MESSAGES_LIST_SUCCESS: 'Lấy danh sách tin nhắn thành công',
+
+  CHAT_MESSAGE_SENT: 'Đã gửi tin nhắn',
+
+  CHAT_PEER_INVALID: 'Người nhận phải là người dùng khác đang hoạt động (không phải chính bạn)',
+
+  CHAT_CONVERSATION_NOT_FOUND: 'Không tìm thấy cuộc trò chuyện',
+
+  CHAT_FORBIDDEN: 'Bạn không tham gia cuộc trò chuyện này',
+
+  SHOP_SUGGEST_SUCCESS: 'Đã tạo gợi ý gian hàng',
+
+  CREATE_SHOP_SUCCESS: 'Tạo gian hàng thành công',
+
+  UPDATE_SHOP_SUCCESS: 'Cập nhật gian hàng thành công',
+
+  GET_SHOP_SUCCESS: 'Lấy thông tin gian hàng thành công',
+
+  GET_MY_SHOP_SUCCESS: 'Lấy gian hàng của bạn thành công',
+
+  GET_SHOPS_SUCCESS: 'Lấy danh sách gian hàng thành công',
+
+  SHOP_NOT_FOUND_OR_FORBIDDEN: 'Không tìm thấy gian hàng hoặc bạn không có quyền',
+
+  SHOP_ALREADY_EXISTS_FOR_FARM: 'Nông trại này đã có gian hàng',
+
+  AI_GENERATION_FAILED: 'Tạo nội dung AI thất bại. Vui lòng thử lại sau',
+
+  GET_AVAILABLE_SEASONS_SUCCESS: 'Lấy danh sách mùa vụ khả dụng thành công',
+
+  GET_AVAILABLE_SALE_UNITS_SUCCESS: 'Lấy danh sách lô bán khả dụng thành công',
+
+  ADD_PRODUCT_SUCCESS: 'Thêm sản phẩm thành công',
+
   SALE_UNIT_NOT_AVAILABLE_FOR_SHOP: 'Lô bán không thuộc nông trại của gian hàng này hoặc không hợp lệ',
+
   SALE_UNIT_NOT_ACTIVE: 'Lô bán không ở trạng thái đang bán',
+
   SALE_UNIT_ALREADY_LISTED: 'Lô này đã được đăng bán trên chợ',
+
   PRODUCT_UNIT_INCOMPATIBLE: 'Đơn vị sản phẩm không tương thích với đơn vị của lô bán',
+
   PRODUCT_STOCK_EXCEEDS_LOT: 'Tồn kho sản phẩm vượt quá khối lượng còn lại của lô',
-  GET_PRODUCTS_SUCCESS: 'Get products successfully',
-  GET_PRODUCT_DETAIL_SUCCESS: 'Get product detail successfully',
-  PRODUCT_NOT_FOUND: 'Product not found',
-  SEASON_NOT_OWNED_BY_FARMER: 'Season does not belong to your farm',
-  CREATE_ORDER_SUCCESS: 'Create order successfully',
-  GET_ORDERS_SUCCESS: 'Get orders successfully',
-  GET_ORDER_DETAIL_SUCCESS: 'Get order detail successfully',
-  CANCEL_ORDER_SUCCESS: 'Cancel order successfully',
-  UPDATE_ORDER_STATUS_SUCCESS: 'Update order status successfully',
-  ORDER_NOT_FOUND: 'Order not found',
-  ORDER_FORBIDDEN: 'You do not have permission to access this order',
-  ORDER_ITEMS_REQUIRED: 'Order must contain at least one item',
-  ORDER_ITEMS_SAME_SHOP: 'All items in an order must belong to the same shop',
-  ORDER_PRODUCT_NOT_AVAILABLE: 'Some products are no longer available',
-  ORDER_INSUFFICIENT_STOCK: 'Insufficient stock for one or more products',
-  ORDER_CANNOT_CANCEL: 'Only pending orders can be cancelled',
-  ORDER_INVALID_STATUS_TRANSITION: 'Invalid order status transition',
-  FORBIDDEN_NOT_CONSUMER: 'Only consumer accounts can place orders',
+
+  GET_PRODUCTS_SUCCESS: 'Lấy danh sách sản phẩm thành công',
+
+  GET_PRODUCT_DETAIL_SUCCESS: 'Lấy chi tiết sản phẩm thành công',
+
+  PRODUCT_NOT_FOUND: 'Không tìm thấy sản phẩm',
+
+  SEASON_NOT_OWNED_BY_FARMER: 'Mùa vụ không thuộc nông trại của bạn',
+
+  CREATE_ORDER_SUCCESS: 'Tạo đơn hàng thành công',
+
+  GET_ORDERS_SUCCESS: 'Lấy danh sách đơn hàng thành công',
+
+  GET_ORDER_DETAIL_SUCCESS: 'Lấy chi tiết đơn hàng thành công',
+
+  CANCEL_ORDER_SUCCESS: 'Huỷ đơn hàng thành công',
+
+  UPDATE_ORDER_STATUS_SUCCESS: 'Cập nhật trạng thái đơn hàng thành công',
+
+  ORDER_NOT_FOUND: 'Không tìm thấy đơn hàng',
+
+  ORDER_FORBIDDEN: 'Bạn không có quyền truy cập đơn hàng này',
+
+  ORDER_ITEMS_REQUIRED: 'Đơn hàng cần ít nhất một sản phẩm',
+
+  ORDER_ITEMS_SAME_SHOP: 'Mọi sản phẩm trong đơn phải cùng một gian hàng',
+
+  ORDER_PRODUCT_NOT_AVAILABLE: 'Một số sản phẩm không còn khả dụng',
+
+  ORDER_INSUFFICIENT_STOCK: 'Tồn kho không đủ cho một hoặc nhiều sản phẩm',
+
+  ORDER_CANNOT_CANCEL: 'Chỉ có thể huỷ đơn đang chờ xử lý',
+
+  ORDER_INVALID_STATUS_TRANSITION: 'Chuyển trạng thái đơn hàng không hợp lệ',
+
+  FORBIDDEN_NOT_CONSUMER: 'Chỉ tài khoản khách hàng mới đặt hàng được',
+
   BLOCKCHAIN_NOT_CONFIGURED:
-    'Blockchain anchoring is not configured (missing env: SEPOLIA_RPC_URL, ANCHOR_WALLET_PRIVATE_KEY, ANCHOR_CONTRACT_ADDRESS)',
-  BLOCKCHAIN_ANCHOR_FAILED: 'Failed to send anchor transaction to blockchain',
 
-  CREATE_INSPECTION_SUCCESS: 'Inspection recorded successfully',
-  GET_INSPECTIONS_SUCCESS: 'Get inspections successfully',
-  DELETE_INSPECTION_SUCCESS: 'Inspection deleted successfully',
+    'Chưa cấu hình neo blockchain (thiếu biến môi trường: SEPOLIA_RPC_URL, ANCHOR_WALLET_PRIVATE_KEY, ANCHOR_CONTRACT_ADDRESS)',
+
+  BLOCKCHAIN_ANCHOR_FAILED: 'Gửi giao dịch neo lên blockchain thất bại',
+
+
+
+  CREATE_INSPECTION_SUCCESS: 'Ghi nhận đợt kiểm tra thành công',
+
+  GET_INSPECTIONS_SUCCESS: 'Lấy danh sách đợt kiểm tra thành công',
+
+  DELETE_INSPECTION_SUCCESS: 'Xóa đợt kiểm tra thành công',
+
   INSPECTION_FORBIDDEN_NOT_MEMBER:
-    'You are not managing this farm as a cooperative (no approved cooperative_member link)',
-  INSPECTION_FORBIDDEN_NOT_OWNER: 'Only the cooperative inspector who created this inspection can delete it',
-  INSPECTION_VERDICT_INVALID: 'verdict must be one of: pass, fail, needs_work',
-  INSPECTION_SUMMARY_TOO_LONG: 'summary must be at most 2000 characters',
-  INSPECTION_SEASON_ANCHORED: 'Season is anchored, inspection is locked (add a new one after the next amendment cycle)',
 
-  SALE_UNIT_CREATE_SUCCESS: 'Sale unit created successfully',
-  SALE_UNIT_LIST_SUCCESS: 'Get sale units successfully',
-  SALE_UNIT_DETAIL_SUCCESS: 'Get sale unit detail successfully',
-  SALE_UNIT_UPDATE_SUCCESS: 'Sale unit updated successfully',
-  SALE_UNIT_DELETE_SUCCESS: 'Sale unit deleted successfully',
-  SALE_UNIT_NOT_FOUND: 'Sale unit not found',
-  SALE_UNIT_SEASON_MUST_BE_ANCHORED: 'Season must be anchored before creating sale units',
-  SALE_UNIT_CODE_GENERATION_FAILED: 'Failed to generate unique sale unit code, please retry',
+    'Bạn không quản lý nông trại này với tư cách HTX (chưa có liên kết cooperative_member được duyệt)',
+
+  INSPECTION_FORBIDDEN_NOT_OWNER: 'Chỉ kiểm viên HTX tạo đợt kiểm tra này mới được xóa',
+
+  INSPECTION_VERDICT_INVALID: 'verdict phải là một trong: pass, fail, needs_work',
+
+  INSPECTION_SUMMARY_TOO_LONG: 'summary tối đa 2000 ký tự',
+
+  INSPECTION_SEASON_ANCHORED: 'Mùa vụ đã niêm phong, không sửa đợt kiểm tra (thêm đợt mới sau chu kỳ sửa đổi)',
+
+
+
+  SALE_UNIT_CREATE_SUCCESS: 'Tạo lô bán thành công',
+
+  SALE_UNIT_LIST_SUCCESS: 'Lấy danh sách lô bán thành công',
+
+  SALE_UNIT_DETAIL_SUCCESS: 'Lấy chi tiết lô bán thành công',
+
+  SALE_UNIT_UPDATE_SUCCESS: 'Cập nhật lô bán thành công',
+
+  SALE_UNIT_DELETE_SUCCESS: 'Xóa lô bán thành công',
+
+  SALE_UNIT_NOT_FOUND: 'Không tìm thấy lô bán',
+
+  SALE_UNIT_SEASON_MUST_BE_ANCHORED: 'Mùa vụ phải niêm phong trước khi tạo lô bán',
+
+  SALE_UNIT_CODE_GENERATION_FAILED: 'Không tạo được mã lô bán duy nhất, vui lòng thử lại',
+
   SALE_UNIT_SEASON_MISSING_YIELD:
-    'Season is missing actual yield; cannot allocate sale units until harvested total is recorded',
-  SALE_UNIT_UNIT_MISMATCH: 'Sale unit measurement unit must match season yield unit',
-  SALE_UNIT_LOT_UNIT_INVALID: 'Sale lot unit must be one of: tấn, kg, gam (g)',
+
+    'Mùa vụ chưa có năng suất thực tế; không thể phân lô cho đến khi ghi nhận tổng thu hoạch',
+
+  SALE_UNIT_UNIT_MISMATCH: 'Đơn vị lô bán phải trùng đơn vị năng suất mùa vụ',
+
+  SALE_UNIT_LOT_UNIT_INVALID: 'Đơn vị lô bán phải là một trong: tấn, kg, gam (g)',
+
   SALE_UNIT_SEASON_UNIT_NOT_CONVERTIBLE:
-    'Season yield unit must be convertible to kg (e.g. kg, yến, tạ, tấn, g) to allocate sale lots',
-  SALE_UNIT_EXCEEDS_ACTUAL_YIELD: 'Requested quantity exceeds remaining harvested yield for this season',
 
-  SEASON_MISSING_YIELD_FOR_ANCHOR: 'Season actual yield and yield unit are required before sealing/anchoring',
+    'Đơn vị năng suất mùa vụ phải quy đổi được ra kg (vd. kg, yến, tạ, tấn, g) để phân lô',
 
-  TRACE_RESOLVE_SUCCESS: 'Trace resolved successfully',
-  TRACE_DETAIL_SUCCESS: 'Get trace detail successfully',
-  TRACE_VERIFY_SUCCESS: 'Verify trace successfully',
-  TRACE_CODE_REQUIRED: 'trace code is required',
-  TRACE_CODE_NOT_FOUND: 'Trace code not found',
+  SALE_UNIT_EXCEEDS_ACTUAL_YIELD: 'Số lượng yêu cầu vượt phần năng suất thu hoạch còn lại của mùa vụ',
 
-  GET_NOTIFICATIONS_SUCCESS: 'Get notifications successfully',
-  MARK_NOTIFICATION_READ_SUCCESS: 'Notification marked as read',
-  MARK_ALL_NOTIFICATIONS_READ_SUCCESS: 'All notifications marked as read',
-  NOTIFICATION_NOT_FOUND: 'Notification not found',
 
-  SHOP_REVIEW_CREATE_SUCCESS: 'Shop review created successfully',
-  SHOP_REVIEW_LIST_SUCCESS: 'Shop reviews loaded successfully',
-  SHOP_REVIEW_UPDATE_SUCCESS: 'Shop review updated successfully',
-  SHOP_REVIEW_RATING_INVALID: 'rating must be an integer from 1 to 5',
-  SHOP_REVIEW_ORDER_NOT_DELIVERED: 'You can only review after the order is delivered',
-  SHOP_REVIEW_ALREADY_EXISTS: 'You have already reviewed this product for this order',
-  SHOP_REVIEW_PRODUCT_NOT_IN_ORDER: 'This product is not part of the order',
-  SHOP_REVIEW_NOT_FOUND: 'Review not found',
-  SHOP_REVIEW_NOTHING_TO_UPDATE: 'Provide at least rating or comment to update'
+
+  SEASON_MISSING_YIELD_FOR_ANCHOR: 'Cần năng suất thực tế và đơn vị năng suất trước khi niêm phong/neo',
+
+
+
+  TRACE_RESOLVE_SUCCESS: 'Tra cứu truy xuất thành công',
+
+  TRACE_DETAIL_SUCCESS: 'Lấy chi tiết truy xuất thành công',
+
+  TRACE_VERIFY_SUCCESS: 'Xác minh truy xuất thành công',
+
+  TRACE_CODE_REQUIRED: 'Vui lòng nhập mã truy xuất',
+
+  TRACE_CODE_NOT_FOUND: 'Không tìm thấy mã truy xuất',
+
+
+
+  GET_NOTIFICATIONS_SUCCESS: 'Lấy thông báo thành công',
+
+  MARK_NOTIFICATION_READ_SUCCESS: 'Đã đánh dấu đã đọc',
+
+  MARK_ALL_NOTIFICATIONS_READ_SUCCESS: 'Đã đánh dấu đọc tất cả thông báo',
+
+  NOTIFICATION_NOT_FOUND: 'Không tìm thấy thông báo',
+
+
+
+  SHOP_REVIEW_CREATE_SUCCESS: 'Gửi đánh giá thành công',
+
+  SHOP_REVIEW_LIST_SUCCESS: 'Tải danh sách đánh giá thành công',
+
+  SHOP_REVIEW_UPDATE_SUCCESS: 'Cập nhật đánh giá thành công',
+
+  SHOP_REVIEW_RATING_INVALID: 'rating phải là số nguyên từ 1 đến 5',
+
+  SHOP_REVIEW_ORDER_NOT_DELIVERED: 'Chỉ đánh giá được sau khi đơn đã giao',
+
+  SHOP_REVIEW_ALREADY_EXISTS: 'Bạn đã đánh giá sản phẩm này cho đơn hàng này',
+
+  SHOP_REVIEW_PRODUCT_NOT_IN_ORDER: 'Sản phẩm không thuộc đơn hàng',
+
+  SHOP_REVIEW_NOT_FOUND: 'Không tìm thấy đánh giá',
+
+  SHOP_REVIEW_NOTHING_TO_UPDATE: 'Vui lòng gửi ít nhất điểm sao hoặc nội dung để cập nhật'
+
 } as const
 
+
+
 export default USER_MESSAGES
+

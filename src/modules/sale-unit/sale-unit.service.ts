@@ -3,6 +3,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
+import { toKg } from '~/utils/unit'
 import type { CreateSaleUnitRequestBody } from './sale-unit.request'
 
 const saleUnitSelect = {
@@ -74,34 +75,13 @@ function quantityLotToKg(qty: number, c: LotMassUnit): number {
 }
 
 /**
- * 1 đơn vị ghi sản lượng mùa vụ → bao nhiêu kg (chuẩn VN thông dụng).
- */
-function seasonYieldUnitToKgPerUnit(seasonUnit: string): number | null {
-  const n = normalizeUnit(seasonUnit)
-  const map: Record<string, number> = {
-    kg: 1,
-    g: 0.001,
-    gam: 0.001,
-    gram: 0.001,
-    'tấn': 1000,
-    tan: 1000,
-    yến: 10,
-    yen: 10,
-    tạ: 100,
-    ta: 100
-  }
-  const v = map[n]
-  return v == null ? null : v
-}
-
-/**
- * Quy đổi một dòng sale_units (legacy có thể là yến/tạ) sang kg.
+ * Quy đổi một dòng sale_units (legacy có thể là yến/tạ) sang kg — dùng util chung (Decimal).
  */
 function saleRowToKg(quantity: number, unitRaw: string): number {
   const canon = canonicalLotUnit(unitRaw)
   if (canon != null) return quantityLotToKg(quantity, canon)
-  const per = seasonYieldUnitToKgPerUnit(unitRaw)
-  if (per != null) return quantity * per
+  const kg = toKg(quantity, unitRaw)
+  if (kg != null) return Number(kg.toDecimalPlaces(6))
   return quantity
 }
 
@@ -238,16 +218,14 @@ class SaleUnitService {
     }
 
     const seasonYieldUnit = season.yield_unit!.trim()
-    const kgPerSeasonUnit = seasonYieldUnitToKgPerUnit(seasonYieldUnit)
-    if (kgPerSeasonUnit == null) {
+    const seasonTotalKgDec = toKg(season.actual_yield ?? 0, seasonYieldUnit)
+    if (seasonTotalKgDec == null) {
       throw new ErrorWithStatus({
         status: HTTP_STATUS.BAD_REQUEST,
         message: USER_MESSAGES.SALE_UNIT_SEASON_UNIT_NOT_CONVERTIBLE
       })
     }
-
-    const actualYieldSeason = toNumber(season.actual_yield)
-    const seasonTotalKg = actualYieldSeason * kgPerSeasonUnit
+    const seasonTotalKg = Number(seasonTotalKgDec.toDecimalPlaces(6))
     const requestedKg = quantityLotToKg(requestedQty, lotUnit)
     const allocatedKg = await this.getAllocatedKg(season.id)
 
@@ -314,14 +292,14 @@ class SaleUnitService {
 
     const actualYield = toNumber(season.actual_yield)
     const yu = season.yield_unit?.trim() ?? ''
-    const kgPer = seasonYieldUnitToKgPerUnit(yu)
-    if (kgPer == null && actualYield > 0) {
+    const actualYieldKgDec = yu.length > 0 ? toKg(season.actual_yield ?? 0, yu) : null
+    if (actualYieldKgDec == null && actualYield > 0) {
       throw new ErrorWithStatus({
         status: HTTP_STATUS.BAD_REQUEST,
         message: USER_MESSAGES.SALE_UNIT_SEASON_UNIT_NOT_CONVERTIBLE
       })
     }
-    const actualYieldKg = kgPer != null ? actualYield * kgPer : 0
+    const actualYieldKg = actualYieldKgDec != null ? Number(actualYieldKgDec.toDecimalPlaces(6)) : 0
     const remainingKg = Math.max(0, actualYieldKg - allocatedKg)
 
     return {
