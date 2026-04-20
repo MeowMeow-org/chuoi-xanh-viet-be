@@ -117,11 +117,14 @@ class AnchorService {
   ) => {
     const season = await this.getSeasonBySeasonId(seasonId)
     if (referenceAnchor == null) {
-      return this.buildCanonicalFromSeason(season, { schemaVersion: 2 })
+      return this.buildCanonicalFromSeason(season, { schemaVersion: 3 })
     }
     const meta = referenceAnchor.anchor_meta as { canonicalSchemaVersion?: number } | undefined
-    const schemaVersion = meta?.canonicalSchemaVersion ?? 1
-    if (schemaVersion >= 2) {
+    const schemaVersion = (meta?.canonicalSchemaVersion ?? 1) as 1 | 2 | 3
+    if (schemaVersion >= 3) {
+      return this.buildCanonicalFromSeason(season, { schemaVersion: 3 })
+    }
+    if (schemaVersion === 2) {
       return this.buildCanonicalFromSeason(season, { schemaVersion: 2 })
     }
     const v1SealSnapshot = referenceAnchor.checkpoint_type !== 'manual'
@@ -130,7 +133,7 @@ class AnchorService {
 
   buildCanonicalPayload = async ({ userId, seasonId }: { userId: string; seasonId: string }) => {
     const season = await this.getOwnedSeason(userId, seasonId)
-    return this.buildCanonicalFromSeason(season, { schemaVersion: 2 })
+    return this.buildCanonicalFromSeason(season, { schemaVersion: 3 })
   }
 
   private buildCanonicalFromSeason = (season: {
@@ -175,7 +178,12 @@ class AnchorService {
         meta: unknown
       }>
     }>
-  }, options: { schemaVersion: 1 | 2; v1SealSnapshot?: boolean }) => {
+  }, options: { schemaVersion: 1 | 2 | 3; v1SealSnapshot?: boolean }) => {
+
+    // Từ v3: loại `meta` khỏi attachment — image worker gen thumb async sau khi neo
+    // sẽ update meta (thumb/imageId/size/aspectRatio) → hash nhạy cảm và thường
+    // lệch dù dữ liệu gốc (ảnh, mô tả, GPS trong diary.extra_data) không đổi.
+    const omitAttachmentMeta = options.schemaVersion >= 3
 
     // Sắp xếp nhật ký cố định để hash không bị lệch:
     // event_date -> server_timestamp -> id.
@@ -203,25 +211,34 @@ class AnchorService {
             if (byCreatedAt !== 0) return byCreatedAt
             return a.id.localeCompare(b.id)
           })
-          .map((attachment) => ({
-            id: attachment.id,
-            fileUrl: attachment.file_url,
-            mimeType: attachment.mime_type ?? null,
-            sortOrder: attachment.sort_order,
-            meta: normalizeJson(attachment.meta)
-          }))
+          .map((attachment) =>
+            omitAttachmentMeta
+              ? {
+                  id: attachment.id,
+                  fileUrl: attachment.file_url,
+                  mimeType: attachment.mime_type ?? null,
+                  sortOrder: attachment.sort_order
+                }
+              : {
+                  id: attachment.id,
+                  fileUrl: attachment.file_url,
+                  mimeType: attachment.mime_type ?? null,
+                  sortOrder: attachment.sort_order,
+                  meta: normalizeJson(attachment.meta)
+                }
+          )
       }))
 
-    const useV2 = options.schemaVersion >= 2
+    const useV2Plus = options.schemaVersion >= 2
     const v1Snap = options.schemaVersion === 1 && options.v1SealSnapshot === true
     const lifecycleStatus = v1Snap ? 'ready_to_anchor' : season.status
     const lifecycleSealedAt = v1Snap ? null : toTimestampString(season.sealed_at)
 
     // Canonical payload:
-    // - v2: bỏ status/sealedAt (thay đổi ngay sau lúc neo → không phải dữ liệu truy xuất)
+    // - v2/v3: bỏ status/sealedAt (thay đổi ngay sau lúc neo → không phải dữ liệu truy xuất)
     // - v1: giữ để tương thích anchor cũ; verify dùng v1SealSnapshot cho auto_anchored
     // - decimal đổi sang string; normalize lần cuối
-    const seasonPayload = useV2
+    const seasonPayload = useV2Plus
       ? {
           id: season.id,
           code: season.code,
@@ -248,7 +265,7 @@ class AnchorService {
         }
 
     const canonicalPayload = normalizeJson({
-      schemaVersion: useV2 ? 2 : 1,
+      schemaVersion: options.schemaVersion,
       season: seasonPayload,
       farm: {
         id: season.farms.id,

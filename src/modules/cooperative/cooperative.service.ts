@@ -3,6 +3,7 @@ import prisma from '~/lib/prisma'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
+import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 
 const htxSelect = {
   id: true,
@@ -159,6 +160,12 @@ class CooperativeService {
             note: null
           }
         })
+        notificationDispatch.cooperativeJoinRequested({
+          cooperativeUserId,
+          farmerUserId,
+          farmId,
+          membershipId: updated.id
+        })
         return {
           id: updated.id,
           status: updated.status,
@@ -176,6 +183,13 @@ class CooperativeService {
         status: 'pending',
         requested_by: farmerUserId
       }
+    })
+
+    notificationDispatch.cooperativeJoinRequested({
+      cooperativeUserId,
+      farmerUserId,
+      farmId,
+      membershipId: created.id
     })
 
     return {
@@ -237,6 +251,12 @@ class CooperativeService {
       })
     ])
 
+    notificationDispatch.cooperativeApprovedForFarmer({
+      farmerUserId: row.farmer_user_id,
+      cooperativeUserId,
+      farmId: row.farm_id
+    })
+
     return { membershipId, farmerUserId: row.farmer_user_id, farmId: row.farm_id }
   }
 
@@ -282,6 +302,13 @@ class CooperativeService {
         verified_at: new Date(),
         ...(note != null && note.length > 0 ? { note } : {})
       }
+    })
+
+    notificationDispatch.cooperativeRejectedForFarmer({
+      farmerUserId: row.farmer_user_id,
+      cooperativeUserId,
+      farmId: row.farm_id,
+      note
     })
 
     return { membershipId }
