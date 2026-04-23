@@ -1,4 +1,8 @@
-import type { cert_type, coop_cert_status, farm_cert_status } from '@prisma/client'
+import type {
+  cert_type,
+  coop_cert_status,
+  farm_cert_status
+} from '@prisma/client'
 import prisma from '~/lib/prisma'
 import notificationService from '~/modules/notification/notification.service'
 import { NotificationEntityType } from '~/modules/notification/notification.constants'
@@ -90,30 +94,24 @@ async function expireFarmCertificates(today: Date) {
   return expired.length
 }
 
-async function expireCoopCertificates(today: Date) {
-  const expired = await prisma.cooperative_certificates.findMany({
-    where: {
-      status: 'active',
-      expires_at: { lt: today }
-    },
-    select: {
-      id: true,
-      type: true,
-      certificate_no: true,
-      expires_at: true,
-      cooperative_user_id: true
-    }
-  })
+type CoopCertExpiryRow = {
+  id: string
+  type: cert_type
+  certificate_no: string | null
+  expires_at: Date | null
+  cooperative_user_id: string
+}
 
-  if (expired.length === 0) return 0
+async function applyCoopCertificateExpiry(rows: CoopCertExpiryRow[]) {
+  if (rows.length === 0) return 0
 
-  const ids = expired.map((c) => c.id)
+  const ids = rows.map((c) => c.id)
   await prisma.cooperative_certificates.updateMany({
     where: { id: { in: ids } },
     data: { status: COOP_EXPIRED_STATUS }
   })
 
-  for (const cert of expired) {
+  for (const cert of rows) {
     const typeLabel = CERT_TYPE_LABEL[cert.type] ?? 'Chứng chỉ'
     const certNo = cert.certificate_no ? ` số ${cert.certificate_no}` : ''
     try {
@@ -131,7 +129,54 @@ async function expireCoopCertificates(today: Date) {
     }
   }
 
-  return expired.length
+  return rows.length
+}
+
+async function expireCoopCertificates(today: Date) {
+  const expired = await prisma.cooperative_certificates.findMany({
+    where: {
+      status: 'active',
+      expires_at: { lt: today }
+    },
+    select: {
+      id: true,
+      type: true,
+      certificate_no: true,
+      expires_at: true,
+      cooperative_user_id: true
+    }
+  })
+  return applyCoopCertificateExpiry(expired)
+}
+
+/**
+ * Đồng bộ hết hạn + gửi thông báo cho chứng chỉ HTX của một tài khoản HTX.
+ * Gọi khi HTX xem danh sách để không phụ thuộc hoàn toàn vào lịch worker (dev, restart server, v.v.).
+ */
+export async function syncCoopCertExpiryForCooperative(
+  cooperativeUserId: string
+): Promise<void> {
+  const today = todayStartUtc()
+  const expired = await prisma.cooperative_certificates.findMany({
+    where: {
+      cooperative_user_id: cooperativeUserId,
+      status: 'active',
+      expires_at: { lt: today }
+    },
+    select: {
+      id: true,
+      type: true,
+      certificate_no: true,
+      expires_at: true,
+      cooperative_user_id: true
+    }
+  })
+  const n = await applyCoopCertificateExpiry(expired)
+  if (n > 0) {
+    console.log(
+      `[cert-worker] sync coop expiry for user ${cooperativeUserId}: ${n} certificate(s)`
+    )
+  }
 }
 
 async function sweep() {

@@ -3,6 +3,8 @@ export interface GetHtxListQuery {
   page?: string
   limit?: string
   searchTerm?: string
+  /** UUID một hợp tác xã */
+  id?: string
 }
 
 /** Query for GET /cooperative/members (HTX scope) */
@@ -16,6 +18,12 @@ export interface GetMyMembershipsQuery {
 
 /** Body for POST .../reject */
 export interface RejectMembershipBody {
+  note?: string
+}
+
+/** Body for POST .../approve */
+export interface ApproveMembershipBody {
+  /** Ghi chú gửi kèm thông báo cho nông hộ (tùy chọn) */
   note?: string
 }
 

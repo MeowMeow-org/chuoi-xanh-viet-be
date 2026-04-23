@@ -7,6 +7,7 @@ import {
   joinRequestBodyValidator,
   listMyMembershipsQueryValidator,
   membershipIdParamValidator,
+  approveMembershipBodyValidator,
   rejectMembershipBodyValidator
 } from './cooperative.middleware'
 import {
@@ -67,6 +68,7 @@ cooperativeRouter.post(
   accessTokenValidator,
   cooperativeRoleValidator,
   membershipIdParamValidator,
+  approveMembershipBodyValidator,
   wrapAsync(approveMembershipController)
 )
 

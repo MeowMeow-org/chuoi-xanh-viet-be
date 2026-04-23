@@ -5,6 +5,7 @@ import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
 import cooperativeService from './cooperative.service'
 import type {
+  ApproveMembershipBody,
   GetHtxListQuery,
   GetMyMembershipsQuery,
   RejectMembershipBody,
@@ -20,11 +21,13 @@ export const listHtxController = async (
   const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
   const searchTerm =
     typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
+  const id = typeof req.query.id === 'string' ? req.query.id : undefined
 
   const { items, meta } = await cooperativeService.listHtx({
     page,
     limit,
-    searchTerm
+    searchTerm,
+    id
   })
 
   return res.sendResponse({
@@ -107,16 +110,18 @@ export const listMyMembershipsController = async (
 }
 
 export const approveMembershipController = async (
-  req: Request<{ membershipId: string }>,
+  req: Request<{ membershipId: string }, unknown, ApproveMembershipBody>,
   res: Response,
   next: NextFunction
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   const membershipId = req.params.membershipId
+  const note = typeof req.body?.note === 'string' ? req.body.note : undefined
 
   await cooperativeService.approveMembership({
     membershipId,
-    cooperativeUserId: user_id
+    cooperativeUserId: user_id,
+    note
   })
 
   return res.sendResponse({

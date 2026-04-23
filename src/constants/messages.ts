@@ -286,7 +286,7 @@ const USER_MESSAGES = {
 
   CERT_FARM_NOT_FOUND_OR_FORBIDDEN: 'Không tìm thấy nông trại hoặc bạn không phải chủ trại',
 
-  CERT_REJECT_REASON_REQUIRED: 'Vui lòng nhập reject_reason',
+  CERT_REJECT_REASON_REQUIRED: 'Vui lòng nhập lý do từ chối (ghi chú gửi nông hộ)',
 
   CERT_REVOKE_REASON_REQUIRED: 'Vui lòng nhập revoke_reason',
 

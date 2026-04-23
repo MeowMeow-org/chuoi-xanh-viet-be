@@ -26,6 +26,12 @@ export const getHtxListQueryValidator = validate(
         optional: true,
         isString: true,
         trim: true
+      },
+      id: {
+        optional: true,
+        isUUID: {
+          errorMessage: 'id must be a valid UUID'
+        }
       }
     },
     ['query']
@@ -83,7 +89,22 @@ export const rejectMembershipBodyValidator = validate(
       note: {
         optional: true,
         isString: true,
-        trim: true
+        trim: true,
+        isLength: { options: { max: 1000 } }
+      }
+    },
+    ['body']
+  )
+)
+
+export const approveMembershipBodyValidator = validate(
+  checkSchema(
+    {
+      note: {
+        optional: true,
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 500 } }
       }
     },
     ['body']

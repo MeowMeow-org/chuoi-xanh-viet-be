@@ -203,7 +203,12 @@ export const notificationDispatch = {
     })
   },
 
-  cooperativeApprovedForFarmer(params: { farmerUserId: string; cooperativeUserId: string; farmId: string }) {
+  cooperativeApprovedForFarmer(params: {
+    farmerUserId: string
+    cooperativeUserId: string
+    farmId: string
+    note?: string | null
+  }) {
     safeRun(async () => {
       const [htx, farm] = await Promise.all([
         prisma.users.findUnique({
@@ -217,13 +222,17 @@ export const notificationDispatch = {
       ])
       const htxName = htx?.full_name?.trim() || 'Hợp tác xã'
       const farmName = farm?.name?.trim() || 'Nông trại'
+      const notePart =
+        params.note && params.note.trim().length > 0
+          ? ` Ghi chú: ${truncate(params.note, 200)}`
+          : ''
 
       await notificationService.create({
         recipientUserId: params.farmerUserId,
         actorUserId: params.cooperativeUserId,
         type: 'cooperative',
         title: 'Đã duyệt tham gia HTX',
-        body: `${htxName} đã duyệt "${farmName}" là nông hộ quản lý.`,
+        body: `${htxName} đã duyệt "${farmName}" là nông hộ quản lý.${notePart}`,
         entityType: NotificationEntityType.COOPERATIVE_MEMBERSHIP,
         entityId: params.farmId
       })
@@ -343,7 +352,8 @@ export const notificationDispatch = {
           body,
           entityType: NotificationEntityType.FARM_CERTIFICATE,
           entityId: params.certificateId,
-          dedupeKey
+          dedupeKey,
+          metadata: { farmId: params.farmId }
         })
         return
       }
@@ -362,7 +372,8 @@ export const notificationDispatch = {
           body,
           entityType: NotificationEntityType.FARM_CERTIFICATE,
           entityId: params.certificateId,
-          dedupeKey
+          dedupeKey,
+          metadata: { farmId: params.farmId }
         })
       }
     })
@@ -376,10 +387,15 @@ export const notificationDispatch = {
     farmId: string
     farmName: string
     certType: cert_type
+    note?: string | null
   }) {
     safeRun(async () => {
       const typeLabel = FARM_CERT_TYPE_LABEL[params.certType] ?? 'Chứng chỉ'
       const farmName = params.farmName.trim() || 'Nông trại'
+      const notePart =
+        params.note && params.note.trim().length > 0
+          ? ` Ghi chú: ${truncate(params.note, 200)}`
+          : ''
 
       let reviewerLabel = 'Hợp tác xã'
       if (params.reviewerRole === 'admin') {
@@ -397,7 +413,7 @@ export const notificationDispatch = {
         actorUserId: params.reviewerUserId,
         type: 'system',
         title: 'Chứng chỉ đã được duyệt',
-        body: `${reviewerLabel} đã duyệt ${typeLabel} cho "${farmName}".`,
+        body: `${reviewerLabel} đã duyệt ${typeLabel} cho "${farmName}".${notePart}`,
         entityType: NotificationEntityType.FARM_CERTIFICATE,
         entityId: params.certificateId,
         dedupeKey: `farm_cert_approved:${params.certificateId}`,

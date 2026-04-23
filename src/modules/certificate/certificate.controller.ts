@@ -333,16 +333,18 @@ export const listPendingFarmCertsForAdminController = async (
 }
 
 export const approveFarmCertController = async (
-  req: Request<{ certificateId: string }>,
+  req: Request<{ certificateId: string }, unknown, { note?: string }>,
   res: Response
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   const currentUser = (req as any).current_user as { role: string } | undefined
   const role = currentUser?.role === 'admin' ? 'admin' : 'cooperative'
+  const note = typeof req.body?.note === 'string' ? req.body.note : undefined
   const updated = await certificateService.approveFarmCert({
     certificateId: req.params.certificateId,
     reviewerUserId: user_id,
-    reviewerRole: role
+    reviewerRole: role,
+    note
   })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,

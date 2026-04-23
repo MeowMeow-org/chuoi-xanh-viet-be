@@ -131,6 +131,20 @@ export const rejectBodyValidator = validate(
   )
 )
 
+export const approveFarmCertBodyValidator = validate(
+  checkSchema(
+    {
+      note: {
+        optional: true,
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 500 } }
+      }
+    },
+    ['body']
+  )
+)
+
 export const revokeBodyValidator = validate(
   checkSchema(
     {

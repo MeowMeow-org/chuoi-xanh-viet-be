@@ -10,6 +10,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import { notificationDispatch } from '~/modules/notification/notification.dispatch'
+import { syncCoopCertExpiryForCooperative } from '~/modules/certificate/certificate.worker'
 
 export type CertTypeInput = cert_type
 
@@ -39,6 +40,14 @@ function assertDatesOk(issued?: Date | null, expires?: Date | null) {
       message: USER_MESSAGES.CERT_EXPIRES_BEFORE_ISSUED
     })
   }
+}
+
+/** Một field ghi chú người duyệt (đồng ý / từ chối / thu hồi), tối đa 500 ký tự. */
+function normalizeReviewerNote(input: string | undefined | null): string | null {
+  if (input == null) return null
+  const t = input.trim()
+  if (!t) return null
+  return t.length > 500 ? t.slice(0, 500) : t
 }
 
 function paginate(page = 1, limit = 10) {
@@ -93,6 +102,7 @@ class CertificateService {
     page?: number
     limit?: number
   }) => {
+    await syncCoopCertExpiryForCooperative(cooperativeUserId)
     const { safePage, safeLimit, skip } = paginate(page, limit)
     const where: Prisma.cooperative_certificatesWhereInput = {
       cooperative_user_id: cooperativeUserId,
@@ -647,11 +657,14 @@ class CertificateService {
   approveFarmCert = async ({
     certificateId,
     reviewerUserId,
-    reviewerRole
+    reviewerRole,
+    note
   }: {
     certificateId: string
     reviewerUserId: string
     reviewerRole: 'cooperative' | 'admin'
+    /** Ghi chú gửi nông hộ trong thông báo (tùy chọn) */
+    note?: string
   }) => {
     const row = await this.getFarmCertOrThrow(certificateId)
     if (row.status !== 'pending') {
@@ -684,6 +697,7 @@ class CertificateService {
         status: 'approved',
         reviewed_by: reviewerUserId,
         reviewed_at: new Date(),
+        reviewer_note: normalizeReviewerNote(note),
         updated_at: new Date()
       }
     })
@@ -695,7 +709,8 @@ class CertificateService {
       certificateId,
       farmId: row.farm.id,
       farmName: row.farm.name ?? 'Nông trại',
-      certType: row.type
+      certType: row.type,
+      note
     })
 
     return updated
@@ -743,7 +758,7 @@ class CertificateService {
         status: 'rejected',
         reviewed_by: reviewerUserId,
         reviewed_at: new Date(),
-        reject_reason: reason,
+        reviewer_note: normalizeReviewerNote(reason),
         updated_at: new Date()
       }
     })
@@ -784,7 +799,7 @@ class CertificateService {
         status: 'revoked',
         reviewed_by: adminUserId,
         reviewed_at: new Date(),
-        reject_reason: reason,
+        reviewer_note: normalizeReviewerNote(reason),
         updated_at: new Date()
       }
     })

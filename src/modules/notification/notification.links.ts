@@ -58,8 +58,13 @@ export function resolveNotificationDeepLink(params: {
       if (farmId) return `/farmer/farms/${farmId}/seasons`
       return '/farmer/certificates'
     }
-    if (viewerRole === 'cooperative') return '/cooperative/certificates'
-    if (viewerRole === 'admin') return '/admin/certificates'
+    const certQ = `highlightFarmCert=${encodeURIComponent(entityId)}`
+    if (viewerRole === 'cooperative') {
+      return `/cooperative/certificates?tab=pending&${certQ}`
+    }
+    if (viewerRole === 'admin') {
+      return `/admin/certificates?${certQ}`
+    }
     return undefined
   }
 
