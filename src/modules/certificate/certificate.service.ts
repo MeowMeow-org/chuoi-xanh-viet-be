@@ -9,6 +9,7 @@ import prisma from '~/lib/prisma'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
+import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 
 export type CertTypeInput = cert_type
 
@@ -504,6 +505,15 @@ class CertificateService {
         reviewer_cooperative_id: activeMembership?.cooperative_user_id ?? null
       }
     })
+
+    notificationDispatch.farmCertPendingReview({
+      certificateId: created.id,
+      farmId: input.farm_id,
+      farmerUserId: ownerUserId,
+      approverScope: approver_scope,
+      cooperativeReviewerUserId: activeMembership?.cooperative_user_id ?? null
+    })
+
     return created
   }
 
@@ -677,6 +687,17 @@ class CertificateService {
         updated_at: new Date()
       }
     })
+
+    notificationDispatch.farmCertApprovedForFarmer({
+      farmerUserId: row.farm.owner_user_id,
+      reviewerUserId,
+      reviewerRole,
+      certificateId,
+      farmId: row.farm.id,
+      farmName: row.farm.name ?? 'Nông trại',
+      certType: row.type
+    })
+
     return updated
   }
 
@@ -726,6 +747,18 @@ class CertificateService {
         updated_at: new Date()
       }
     })
+
+    notificationDispatch.farmCertRejectedForFarmer({
+      farmerUserId: row.farm.owner_user_id,
+      reviewerUserId,
+      reviewerRole,
+      certificateId,
+      farmId: row.farm.id,
+      farmName: row.farm.name ?? 'Nông trại',
+      certType: row.type,
+      reason
+    })
+
     return updated
   }
 

@@ -1,6 +1,12 @@
 import type { user_role } from '@prisma/client'
 import { NotificationEntityType } from './notification.constants'
 
+function farmIdFromNotificationMetadata(metadata: unknown): string | undefined {
+  if (!metadata || typeof metadata !== 'object') return undefined
+  const id = (metadata as Record<string, unknown>).farmId
+  return typeof id === 'string' && id.length > 0 ? id : undefined
+}
+
 /**
  * Sinh đường dẫn tương đối cho Next app theo vai người xem.
  * Mở rộng: thêm `entity_type` mới + nhánh tại đây (hoặc lưu override trong `metadata`).
@@ -9,8 +15,9 @@ export function resolveNotificationDeepLink(params: {
   viewerRole: user_role
   entityType: string | null
   entityId: string | null
+  metadata?: unknown
 }): string | undefined {
-  const { viewerRole, entityType, entityId } = params
+  const { viewerRole, entityType, entityId, metadata } = params
   if (!entityType || !entityId) return undefined
 
   if (entityType === NotificationEntityType.ORDER) {
@@ -46,7 +53,12 @@ export function resolveNotificationDeepLink(params: {
   }
 
   if (entityType === NotificationEntityType.FARM_CERTIFICATE) {
-    if (viewerRole === 'farmer') return '/farmer/certificates'
+    if (viewerRole === 'farmer') {
+      const farmId = farmIdFromNotificationMetadata(metadata)
+      if (farmId) return `/farmer/farms/${farmId}/seasons`
+      return '/farmer/certificates'
+    }
+    if (viewerRole === 'cooperative') return '/cooperative/certificates'
     if (viewerRole === 'admin') return '/admin/certificates'
     return undefined
   }

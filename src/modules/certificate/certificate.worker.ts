@@ -79,7 +79,8 @@ async function expireFarmCertificates(today: Date) {
           : `${typeLabel}${certNo} của ${farmName} đã hết hạn (${fmtDate(cert.expires_at)}). Chứng chỉ sẽ không còn xuất hiện trên gian hàng. Vui lòng nộp chứng chỉ mới nếu bạn đã gia hạn.`,
         entityType: NotificationEntityType.FARM_CERTIFICATE,
         entityId: cert.id,
-        dedupeKey: `cert-expired:farm:${cert.id}`
+        dedupeKey: `cert-expired:farm:${cert.id}`,
+        metadata: { farmId: cert.farm.id }
       })
     } catch (err) {
       console.error('[cert-worker] failed to notify farm cert expiry', cert.id, err)
