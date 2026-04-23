@@ -428,6 +428,11 @@ class CooperativeService {
                   email: { contains: term, mode: 'insensitive' }
                 }
               },
+              {
+                farmer_user: {
+                  phone: { contains: term, mode: 'insensitive' }
+                }
+              },
               { farms: { name: { contains: term, mode: 'insensitive' } } },
               { farms: { province: { contains: term, mode: 'insensitive' } } },
               { farms: { district: { contains: term, mode: 'insensitive' } } },

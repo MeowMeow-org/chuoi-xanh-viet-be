@@ -86,6 +86,20 @@ function assertSeasonHarvestDateOrder(params: {
   }
 }
 
+/**
+ * Số bản ghi nhật ký tối thiểu trước khi chốt / neo.
+ * - Mặc định **1**: hash on-chain vẫn hợp lệ khi có ít nhất một sự kiện; **không** bắt đúng từng loại bước (land_prep, harvesting, …).
+ * - `SEASON_MIN_DIARY_ENTRIES_FOR_SEAL=0`: tắt kiểm tra (vd. demo).
+ * - Số nguyên > 1: chính sách chặt hơn, vẫn không ràng buộc thứ tự hay loại sự kiện.
+ */
+function minDiaryEntriesRequiredForSeal(): number {
+  const raw = process.env.SEASON_MIN_DIARY_ENTRIES_FOR_SEAL
+  if (raw === undefined || raw === '') return 1
+  const n = parseInt(raw, 10)
+  if (!Number.isFinite(n) || n < 0) return 1
+  return n
+}
+
 /** 6 chữ cái in hoa + 6 chữ số ngẫu nhiên (vd: ABCDEF042891). */
 function generateAutoSeasonCodeCandidate(): string {
   const lb = randomBytes(6)
@@ -449,6 +463,22 @@ class SeasonService {
           status: HTTP_STATUS.BAD_REQUEST,
           message: USER_MESSAGES.SEASON_MISSING_YIELD_FOR_ANCHOR
         })
+      }
+
+      const minDiary = minDiaryEntriesRequiredForSeal()
+      if (minDiary > 0) {
+        const diaryCount = await prisma.diary_entries.count({
+          where: { season_id: seasonId }
+        })
+        if (diaryCount < minDiary) {
+          throw new ErrorWithStatus({
+            status: HTTP_STATUS.BAD_REQUEST,
+            message:
+              minDiary === 1
+                ? USER_MESSAGES.SEASON_MIN_DIARY_ENTRIES_FOR_SEAL
+                : `Cần ít nhất ${minDiary} bản ghi nhật ký canh tác trước khi hoàn thành thu hoạch hoặc đăng nhật ký (neo) mùa vụ.`
+          })
+        }
       }
     }
 

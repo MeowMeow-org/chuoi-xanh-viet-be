@@ -5,6 +5,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type {
   SuggestShopQuery,
+  SuggestProductQuery,
   CreateShopRequestBody,
   UpdateShopRequestBody,
   GetShopsQuery,
@@ -24,6 +25,25 @@ export const suggestShopController = async (
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.SHOP_SUGGEST_SUCCESS,
+    data
+  })
+}
+
+export const suggestProductController = async (
+  req: Request<{ shop_id: string }, unknown, unknown, SuggestProductQuery>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const data = await shopService.suggestProductListing({
+    shopId: req.params.shop_id,
+    saleUnitId: req.query.sale_unit_id as string,
+    userId: user_id
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.PRODUCT_LISTING_SUGGEST_SUCCESS,
     data
   })
 }

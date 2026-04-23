@@ -299,6 +299,7 @@ const USER_MESSAGES = {
   CHAT_MESSAGES_LIST_SUCCESS: 'Lấy danh sách tin nhắn thành công',
 
   CHAT_MESSAGE_SENT: 'Đã gửi tin nhắn',
+  CHAT_MARK_READ_SUCCESS: 'Đã cập nhật trạng thái đã đọc',
 
   CHAT_PEER_INVALID: 'Người nhận phải là người dùng khác đang hoạt động (không phải chính bạn)',
 
@@ -307,6 +308,7 @@ const USER_MESSAGES = {
   CHAT_FORBIDDEN: 'Bạn không tham gia cuộc trò chuyện này',
 
   SHOP_SUGGEST_SUCCESS: 'Đã tạo gợi ý gian hàng',
+  PRODUCT_LISTING_SUGGEST_SUCCESS: 'Đã tạo gợi ý mô tả & giá',
 
   CREATE_SHOP_SUCCESS: 'Tạo gian hàng thành công',
 
@@ -436,7 +438,12 @@ const USER_MESSAGES = {
 
 
 
-  SEASON_MISSING_YIELD_FOR_ANCHOR: 'Cần năng suất thực tế và đơn vị năng suất trước khi niêm phong/neo',
+  SEASON_MISSING_YIELD_FOR_ANCHOR:
+    'Cần nhập sản lượng thu hoạch thực tế và đơn vị tính trước khi hoàn thành thu hoạch hoặc đăng nhật ký (neo) mùa vụ',
+
+  /** Khi SEASON_MIN_DIARY_ENTRIES_FOR_SEAL = 1 (mặc định). Không ràng buộc từng loại sự kiện — chỉ cần có bản ghi. */
+  SEASON_MIN_DIARY_ENTRIES_FOR_SEAL:
+    'Cần ít nhất một bản ghi nhật ký canh tác trước khi hoàn thành thu hoạch hoặc đăng nhật ký (neo) mùa vụ.',
 
 
 

@@ -1,20 +1,5 @@
--- DropIndex
-DROP INDEX IF EXISTS "idx_chat_conv_p1_updated";
-
--- DropIndex
-DROP INDEX IF EXISTS "idx_chat_conv_p2_updated";
-
--- AlterTable
-ALTER TABLE "chat_conversations" RENAME CONSTRAINT "pk_chat_conversations" TO "chat_conversations_pkey";
-
--- AlterTable
-ALTER TABLE "chat_messages" RENAME CONSTRAINT "pk_chat_messages" TO "chat_messages_pkey";
+-- Chỉ thêm ảnh sản phẩm. (Các thao tác chat/index ở bản cũ chạy sai thứ tự shadow DB:
+-- lúc này chat_conversations chưa có participant_1_id — schema đó được tạo ở 20260417120000.)
 
 -- AlterTable
 ALTER TABLE "products" ADD COLUMN     "image_url" VARCHAR(512);
-
--- CreateIndex
-CREATE INDEX "idx_chat_conv_p1_updated" ON "chat_conversations"("participant_1_id", "updated_at");
-
--- CreateIndex
-CREATE INDEX "idx_chat_conv_p2_updated" ON "chat_conversations"("participant_2_id", "updated_at");

@@ -222,10 +222,7 @@ export const notificationDispatch = {
       ])
       const htxName = htx?.full_name?.trim() || 'Hợp tác xã'
       const farmName = farm?.name?.trim() || 'Nông trại'
-      const notePart =
-        params.note && params.note.trim().length > 0
-          ? ` Ghi chú: ${truncate(params.note, 200)}`
-          : ''
+      const notePart = params.note && params.note.trim().length > 0 ? ` Ghi chú: ${truncate(params.note, 200)}` : ''
 
       await notificationService.create({
         recipientUserId: params.farmerUserId,
@@ -392,10 +389,7 @@ export const notificationDispatch = {
     safeRun(async () => {
       const typeLabel = FARM_CERT_TYPE_LABEL[params.certType] ?? 'Chứng chỉ'
       const farmName = params.farmName.trim() || 'Nông trại'
-      const notePart =
-        params.note && params.note.trim().length > 0
-          ? ` Ghi chú: ${truncate(params.note, 200)}`
-          : ''
+      const notePart = params.note && params.note.trim().length > 0 ? ` Ghi chú: ${truncate(params.note, 200)}` : ''
 
       let reviewerLabel = 'Hợp tác xã'
       if (params.reviewerRole === 'admin') {
@@ -435,8 +429,7 @@ export const notificationDispatch = {
     safeRun(async () => {
       const typeLabel = FARM_CERT_TYPE_LABEL[params.certType] ?? 'Chứng chỉ'
       const farmName = params.farmName.trim() || 'Nông trại'
-      const reasonPart =
-        params.reason.trim().length > 0 ? ` Lý do: ${truncate(params.reason, 160)}` : ''
+      const reasonPart = params.reason.trim().length > 0 ? ` Lý do: ${truncate(params.reason, 160)}` : ''
 
       let reviewerLabel = 'Hợp tác xã'
       if (params.reviewerRole === 'admin') {

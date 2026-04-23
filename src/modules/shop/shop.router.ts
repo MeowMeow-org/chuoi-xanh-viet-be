@@ -3,6 +3,7 @@ import { accessTokenValidator, requireFarmer } from '../auth/auth.middleware'
 import { wrapAsync } from '~/utils/handler'
 import {
   suggestShopController,
+  suggestProductController,
   createShopController,
   updateShopController,
   getShopByIdController,
@@ -17,6 +18,7 @@ import {
 } from './shop.controller'
 import {
   suggestShopQueryValidator,
+  suggestProductQueryValidator,
   createShopBodyValidator,
   updateShopBodyValidator,
   shopIdParamValidator,
@@ -87,6 +89,20 @@ shopRouter.get(
   requireFarmer,
   shopIdParamValidator,
   wrapAsync(getAvailableSaleUnitsController)
+)
+
+/**
+ * @desc AI-suggest product description & unit price for a sale unit
+ * @route GET /shop/:shop_id/suggest-product?sale_unit_id=
+ * @access private (farmer only)
+ */
+shopRouter.get(
+  '/:shop_id/suggest-product',
+  accessTokenValidator,
+  requireFarmer,
+  shopIdParamValidator,
+  suggestProductQueryValidator,
+  wrapAsync(suggestProductController)
 )
 
 /**
