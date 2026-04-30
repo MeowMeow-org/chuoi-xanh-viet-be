@@ -8,6 +8,7 @@ import {
   requireFarmer
 } from '../auth/auth.middleware'
 import {
+  approveFarmCertBodyValidator,
   certIdParamValidator,
   createCoopCertValidator,
   createFarmCertValidator,
@@ -176,6 +177,7 @@ certificateRouter.post(
   accessTokenValidator,
   requireCooperativeOrAdmin,
   certIdParamValidator,
+  approveFarmCertBodyValidator,
   wrapAsync(approveFarmCertController)
 )
 

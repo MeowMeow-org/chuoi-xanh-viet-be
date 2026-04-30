@@ -12,6 +12,17 @@ export const suggestShopQueryValidator = validate(
   )
 )
 
+export const suggestProductQueryValidator = validate(
+  checkSchema(
+    {
+      sale_unit_id: {
+        isUUID: { errorMessage: 'sale_unit_id must be a valid UUID' }
+      }
+    },
+    ['query']
+  )
+)
+
 export const createShopBodyValidator = validate(
   checkSchema(
     {

@@ -2,6 +2,10 @@ export interface SuggestShopQuery {
   farm_id?: string
 }
 
+export interface SuggestProductQuery {
+  sale_unit_id?: string
+}
+
 export interface CreateShopRequestBody {
   farm_id: string
   name: string

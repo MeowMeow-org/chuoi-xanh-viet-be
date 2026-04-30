@@ -5,6 +5,7 @@ import {
   createChatConversationController,
   listChatConversationsController,
   listChatMessagesController,
+  markChatConversationReadController,
   sendChatMessageRestController
 } from './chat.controller'
 import {
@@ -24,6 +25,13 @@ chatRouter.post(
 )
 
 chatRouter.get('/conversations', accessTokenValidator, wrapAsync(listChatConversationsController))
+
+chatRouter.post(
+  '/conversations/:conversationId/read',
+  accessTokenValidator,
+  chatConversationIdValidator,
+  wrapAsync(markChatConversationReadController)
+)
 
 chatRouter.get(
   '/conversations/:conversationId/messages',

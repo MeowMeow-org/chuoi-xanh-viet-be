@@ -1,7 +1,14 @@
-import type { order_status } from '@prisma/client'
+import type { cert_type, order_status } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import notificationService from './notification.service'
 import { NotificationEntityType } from './notification.constants'
+
+const FARM_CERT_TYPE_LABEL: Record<cert_type, string> = {
+  vietgap: 'VietGAP',
+  globalgap: 'GlobalGAP',
+  organic: 'Hữu cơ',
+  other: 'Chứng chỉ khác'
+}
 
 function safeRun(fn: () => Promise<unknown>) {
   void fn().catch((err) => console.error('[notification-dispatch]', err))
@@ -196,7 +203,12 @@ export const notificationDispatch = {
     })
   },
 
-  cooperativeApprovedForFarmer(params: { farmerUserId: string; cooperativeUserId: string; farmId: string }) {
+  cooperativeApprovedForFarmer(params: {
+    farmerUserId: string
+    cooperativeUserId: string
+    farmId: string
+    note?: string | null
+  }) {
     safeRun(async () => {
       const [htx, farm] = await Promise.all([
         prisma.users.findUnique({
@@ -210,13 +222,14 @@ export const notificationDispatch = {
       ])
       const htxName = htx?.full_name?.trim() || 'Hợp tác xã'
       const farmName = farm?.name?.trim() || 'Nông trại'
+      const notePart = params.note && params.note.trim().length > 0 ? ` Ghi chú: ${truncate(params.note, 200)}` : ''
 
       await notificationService.create({
         recipientUserId: params.farmerUserId,
         actorUserId: params.cooperativeUserId,
         type: 'cooperative',
         title: 'Đã duyệt tham gia HTX',
-        body: `${htxName} đã duyệt "${farmName}" là nông hộ quản lý.`,
+        body: `${htxName} đã duyệt "${farmName}" là nông hộ quản lý.${notePart}`,
         entityType: NotificationEntityType.COOPERATIVE_MEMBERSHIP,
         entityId: params.farmId
       })
@@ -297,6 +310,148 @@ export const notificationDispatch = {
           shopId: params.shopId,
           productId: params.productId
         }
+      })
+    })
+  },
+
+  /**
+   * Nông hộ nộp chứng chỉ chờ duyệt — báo cho HTX (nếu thuộc HTX) hoặc tất cả admin (nông hộ độc lập).
+   */
+  farmCertPendingReview(params: {
+    certificateId: string
+    farmId: string
+    farmerUserId: string
+    approverScope: 'admin' | 'cooperative'
+    cooperativeReviewerUserId: string | null
+  }) {
+    safeRun(async () => {
+      const [farmer, farm] = await Promise.all([
+        prisma.users.findUnique({
+          where: { id: params.farmerUserId },
+          select: { full_name: true }
+        }),
+        prisma.farms.findUnique({
+          where: { id: params.farmId },
+          select: { name: true }
+        })
+      ])
+      const farmerName = farmer?.full_name?.trim() || 'Nông hộ'
+      const farmName = farm?.name?.trim() || 'Nông trại'
+      const body = `${farmerName} đã nộp chứng chỉ chờ duyệt cho "${farmName}".`
+      const dedupeKey = `farm_cert_pending:${params.certificateId}`
+
+      if (params.approverScope === 'cooperative' && params.cooperativeReviewerUserId) {
+        await notificationService.create({
+          recipientUserId: params.cooperativeReviewerUserId,
+          actorUserId: params.farmerUserId,
+          type: 'cooperative',
+          title: 'Chứng chỉ nông hộ chờ duyệt',
+          body,
+          entityType: NotificationEntityType.FARM_CERTIFICATE,
+          entityId: params.certificateId,
+          dedupeKey,
+          metadata: { farmId: params.farmId }
+        })
+        return
+      }
+
+      const admins = await prisma.users.findMany({
+        where: { role: 'admin' },
+        select: { id: true }
+      })
+
+      for (const admin of admins) {
+        await notificationService.create({
+          recipientUserId: admin.id,
+          actorUserId: params.farmerUserId,
+          type: 'system',
+          title: 'Duyệt chứng chỉ nông hộ độc lập',
+          body,
+          entityType: NotificationEntityType.FARM_CERTIFICATE,
+          entityId: params.certificateId,
+          dedupeKey,
+          metadata: { farmId: params.farmId }
+        })
+      }
+    })
+  },
+
+  farmCertApprovedForFarmer(params: {
+    farmerUserId: string
+    reviewerUserId: string
+    reviewerRole: 'cooperative' | 'admin'
+    certificateId: string
+    farmId: string
+    farmName: string
+    certType: cert_type
+    note?: string | null
+  }) {
+    safeRun(async () => {
+      const typeLabel = FARM_CERT_TYPE_LABEL[params.certType] ?? 'Chứng chỉ'
+      const farmName = params.farmName.trim() || 'Nông trại'
+      const notePart = params.note && params.note.trim().length > 0 ? ` Ghi chú: ${truncate(params.note, 200)}` : ''
+
+      let reviewerLabel = 'Hợp tác xã'
+      if (params.reviewerRole === 'admin') {
+        reviewerLabel = 'Quản trị viên'
+      } else {
+        const u = await prisma.users.findUnique({
+          where: { id: params.reviewerUserId },
+          select: { full_name: true }
+        })
+        reviewerLabel = u?.full_name?.trim() || 'Hợp tác xã'
+      }
+
+      await notificationService.create({
+        recipientUserId: params.farmerUserId,
+        actorUserId: params.reviewerUserId,
+        type: 'system',
+        title: 'Chứng chỉ đã được duyệt',
+        body: `${reviewerLabel} đã duyệt ${typeLabel} cho "${farmName}".${notePart}`,
+        entityType: NotificationEntityType.FARM_CERTIFICATE,
+        entityId: params.certificateId,
+        dedupeKey: `farm_cert_approved:${params.certificateId}`,
+        metadata: { farmId: params.farmId }
+      })
+    })
+  },
+
+  farmCertRejectedForFarmer(params: {
+    farmerUserId: string
+    reviewerUserId: string
+    reviewerRole: 'cooperative' | 'admin'
+    certificateId: string
+    farmId: string
+    farmName: string
+    certType: cert_type
+    reason: string
+  }) {
+    safeRun(async () => {
+      const typeLabel = FARM_CERT_TYPE_LABEL[params.certType] ?? 'Chứng chỉ'
+      const farmName = params.farmName.trim() || 'Nông trại'
+      const reasonPart = params.reason.trim().length > 0 ? ` Lý do: ${truncate(params.reason, 160)}` : ''
+
+      let reviewerLabel = 'Hợp tác xã'
+      if (params.reviewerRole === 'admin') {
+        reviewerLabel = 'Quản trị viên'
+      } else {
+        const u = await prisma.users.findUnique({
+          where: { id: params.reviewerUserId },
+          select: { full_name: true }
+        })
+        reviewerLabel = u?.full_name?.trim() || 'Hợp tác xã'
+      }
+
+      await notificationService.create({
+        recipientUserId: params.farmerUserId,
+        actorUserId: params.reviewerUserId,
+        type: 'system',
+        title: 'Chứng chỉ bị từ chối',
+        body: `${reviewerLabel} đã từ chối ${typeLabel} cho "${farmName}".${reasonPart}`,
+        entityType: NotificationEntityType.FARM_CERTIFICATE,
+        entityId: params.certificateId,
+        dedupeKey: `farm_cert_rejected:${params.certificateId}`,
+        metadata: { farmId: params.farmId }
       })
     })
   }

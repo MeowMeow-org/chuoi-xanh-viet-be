@@ -11,8 +11,14 @@ function roomName(conversationId: string) {
   return `chat:${conversationId}`
 }
 
-export function broadcastChatMessage(conversationId: string, payload: Record<string, unknown>) {
-  ioRef?.to(roomName(conversationId)).emit('chat:message', payload)
+export function broadcastChatMessage(
+  _conversationId: string,
+  payload: Record<string, unknown>,
+  notifyUserIds: string[]
+) {
+  for (const uid of notifyUserIds) {
+    ioRef?.to(`user:${uid}`).emit('chat:message', payload)
+  }
 }
 
 export function registerChatSocket(io: Server) {
@@ -85,7 +91,8 @@ export function registerChatSocket(io: Server) {
             senderStatus: socket.data.status,
             content
           })
-          io.to(roomName(conversationId)).emit('chat:message', msg)
+          const [p1, p2] = await chatService.getConversationParticipantIds(conversationId)
+          broadcastChatMessage(conversationId, msg as unknown as Record<string, unknown>, [p1, p2])
           cb?.(undefined, msg)
         } catch (e) {
           if (e instanceof ErrorWithStatus) {

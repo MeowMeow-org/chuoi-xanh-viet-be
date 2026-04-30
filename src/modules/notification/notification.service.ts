@@ -28,6 +28,7 @@ const rowSelect = {
   body: true,
   entity_type: true,
   entity_id: true,
+  metadata: true,
   read_at: true,
   created_at: true
 } as const
@@ -42,6 +43,7 @@ function mapRow(
     body: string
     entity_type: string | null
     entity_id: string | null
+    metadata: Prisma.JsonValue | null
     read_at: Date | null
     created_at: Date
   },
@@ -50,7 +52,8 @@ function mapRow(
   const link = resolveNotificationDeepLink({
     viewerRole,
     entityType: row.entity_type,
-    entityId: row.entity_id
+    entityId: row.entity_id,
+    metadata: row.metadata ?? undefined
   })
 
   return {

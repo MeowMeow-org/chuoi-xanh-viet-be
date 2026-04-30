@@ -71,11 +71,29 @@ export const sendChatMessageRestController = async (
     content: req.body.content
   })
 
-  broadcastChatMessage(req.params.conversationId, msg as unknown as Record<string, unknown>)
+  const participantIds = await chatService.getConversationParticipantIds(req.params.conversationId)
+  broadcastChatMessage(req.params.conversationId, msg as unknown as Record<string, unknown>, participantIds)
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.CREATED,
     message: USER_MESSAGES.CHAT_MESSAGE_SENT,
     data: msg
+  })
+}
+
+export const markChatConversationReadController = async (
+  req: Request<{ conversationId: string }>,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  await chatService.markConversationRead({
+    conversationId: req.params.conversationId,
+    userId: user_id
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.CHAT_MARK_READ_SUCCESS,
+    data: { ok: true }
   })
 }

@@ -90,11 +90,16 @@ class GeminiService {
         })
 
         const result = await model.generateContent(content)
-        const text = result.response.text()
+        const rawText = result.response.text()
+        const text = extractJsonText(rawText)
         return JSON.parse(text) as T
       } catch (e: unknown) {
         const errorStr = String(e)
         lastError = e
+        const gErr = e as { status?: number; message?: string; errorDetails?: unknown }
+        if (gErr?.status === 400 || errorStr.includes('400')) {
+          console.error('Gemini 400 (schema/prompt?):', gErr?.message ?? errorStr, gErr?.errorDetails)
+        }
 
         if (errorStr.includes('429')) {
           const currentKey = this.keyManager.getCurrentKey()
@@ -115,6 +120,18 @@ class GeminiService {
     console.error(`Gemini generation failed after ${this.maxRetries} attempts:`, lastError)
     return null
   }
+}
+
+/** Bỏ markdown fence nếu model trả ```json ... ``` thay vì JSON thuần */
+function extractJsonText(raw: string): string {
+  let t = raw.trim()
+  if (t.startsWith('```')) {
+    t = t.replace(/^```(?:json)?\s*/i, '')
+    const end = t.lastIndexOf('```')
+    if (end !== -1) t = t.slice(0, end)
+    t = t.trim()
+  }
+  return t
 }
 
 const geminiService = new GeminiService()

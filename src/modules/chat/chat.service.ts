@@ -1,4 +1,5 @@
 import type { account_status } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
@@ -122,10 +123,102 @@ class ChatService {
         OR: [{ participant_1_id: userId }, { participant_2_id: userId }]
       },
       orderBy: { updated_at: 'desc' },
-      include: conversationInclude
+      include: {
+        ...conversationInclude,
+        messages: {
+          orderBy: { created_at: 'desc' },
+          take: 1,
+          select: {
+            content: true,
+            created_at: true,
+            sender_user_id: true
+          }
+        }
+      }
     })
 
-    return rows.map(mapConversationRow)
+    const ids = rows.map((r) => r.id)
+    const unreadMap = new Map<string, number>()
+    if (ids.length > 0) {
+      const counts = await prisma.$queryRaw<Array<{ conversation_id: string; cnt: bigint }>>`
+        SELECT m.conversation_id, COUNT(*)::bigint AS cnt
+        FROM chat_messages m
+        LEFT JOIN chat_conversation_reads r
+          ON r.conversation_id = m.conversation_id AND r.user_id = ${userId}::uuid
+        WHERE m.conversation_id IN (${Prisma.join(ids)})
+          AND m.sender_user_id <> ${userId}::uuid
+          AND m.created_at > COALESCE(r.last_read_at, to_timestamp(0))
+        GROUP BY m.conversation_id
+      `
+      for (const c of counts) {
+        unreadMap.set(c.conversation_id, Number(c.cnt))
+      }
+    }
+
+    return rows.map((row) => {
+      const last = row.messages[0] ?? null
+      const preview =
+        last != null
+          ? last.content.length > 80
+            ? `${last.content.slice(0, 80)}…`
+            : last.content
+          : null
+      return {
+        ...mapConversationRow({
+          id: row.id,
+          participant_1_id: row.participant_1_id,
+          participant_2_id: row.participant_2_id,
+          updated_at: row.updated_at,
+          created_at: row.created_at,
+          participant_1: row.participant_1,
+          participant_2: row.participant_2
+        }),
+        unreadCount: unreadMap.get(row.id) ?? 0,
+        lastMessagePreview: preview,
+        lastMessageAt: last != null ? last.created_at.toISOString() : null,
+        lastMessageSenderUserId: last != null ? last.sender_user_id : null
+      }
+    })
+  }
+
+  async markConversationRead({ conversationId, userId }: { conversationId: string; userId: string }) {
+    await this.assertParticipant(conversationId, userId)
+
+    const latest = await prisma.chat_messages.findFirst({
+      where: { conversation_id: conversationId },
+      orderBy: { created_at: 'desc' },
+      select: { created_at: true }
+    })
+    const at = latest?.created_at ?? new Date()
+
+    await prisma.chat_conversation_reads.upsert({
+      where: {
+        conversation_id_user_id: {
+          conversation_id: conversationId,
+          user_id: userId
+        }
+      },
+      create: {
+        conversation_id: conversationId,
+        user_id: userId,
+        last_read_at: at
+      },
+      update: { last_read_at: at }
+    })
+  }
+
+  async getConversationParticipantIds(conversationId: string): Promise<[string, string]> {
+    const row = await prisma.chat_conversations.findUnique({
+      where: { id: conversationId },
+      select: { participant_1_id: true, participant_2_id: true }
+    })
+    if (row == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.CHAT_CONVERSATION_NOT_FOUND
+      })
+    }
+    return [row.participant_1_id, row.participant_2_id]
   }
 
   async assertParticipant(conversationId: string, userId: string) {

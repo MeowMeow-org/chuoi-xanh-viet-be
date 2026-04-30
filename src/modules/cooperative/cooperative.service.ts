@@ -19,20 +19,25 @@ class CooperativeService {
   listHtx = async ({
     page = 1,
     limit = 10,
-    searchTerm
+    searchTerm,
+    id
   }: {
     page?: number
     limit?: number
     searchTerm?: string
+    /** Lọc đúng một HTX (vd. trang xác nhận đơn gia nhập) */
+    id?: string
   }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
     const skip = (safePage - 1) * safeLimit
 
     const term = searchTerm?.trim()
+    const idTrim = id?.trim()
     const where: Prisma.usersWhereInput = {
       role: 'cooperative',
       status: 'active',
+      ...(idTrim && idTrim.length > 0 ? { id: idTrim } : {}),
       ...(term && term.length > 0
         ? {
             OR: [
@@ -202,10 +207,13 @@ class CooperativeService {
 
   approveMembership = async ({
     membershipId,
-    cooperativeUserId
+    cooperativeUserId,
+    note
   }: {
     membershipId: string
     cooperativeUserId: string
+    /** Ghi chú gửi nông hộ qua thông báo (không lưu DB) */
+    note?: string
   }) => {
     const row = await prisma.cooperative_members.findUnique({
       where: { id: membershipId }
@@ -254,7 +262,8 @@ class CooperativeService {
     notificationDispatch.cooperativeApprovedForFarmer({
       farmerUserId: row.farmer_user_id,
       cooperativeUserId,
-      farmId: row.farm_id
+      farmId: row.farm_id,
+      note
     })
 
     return { membershipId, farmerUserId: row.farmer_user_id, farmId: row.farm_id }
@@ -417,6 +426,11 @@ class CooperativeService {
               {
                 farmer_user: {
                   email: { contains: term, mode: 'insensitive' }
+                }
+              },
+              {
+                farmer_user: {
+                  phone: { contains: term, mode: 'insensitive' }
                 }
               },
               { farms: { name: { contains: term, mode: 'insensitive' } } },

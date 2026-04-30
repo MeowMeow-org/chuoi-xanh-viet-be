@@ -1,4 +1,4 @@
-import { SchemaType } from '@google/generative-ai'
+import { SchemaType, type Schema } from '@google/generative-ai'
 import { Prisma } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import geminiService from '~/lib/gemini'
@@ -48,6 +48,18 @@ Quy tắc:
 - Tên gian hàng: ngắn gọn, dễ nhớ, thân thiện, có thể dùng tiếng Việt hoặc kết hợp, tối đa 60 ký tự
 - Mô tả: 2-4 câu, nhấn mạnh nguồn gốc sạch/tự nhiên, địa phương trồng, loại cây trồng chính. Giọng văn thân thiện, gần gũi. Tối đa 500 ký tự
 - Nếu thông tin farm không đầy đủ, hãy tự sáng tạo phù hợp`
+
+const PRODUCT_LISTING_SUGGEST_SYSTEM_PROMPT = `Bạn là chuyên gia marketing nông sản và định giá bán tại Việt Nam.
+Nhiệm vụ: Gợi ý mô tả ngắn cho người mua trên chợ online và mức giá bán (VNĐ).
+
+Quy tắc mô tả:
+- 2-4 câu tiếng Việt, thân thiện, rõ nguồn gốc / loại nông sản / điểm nổi bật
+- Không bịa chứng nhận cụ thể nếu dữ liệu không nêu
+- Tối đa 250 ký tự
+
+Quy tắc giá (suggestedPriceVnd):
+- Là giá cho MỘT đơn vị bán, đơn vị trùng với đơn vị lô (vd. lô tính theo kg → giá/kg; theo gam → giá/gam)
+- Phải là số nguyên dương (VNĐ), không dấu phẩy/chấm phân tách; hợp lý với thị trường nội địa`
 
 class ShopService {
   /** Gắn điểm TB + số lượt đánh giá (shop_reviews theo product_id) cho danh sách sản phẩm */
@@ -268,6 +280,187 @@ class ShopService {
     }
 
     return { suggestedName: result.name, suggestedDescription: result.description }
+  }
+
+  suggestProductListing = async ({
+    shopId,
+    saleUnitId,
+    userId
+  }: {
+    shopId: string
+    saleUnitId: string
+    userId: string
+  }) => {
+    await this.ensureShopOwner(shopId, userId)
+
+    const shop = await prisma.shops.findUnique({
+      where: { id: shopId },
+      select: {
+        farm_id: true,
+        name: true,
+        farms: {
+          select: {
+            name: true,
+            crop_main: true,
+            province: true,
+            district: true,
+            ward: true,
+            address: true
+          }
+        }
+      }
+    })
+    if (shop == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN
+      })
+    }
+
+    const listed = await prisma.products.findFirst({
+      where: { sale_unit_id: saleUnitId },
+      select: { id: true }
+    })
+    if (listed != null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.CONFLICT,
+        message: USER_MESSAGES.SALE_UNIT_ALREADY_LISTED
+      })
+    }
+
+    const saleUnit = await prisma.sale_units.findFirst({
+      where: {
+        id: saleUnitId,
+        seasons: {
+          farm_id: shop.farm_id,
+          farms: { owner_user_id: userId }
+        }
+      },
+      select: {
+        code: true,
+        short_code: true,
+        quantity: true,
+        unit: true,
+        qr_url: true,
+        status: true,
+        seasons: {
+          select: {
+            code: true,
+            crop_name: true
+          }
+        }
+      }
+    })
+
+    if (saleUnit == null) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.FORBIDDEN,
+        message: USER_MESSAGES.SALE_UNIT_NOT_AVAILABLE_FOR_SHOP
+      })
+    }
+
+    if (saleUnit.status !== 'active') {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.SALE_UNIT_NOT_ACTIVE
+      })
+    }
+
+    const farm = shop.farms
+    const lotLabel = (saleUnit.short_code?.trim() || saleUnit.code).trim()
+    const unitLabel = saleUnit.unit === 'g' ? 'gam' : saleUnit.unit
+    const farmLines = [
+      farm ? `Tên nông trại: ${farm.name}` : null,
+      farm?.crop_main ? `Cây trồng chính (farm): ${farm.crop_main}` : null,
+      farm?.province ? `Tỉnh: ${farm.province}` : null,
+      farm?.district ? `Huyện: ${farm.district}` : null,
+      farm?.ward ? `Xã: ${farm.ward}` : null,
+      farm?.address ? `Địa chỉ: ${farm.address}` : null
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    const userPrompt = `Gian hàng: ${shop.name}
+${farmLines}
+
+Lô bán:
+- Mã lô: ${lotLabel}
+- Khối lượng/số lượng lô: ${String(saleUnit.quantity)} ${unitLabel}
+- Mùa vụ: ${saleUnit.seasons.crop_name} (mã ${saleUnit.seasons.code})
+- Link truy xuất: ${saleUnit.qr_url || '—'}
+
+Hãy gợi ý mô tả cho người mua và giá bán (một đơn vị = ${unitLabel}) phù hợp chợ online.`
+
+    const listingSchemaInteger = {
+      type: SchemaType.OBJECT,
+      properties: {
+        description: { type: SchemaType.STRING, description: 'Mô tả sản phẩm cho người mua' },
+        suggestedPriceVnd: {
+          type: SchemaType.INTEGER,
+          description: 'Giá đề xuất VNĐ (số nguyên) cho một đơn vị bán, trùng đơn vị lô'
+        }
+      },
+      required: ['description', 'suggestedPriceVnd'] as string[]
+    }
+
+    const listingSchemaPriceString = {
+      type: SchemaType.OBJECT,
+      properties: {
+        description: { type: SchemaType.STRING, description: 'Mô tả sản phẩm cho người mua' },
+        suggestedPriceVnd: {
+          type: SchemaType.STRING,
+          description: 'Giá VNĐ một đơn vị bán: chỉ chuỗi chữ số, ví dụ 25000'
+        }
+      },
+      required: ['description', 'suggestedPriceVnd'] as string[]
+    }
+
+    let result = await geminiService.generate<{
+      description: string
+      suggestedPriceVnd: number
+    }>({
+      content: userPrompt,
+      systemInstruction: PRODUCT_LISTING_SUGGEST_SYSTEM_PROMPT,
+      responseSchema: listingSchemaInteger as Schema
+    })
+
+    if (!result) {
+      const alt = await geminiService.generate<{
+        description: string
+        suggestedPriceVnd: string
+      }>({
+        content: userPrompt,
+        systemInstruction: PRODUCT_LISTING_SUGGEST_SYSTEM_PROMPT,
+        responseSchema: listingSchemaPriceString as Schema
+      })
+      if (alt) {
+        const fromStr = Number(String(alt.suggestedPriceVnd ?? '').replace(/\D/g, ''))
+        result = {
+          description: alt.description,
+          suggestedPriceVnd: Number.isFinite(fromStr) ? fromStr : NaN
+        }
+      }
+    }
+
+    if (!result) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        message: USER_MESSAGES.AI_GENERATION_FAILED
+      })
+    }
+
+    const priceNum = Number(result.suggestedPriceVnd)
+    if (!Number.isFinite(priceNum) || priceNum <= 0) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        message: USER_MESSAGES.AI_GENERATION_FAILED
+      })
+    }
+
+    const suggestedDescription = (result.description ?? '').trim().slice(0, 250)
+    const suggestedPriceVnd = Math.round(priceNum)
+
+    return { suggestedDescription, suggestedPriceVnd }
   }
 
   createShop = async ({ userId, payload }: { userId: string; payload: CreateShopRequestBody }) => {

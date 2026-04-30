@@ -43,6 +43,7 @@ services:
       ZALO_OA_APP_ID: ${ZALO_OA_APP_ID:-}
       ZALO_OA_APP_SECRET: ${ZALO_OA_APP_SECRET:-}
       ZALO_OA_REFRESH_TOKEN: ${ZALO_OA_REFRESH_TOKEN:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - '8001:8000'
     networks:
