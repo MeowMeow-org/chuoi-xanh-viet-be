@@ -1247,7 +1247,9 @@ Hãy gợi ý mô tả cho người mua và giá bán (một đơn vị = ${unit
                 province: true,
                 district: true,
                 ward: true,
-                address: true
+                address: true,
+                latitude: true,
+                longitude: true
               }
             }
           }
