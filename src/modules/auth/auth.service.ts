@@ -101,6 +101,13 @@ class AuthService {
       })
     }
 
+    if (user.status === 'suspended') {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.ACCOUNT_SUSPENDED,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
     const user_id = user.id.toString()
     const { access_token, refresh_token } = await this.createAuthSessionForUser({
       user_id,
@@ -236,6 +243,13 @@ class AuthService {
       throw new ErrorWithStatus({
         message: USER_MESSAGES.USER_NOT_FOUND,
         status: HTTP_STATUS.UNAUTHORIZED
+      })
+    }
+
+    if (user.status === 'suspended') {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.ACCOUNT_SUSPENDED,
+        status: HTTP_STATUS.FORBIDDEN
       })
     }
 
