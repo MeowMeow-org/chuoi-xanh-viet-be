@@ -29,10 +29,7 @@ const options: swaggerJsdoc.Options = {
       }
     ]
   },
-  apis: [
-    path.join(process.cwd(), 'src/docs/**/*.ts'),
-    path.join(process.cwd(), 'dist/docs/**/*.js')
-  ]
+  apis: [path.join(process.cwd(), 'src/docs/**/*.ts'), path.join(process.cwd(), 'dist/docs/**/*.js')]
 }
 
 const swaggerSpec = swaggerJsdoc(options)

@@ -6,8 +6,10 @@ import {
   getMyOrdersController,
   getShopOrdersController,
   getOrderByIdController,
+  getPayosResumeController,
   cancelOrderController,
-  updateOrderStatusController
+  updateOrderStatusController,
+  payosWebhookController
 } from './order.controller'
 import {
   createOrderValidator,
@@ -17,6 +19,14 @@ import {
 } from './order.middleware'
 
 const orderRouter = Router()
+
+/**
+ * @desc PayOS payment webhook (no JWT)
+ * @route POST /order/payos/webhook
+ */
+orderRouter.post('/payos/webhook', (req, res) => {
+  void payosWebhookController(req, res)
+})
 
 /**
  * @desc Consumer places a single-shop order (FE loops over shop groups)
@@ -54,6 +64,18 @@ orderRouter.get(
   requireFarmer,
   getOrdersQueryValidator,
   wrapAsync(getShopOrdersController)
+)
+
+/**
+ * @desc Lấy lại link/QR PayOS (đơn pending, chỉ chủ đơn)
+ * @route GET /order/:order_id/payos/resume
+ */
+orderRouter.get(
+  '/:order_id/payos/resume',
+  accessTokenValidator,
+  requireConsumer,
+  orderIdParamValidator,
+  wrapAsync(getPayosResumeController)
 )
 
 /**

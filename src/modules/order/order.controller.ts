@@ -4,6 +4,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
 import orderService from './order.service'
+import { verifyPayosWebhook } from './order.payos'
 import type { CreateOrderRequestBody, GetOrdersQuery, UpdateOrderStatusBody } from './order.request'
 import type { order_status } from '@prisma/client'
 import { notificationDispatch } from '~/modules/notification/notification.dispatch'
@@ -97,14 +98,41 @@ export const createOrderController = async (
   res: Response
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
-  const order = await orderService.createOrder({ buyerUserId: user_id, payload: req.body })
+  const { order, checkoutUrl } = await orderService.createOrder({
+    buyerUserId: user_id,
+    payload: req.body
+  })
   notificationDispatch.orderCreatedForFarmer(order as any)
+
+  const row = mapOrderRow(order as any)
+  const data = checkoutUrl ? { ...row, checkoutUrl } : row
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.CREATED,
     message: USER_MESSAGES.CREATE_ORDER_SUCCESS,
-    data: mapOrderRow(order as any)
+    data
   })
+}
+
+export const payosWebhookController = async (req: Request, res: Response) => {
+  try {
+    const body = req.body as { code?: string; data?: { orderCode?: number } }
+    if (body?.code === '00' && body?.data?.orderCode === 123) {
+      res.status(200).json({ received: true })
+      return
+    }
+
+    const verified = await verifyPayosWebhook(req.body)
+    await orderService.handlePayosWebhook({
+      orderCode: verified.orderCode,
+      amount: verified.amount,
+      code: verified.code
+    })
+    res.status(200).json({ success: true })
+  } catch (e) {
+    console.error('PayOS webhook:', e)
+    res.status(200).json({ success: false })
+  }
 }
 
 export const getMyOrdersController = async (
@@ -161,6 +189,20 @@ export const getOrderByIdController = async (req: Request<{ order_id: string }>,
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_ORDER_DETAIL_SUCCESS,
     data: mapOrderRow(order as any)
+  })
+}
+
+export const getPayosResumeController = async (req: Request<{ order_id: string }>, res: Response) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const payload = await orderService.getPayosResumeForBuyer({
+    orderId: req.params.order_id,
+    buyerUserId: user_id
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_PAYOS_RESUME_SUCCESS,
+    data: payload
   })
 }
 
