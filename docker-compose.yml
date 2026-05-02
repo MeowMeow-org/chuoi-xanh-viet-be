@@ -47,7 +47,9 @@ services:
     ports:
       - '8001:8000'
     networks:
-      - chuoi-xanh-net
+      chuoi-xanh-net:
+        aliases:
+          - api
 
 networks:
   chuoi-xanh-net:

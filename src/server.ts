@@ -16,6 +16,9 @@ import { startInspectionDueWorker } from './modules/inspection/inspection.worker
 import { registerChatSocket } from './modules/chat/chat.socket'
 
 const app = express()
+// Sau reverse proxy (Nginx): req.secure / IP client đúng khi có X-Forwarded-Proto.
+app.set('trust proxy', Number(process.env.TRUST_PROXY_HOPS ?? '1'))
+
 const PORT = Number(process.env.PORT) || 8000
 
 const httpServer = http.createServer(app)
