@@ -9,9 +9,10 @@ function originsFromCommaList(raw: string | undefined): string[] {
     .filter(Boolean)
 }
 
-/** FE mặc định: cổng 3000 — dev local + VPS (có thể ghi đè bằng env). */
+/** FE mặc định: dev local + VPS. Lưu ý: Origin khi chạy qua Nginx cổng 80 là `http://host` (không có :80). */
 const DEFAULT_FRONTEND_ORIGINS = [
   'http://localhost:3000',
+  'http://178.128.98.214',
   'http://178.128.98.214:3000'
 ] as const
 
@@ -35,9 +36,15 @@ export const getSocketIoAllowedOrigins = (): string[] => [
   ...new Set([
     ...getFrontendOrigins(),
     'http://localhost:8000',
+    /** FE qua Nginx port 80 — Origin không có :80 */
+    'http://178.128.98.214',
     'http://178.128.98.214:8001',
     'http://178.128.98.214:8000',
-    'https://chuoi-xanh-viet-fe.netlify.app'
+    'https://chuoi-xanh-viet-fe.netlify.app',
+    'https://chuoixanhviet.site',
+    'http://chuoixanhviet.site',
+    'https://www.chuoixanhviet.site',
+    'http://www.chuoixanhviet.site'
   ])
 ]
 
@@ -66,7 +73,8 @@ export const corsConfig = cors({
           origin,
           allowedOrigins
         })
-        callback(new Error('Not allowed by CORS'))
+        // Dùng false — tránh Error làm OPTIONS/preflight trả 500; browser vẫn báo CORS denied.
+        callback(null, false)
       }
     }
   },
