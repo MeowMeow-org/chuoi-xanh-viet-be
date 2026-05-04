@@ -414,6 +414,8 @@ model users {
   role                               user_role             @default(farmer)
   status                             account_status        @default(active)
   reset_password_token               String?               @db.VarChar(255)
+  /** true = còn trong flow onboarding (chưa xong); false = đã xong. */
+  is_onboarding                      Boolean               @default(true)
   created_at                         DateTime              @default(now()) @db.Timestamp(6)
   updated_at                         DateTime              @default(now()) @db.Timestamp(6)
   diary_entries                      diary_entries[]
