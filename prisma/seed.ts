@@ -552,7 +552,8 @@ async function upsertUser(u: SeedUser) {
     full_name: u.full_name,
     role: u.role,
     password_hash: DEFAULT_PASSWORD,
-    status: 'active' as const
+    status: 'active' as const,
+    is_onboarding: false
   }
 
   if (existing) {
