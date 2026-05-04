@@ -1,6 +1,15 @@
 import type { user_role } from '@prisma/client'
 import { NotificationEntityType } from './notification.constants'
 
+function linkPathFromMetadata(metadata: unknown): string | undefined {
+  if (!metadata || typeof metadata !== 'object') return undefined
+  const raw = (metadata as Record<string, unknown>).linkPath
+  if (typeof raw !== 'string' || raw.length === 0) return undefined
+  const p = raw.trim()
+  if (p.startsWith('/')) return p
+  return `/${p}`
+}
+
 function farmIdFromNotificationMetadata(metadata: unknown): string | undefined {
   if (!metadata || typeof metadata !== 'object') return undefined
   const id = (metadata as Record<string, unknown>).farmId
@@ -18,6 +27,17 @@ export function resolveNotificationDeepLink(params: {
   metadata?: unknown
 }): string | undefined {
   const { viewerRole, entityType, entityId, metadata } = params
+
+  if (entityType === NotificationEntityType.SYSTEM_BROADCAST) {
+    const fromMeta = linkPathFromMetadata(metadata)
+    if (fromMeta) return fromMeta
+    if (viewerRole === 'admin') return '/admin'
+    if (viewerRole === 'consumer') return '/consumer'
+    if (viewerRole === 'farmer') return '/farmer'
+    if (viewerRole === 'cooperative') return '/cooperative'
+    return '/'
+  }
+
   if (!entityType || !entityId) return undefined
 
   if (entityType === NotificationEntityType.ORDER) {
