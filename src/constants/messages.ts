@@ -326,6 +326,10 @@ const USER_MESSAGES = {
 
   AI_GENERATION_FAILED: 'Tạo nội dung AI thất bại. Vui lòng thử lại sau',
 
+  DIARY_SCAN_SUCCESS: 'Kiểm tra nhật ký AI thành công',
+
+  DIARY_SCAN_NO_ENTRIES: 'Vụ mùa chưa có nhật ký canh tác để kiểm tra',
+
   GET_AVAILABLE_SEASONS_SUCCESS: 'Lấy danh sách mùa vụ khả dụng thành công',
 
   GET_AVAILABLE_SALE_UNITS_SUCCESS: 'Lấy danh sách lô bán khả dụng thành công',
