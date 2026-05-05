@@ -10,6 +10,7 @@ import { EntityError, ErrorWithStatus } from '~/models/Errors'
 import { verifyToken } from '~/utils/jwt'
 import { validate } from '~/utils/validation'
 import { TokenType } from '~/constants/enums'
+import type { TokenPayLoad } from './auth.request'
 
 const emailSchema: ParamSchema = {
   isEmail: true,
@@ -112,8 +113,34 @@ export const accessTokenValidator = validate(
                 token: accessToken,
                 privateKey: process.env.JWT_ACCESS_TOKEN_SECRET as string
               })
+              const payload = decoded_authorization as TokenPayLoad
+              if (payload.token_type !== TokenType.AccessToken) {
+                throw new ErrorWithStatus({
+                  status: HTTP_STATUS.UNAUTHORIZED,
+                  message: USER_MESSAGES.ACCESS_TOKEN_IS_REQUIRED
+                })
+              }
+              const row = await prisma.users.findUnique({
+                where: { id: payload.user_id },
+                select: { status: true }
+              })
+              if (row == null) {
+                throw new ErrorWithStatus({
+                  status: HTTP_STATUS.UNAUTHORIZED,
+                  message: USER_MESSAGES.USER_NOT_FOUND
+                })
+              }
+              if (row.status === 'suspended') {
+                throw new ErrorWithStatus({
+                  status: HTTP_STATUS.FORBIDDEN,
+                  message: USER_MESSAGES.ACCOUNT_SUSPENDED
+                })
+              }
               ;(req as Request).decoded_authorization = decoded_authorization
             } catch (error) {
+              if (error instanceof ErrorWithStatus) {
+                throw error
+              }
               throw new ErrorWithStatus({
                 status: HTTP_STATUS.UNAUTHORIZED,
                 message: capitalize((error as JsonWebTokenError).message)

@@ -14,6 +14,9 @@ const farmSelect = {
   province: true,
   district: true,
   ward: true,
+  province_code: true,
+  district_code: true,
+  ward_code: true,
   address: true,
   latitude: true,
   longitude: true,
@@ -69,6 +72,9 @@ class FarmService {
         province: payload.province,
         district: payload.district,
         ward: payload.ward,
+        province_code: payload.province_code ?? null,
+        district_code: payload.district_code ?? null,
+        ward_code: payload.ward_code ?? null,
         address: payload.address,
         latitude: payload.latitude,
         longitude: payload.longitude,
@@ -96,6 +102,9 @@ class FarmService {
     if (payload.province !== undefined) data.province = payload.province
     if (payload.district !== undefined) data.district = payload.district
     if (payload.ward !== undefined) data.ward = payload.ward
+    if (payload.province_code !== undefined) data.province_code = payload.province_code ?? null
+    if (payload.district_code !== undefined) data.district_code = payload.district_code ?? null
+    if (payload.ward_code !== undefined) data.ward_code = payload.ward_code ?? null
     if (payload.address !== undefined) data.address = payload.address
     if (payload.latitude !== undefined) data.latitude = payload.latitude
     if (payload.longitude !== undefined) data.longitude = payload.longitude

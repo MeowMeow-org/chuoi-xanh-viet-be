@@ -333,6 +333,10 @@ const USER_MESSAGES = {
 
   AI_GENERATION_FAILED: 'Tạo nội dung AI thất bại. Vui lòng thử lại sau',
 
+  DIARY_SCAN_SUCCESS: 'Kiểm tra nhật ký AI thành công',
+
+  DIARY_SCAN_NO_ENTRIES: 'Vụ mùa chưa có nhật ký canh tác để kiểm tra',
+
   GET_AVAILABLE_SEASONS_SUCCESS: 'Lấy danh sách mùa vụ khả dụng thành công',
 
   GET_AVAILABLE_SALE_UNITS_SUCCESS: 'Lấy danh sách lô bán khả dụng thành công',
@@ -514,7 +518,35 @@ const USER_MESSAGES = {
 
   SHOP_REVIEW_NOT_FOUND: 'Không tìm thấy đánh giá',
 
-  SHOP_REVIEW_NOTHING_TO_UPDATE: 'Vui lòng gửi ít nhất điểm sao hoặc nội dung để cập nhật'
+  SHOP_REVIEW_NOTHING_TO_UPDATE: 'Vui lòng gửi ít nhất điểm sao hoặc nội dung để cập nhật',
+
+  ACCOUNT_SUSPENDED:
+    'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên nếu cần hỗ trợ.',
+
+  ADMIN_DASHBOARD_SUMMARY_SUCCESS: 'Lấy tổng quan quản trị thành công',
+
+  ADMIN_USERS_LIST_SUCCESS: 'Lấy danh sách người dùng thành công',
+
+  ADMIN_USER_DETAIL_SUCCESS: 'Lấy chi tiết người dùng thành công',
+
+  ADMIN_USER_STATUS_UPDATED: 'Cập nhật trạng thái người dùng thành công',
+
+  ADMIN_USER_STATUS_INVALID: 'Trạng thái phải là active hoặc suspended',
+
+  ADMIN_CANNOT_SUSPEND_LAST_ADMIN: 'Không thể khóa quản trị viên cuối cùng đang hoạt động',
+
+  ADMIN_BROADCAST_SUCCESS: 'Đã gửi thông báo hệ thống',
+
+  ADMIN_BROADCAST_EMPTY_AUDIENCE: 'Không có người nhận phù hợp với đối tượng đã chọn',
+
+  ADMIN_BROADCAST_AUDIENCE_INVALID: 'Đối tượng phải là: all, consumers, farmers, hoặc cooperatives',
+
+  ADMIN_FARMS_MISSING_ADDRESS_CODE_SUCCESS: 'Lấy danh sách farm thiếu mã địa giới thành công',
+
+  ADMIN_ORDERS_MISSING_ADDRESS_CODE_SUCCESS: 'Lấy danh sách đơn hàng thiếu mã địa giới thành công'
+
+  ,
+  ADMIN_AUDIT_LOGS_LIST_SUCCESS: 'Lấy danh sách audit log thành công'
 
 } as const
 

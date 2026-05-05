@@ -102,6 +102,13 @@ class AuthService {
       })
     }
 
+    if (user.status === 'suspended') {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.ACCOUNT_SUSPENDED,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
     const user_id = user.id.toString()
     const { access_token, refresh_token } = await this.createAuthSessionForUser({
       user_id,
@@ -119,6 +126,7 @@ class AuthService {
         phone: user.phone,
         role: user.role,
         status: user.status,
+        is_onboarding: user.is_onboarding,
         avatar_url: user.avatar_url ?? null,
         zalo_user_id: user.zalo_user_id ?? null,
         telegram_linked: Boolean((user as { telegram_chat_id?: string | null }).telegram_chat_id?.trim())
@@ -175,6 +183,7 @@ class AuthService {
         phone: user.phone,
         role: user.role,
         status: user.status,
+        is_onboarding: user.is_onboarding,
         avatar_url: user.avatar_url ?? null,
         zalo_user_id: user.zalo_user_id ?? null,
         telegram_linked: Boolean((user as { telegram_chat_id?: string | null }).telegram_chat_id?.trim())
@@ -242,6 +251,13 @@ class AuthService {
       })
     }
 
+    if (user.status === 'suspended') {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.ACCOUNT_SUSPENDED,
+        status: HTTP_STATUS.FORBIDDEN
+      })
+    }
+
     const [access_token, new_refresh_token] = await Promise.all([
       this.signAccessToken({ user_id, role: user.role, status: user.status }),
       this.signRefreshToken(user_id)
@@ -277,6 +293,7 @@ class AuthService {
     phone: string
     role: user_role
     status: account_status
+    is_onboarding: boolean
     avatar_url: string | null
     zalo_user_id: string | null
     telegram_linked: boolean
@@ -290,6 +307,7 @@ class AuthService {
         phone: true,
         role: true,
         status: true,
+        is_onboarding: true,
         avatar_url: true,
         zalo_user_id: true,
         telegram_chat_id: true

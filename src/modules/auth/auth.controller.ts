@@ -15,6 +15,7 @@ import type {
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import authService from './auth.service'
+import auditService from '~/modules/audit/audit.service'
 import { ErrorWithStatus } from '~/models/Errors'
 import { isTelegramDeepLinkConfigured, issueTelegramDeepLinkForUser } from '~/modules/telegram/telegramLink.service'
 
@@ -28,6 +29,7 @@ function serializePublicAuthUser(user: {
   status: string
   avatar_url: string | null
   zalo_user_id: string | null
+  is_onboarding?: boolean
   telegram_linked: boolean
 }) {
   return {
@@ -37,6 +39,7 @@ function serializePublicAuthUser(user: {
     phone: user.phone,
     role: user.role,
     status: user.status,
+    onBoarding: user.is_onboarding,
     avatarUrl: user.avatar_url ?? null,
     zaloUserId: user.zalo_user_id ?? null,
     telegramLinked: user.telegram_linked
@@ -50,6 +53,14 @@ export const loginController = async (
   next: NextFunction
 ) => {
   const response = await authService.login(req.body)
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'login',
+    entityType: 'user',
+    entityId: response.user.id,
+    status: 'success',
+    afterData: { role: response.user.role, status: response.user.status }
+  })
 
   res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -79,6 +90,7 @@ export const patchMeController = async (
   _next: NextFunction
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
+  const beforeUser = await authService.getMe(user_id)
   const body = req.body
   const avatarRaw =
     body.avatarUrl === undefined
@@ -127,6 +139,25 @@ export const patchMeController = async (
   }
 
   const user = await authService.updateMe(user_id, payload)
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'update_profile',
+    entityType: 'user',
+    entityId: user.id,
+    status: 'success',
+    beforeData: {
+      fullName: beforeUser.full_name,
+      phone: beforeUser.phone,
+      avatarUrl: beforeUser.avatar_url,
+      zaloUserId: beforeUser.zalo_user_id
+    },
+    afterData: {
+      fullName: user.full_name,
+      phone: user.phone,
+      avatarUrl: user.avatar_url,
+      zaloUserId: user.zalo_user_id
+    }
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -148,6 +179,13 @@ export const changePasswordController = async (
     currentPassword,
     newPassword
   })
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'change_password',
+    entityType: 'user',
+    entityId: user_id,
+    status: 'success'
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -163,6 +201,14 @@ export const registerController = async (
   next: NextFunction
 ) => {
   const response = await authService.register(req.body)
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'register',
+    entityType: 'user',
+    entityId: response.user.id,
+    status: 'success',
+    afterData: { role: response.user.role, status: response.user.status }
+  })
 
   res.sendResponse({
     statusCode: HTTP_STATUS.CREATED,
@@ -184,6 +230,13 @@ export const refreshTokenController = async (
   const { refreshToken } = req.body
   const { user_id } = req.decoded_refresh_token as TokenPayLoad
   const response = await authService.refreshToken({ user_id, refresh_token: refreshToken })
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'refresh_token',
+    entityType: 'user',
+    entityId: user_id,
+    status: 'success'
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -204,6 +257,13 @@ export const logoutController = async (
   const { user_id } = req.decoded_refresh_token as TokenPayLoad
 
   await authService.logout({ user_id, refresh_token: refreshToken })
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'logout',
+    entityType: 'user',
+    entityId: user_id,
+    status: 'success'
+  })
 
   res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -223,6 +283,13 @@ export const forgotPasswordController = async (
   const { email } = req.body
 
   await authService.forgotPassword(email)
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'forgot_password',
+    entityType: 'user',
+    status: 'success',
+    afterData: { email }
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -241,6 +308,13 @@ export const verifyForgotPasswordController = async (
   const { user_id } = req.decoded_forgot_password_token as TokenPayLoad
 
   await authService.verifyForgotPassword({ user_id, forgot_password_token })
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'verify_forgot_password',
+    entityType: 'user',
+    entityId: user_id,
+    status: 'success'
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -262,6 +336,13 @@ export const resetPasswordController = async (
   await authService.verifyForgotPassword({ user_id, forgot_password_token })
 
   await authService.resetPassword({ user_id, password })
+  await auditService.writeFromRequest(req, {
+    module: 'auth',
+    action: 'reset_password',
+    entityType: 'user',
+    entityId: user_id,
+    status: 'success'
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,

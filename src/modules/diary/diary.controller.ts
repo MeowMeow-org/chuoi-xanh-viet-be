@@ -4,6 +4,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
 import diaryService from './diary.service'
+import diaryScanService from './diary-scan.service'
 import type {
   AddDiaryAttachmentRequestBody,
   CreateDiaryRequestBody,
@@ -179,5 +180,19 @@ export const deleteDiaryController = async (req: Request<ParamsDictionary>, res:
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.DELETE_DIARY_SUCCESS,
     data: null
+  })
+}
+
+export const scanDiaryController = async (req: Request<ParamsDictionary>, res: Response, next: NextFunction) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const result = await diaryScanService.scanSeason({
+    userId: user_id,
+    seasonId: req.params.season_id as string
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.DIARY_SCAN_SUCCESS,
+    data: result
   })
 }

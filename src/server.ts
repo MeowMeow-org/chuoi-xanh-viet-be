@@ -14,6 +14,7 @@ import { startAnchorWorker } from './modules/anchor/anchor.worker'
 import { startCertificateExpiryWorker } from './modules/certificate/certificate.worker'
 import { startInspectionDueWorker } from './modules/inspection/inspection.worker'
 import { registerChatSocket } from './modules/chat/chat.socket'
+import { auditRequestContextMiddleware } from './modules/audit/audit.middleware'
 
 const app = express()
 // Sau reverse proxy (Nginx): req.secure / IP client đúng khi có X-Forwarded-Proto.
@@ -37,6 +38,7 @@ app.use((req, res, next) => {
   next()
 })
 
+app.use(auditRequestContextMiddleware)
 app.use(loggerMiddleware)
 
 app.use(express.json())

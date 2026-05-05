@@ -39,6 +39,11 @@ declare module 'express' {
       role: user_role
       status: account_status
     }
+    audit_context?: {
+      request_id: string
+      source: 'api' | 'worker' | 'script'
+      started_at: string
+    }
   }
 }
 

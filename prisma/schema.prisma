@@ -102,6 +102,10 @@ model farms {
   province                      String?                          @db.VarChar(100)
   district                      String?                          @db.VarChar(100)
   ward                          String?                          @db.VarChar(100)
+  /// Code hành chính theo provinces.open-api.vn. NULL = chưa chuẩn hóa (dữ liệu cũ).
+  province_code                 Int?
+  district_code                 Int?
+  ward_code                     Int?
   address                       String?
   latitude                      Decimal?                         @db.Decimal(10, 7)
   longitude                     Decimal?                         @db.Decimal(10, 7)
@@ -115,6 +119,9 @@ model farms {
   shops                         shops?
   farm_certificates             farm_certificates[]
   cooperative_certificate_scope cooperative_certificate_scope[]
+
+  @@index([province_code], map: "idx_farms_province_code")
+  @@index([province_code, district_code, ward_code], map: "idx_farms_admin_codes")
 }
 
 model cooperative_members {
@@ -163,7 +170,16 @@ model orders {
   total_amount     Decimal        @default(0) @db.Decimal(12, 2)
   shipping_name    String?        @db.VarChar(120)
   shipping_phone   String?        @db.VarChar(20)
+  /// Địa chỉ giao hàng dạng text gộp (legacy / backward-compat). Service mới sẽ ghi kèm các field _code/_name/detail bên dưới.
   shipping_address String?
+  shipping_province_code Int?
+  shipping_district_code Int?
+  shipping_ward_code     Int?
+  shipping_province_name String? @db.VarChar(120)
+  shipping_district_name String? @db.VarChar(120)
+  shipping_ward_name     String? @db.VarChar(120)
+  /// Số nhà / đường (không lặp tỉnh-quận-xã).
+  shipping_detail        String?
   note             String?
   payos_order_code String?        @unique @db.VarChar(64)
   created_at       DateTime       @default(now()) @db.Timestamp(6)
@@ -416,6 +432,8 @@ model users {
   role                               user_role             @default(farmer)
   status                             account_status        @default(active)
   reset_password_token               String?               @db.VarChar(255)
+  /** true = còn trong flow onboarding (chưa xong); false = đã xong. */
+  is_onboarding                      Boolean               @default(true)
   created_at                         DateTime              @default(now()) @db.Timestamp(6)
   updated_at                         DateTime              @default(now()) @db.Timestamp(6)
   diary_entries                      diary_entries[]
@@ -437,9 +455,10 @@ model users {
   cooperative_certificates_owned     cooperative_certificates[]     @relation("coop_cert_owner")
   cooperative_certificates_revoked   cooperative_certificates[]     @relation("coop_cert_revoker")
   cooperative_certificate_scope_added cooperative_certificate_scope[] @relation("coop_cert_scope_added_by")
-  farm_certificates_reviewed         farm_certificates[]            @relation("farm_cert_reviewer_user")
-  farm_certificates_reviewer_coop    farm_certificates[]            @relation("farm_cert_reviewer_coop")
-  telegram_link_tokens               telegram_link_tokens[]
+  farm_certificates_reviewed          farm_certificates[]             @relation("farm_cert_reviewer_user")
+  farm_certificates_reviewer_coop     farm_certificates[]             @relation("farm_cert_reviewer_coop")
+  telegram_link_tokens                telegram_link_tokens[]
+  audit_logs_actor                    audit_logs[]                    @relation("audit_logs_actor")
 }
 
 /// Mã một lần (deep link t.me/bot?start=...) để gắn telegram_chat_id cho user đã đăng nhập
@@ -452,6 +471,36 @@ model telegram_link_tokens {
 
   @@index([user_id], map: "idx_telegram_link_user")
   @@index([expires_at], map: "idx_telegram_link_expires")
+}
+
+model audit_logs {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_user_id String?  @db.Uuid
+  actor_role    user_role?
+  source        String   @default("api") @db.VarChar(20)
+  module        String   @db.VarChar(60)
+  action        String   @db.VarChar(80)
+  entity_type   String?  @db.VarChar(80)
+  entity_id     String?  @db.Uuid
+  status        String   @db.VarChar(20)
+  before_data   Json?
+  after_data    Json?
+  diff_data     Json?
+  request_id    String?  @db.VarChar(80)
+  ip_address    String?  @db.VarChar(64)
+  user_agent    String?
+  path          String?  @db.VarChar(2048)
+  method        String?  @db.VarChar(10)
+  error_code    String?  @db.VarChar(120)
+  error_message String?
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+
+  actor users? @relation("audit_logs_actor", fields: [actor_user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_audit_logs_actor")
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_logs_created")
+  @@index([module, created_at(sort: Desc)], map: "idx_audit_logs_module_created")
+  @@index([actor_user_id, created_at(sort: Desc)], map: "idx_audit_logs_actor_created")
+  @@index([entity_type, entity_id, created_at(sort: Desc)], map: "idx_audit_logs_entity_created")
 }
 
 model user_notifications {

@@ -39,9 +39,14 @@ export interface GetPublicProductsQuery {
   page?: string
   limit?: string
   searchTerm?: string
+  /** @deprecated dùng province_code để filter chính xác. Giữ để backward-compat. */
   province?: string
   district?: string
   ward?: string
+  /** Code hành chính theo provinces.open-api.vn (số nguyên dương) */
+  province_code?: string
+  district_code?: string
+  ward_code?: string
   shopId?: string
   /** newest | price_asc | price_desc */
   sort?: string
@@ -53,9 +58,13 @@ export interface GetShopsQuery {
   page?: string
   limit?: string
   searchTerm?: string
+  /** @deprecated dùng province_code để filter chính xác. */
   province?: string
   district?: string
   ward?: string
+  province_code?: string
+  district_code?: string
+  ward_code?: string
 }
 
 /** GET /shop/farm-locations — lọc theo địa phương giống chợ */

@@ -4,7 +4,6 @@ import {
   accessTokenValidator,
   requireAdmin,
   requireCooperative,
-  requireCooperativeOrAdmin,
   requireFarmer
 } from '../auth/auth.middleware'
 import {
@@ -29,7 +28,6 @@ import {
   getFarmBadgesController,
   listMyCoopCertsController,
   listMyFarmCertsController,
-  listPendingFarmCertsForAdminController,
   listPendingFarmCertsForCoopController,
   listEligibleMembersForScopeController,
   listScopeOfCertController,
@@ -162,20 +160,11 @@ certificateRouter.get(
   wrapAsync(listPendingFarmCertsForCoopController)
 )
 
-// Admin: chờ duyệt (farm độc lập nộp)
-certificateRouter.get(
-  '/farm/pending/admin',
-  accessTokenValidator,
-  requireAdmin,
-  listQueryValidator,
-  wrapAsync(listPendingFarmCertsForAdminController)
-)
-
-// HTX hoặc admin duyệt (service kiểm tra scope)
+// HTX duyệt (service kiểm tra người duyệt được chỉ định)
 certificateRouter.post(
   '/farm/:certificateId/approve',
   accessTokenValidator,
-  requireCooperativeOrAdmin,
+  requireCooperative,
   certIdParamValidator,
   approveFarmCertBodyValidator,
   wrapAsync(approveFarmCertController)
@@ -184,7 +173,7 @@ certificateRouter.post(
 certificateRouter.post(
   '/farm/:certificateId/reject',
   accessTokenValidator,
-  requireCooperativeOrAdmin,
+  requireCooperative,
   certIdParamValidator,
   rejectBodyValidator,
   wrapAsync(rejectFarmCertController)
