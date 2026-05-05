@@ -17,6 +17,21 @@ import {
 const PAYOS_PAYMENT_DESCRIPTION_MAX_LEN = 25
 const PAYOS_ITEM_NAME_MAX_LEN = 25
 
+/** Thời gian sống link thanh toán PayOS (phút). Biến môi trường: PAYOS_LINK_TTL_MINUTES (mặc định 15). */
+const PAYOS_LINK_TTL_MINUTES = (() => {
+  const raw = process.env.PAYOS_LINK_TTL_MINUTES
+  if (raw === undefined || raw === '') return 15
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return 15
+  return Math.max(1, Math.min(24 * 60, Math.floor(n)))
+})()
+
+/** Unix giây (Int32) gửi lên PayOS làm expiredAt. */
+function payosLinkExpiredAtUnixSeconds(): number {
+  const sec = Math.floor(Date.now() / 1000) + PAYOS_LINK_TTL_MINUTES * 60
+  return Math.min(sec, 2_147_483_647)
+}
+
 function clipPayosText(raw: string, maxLen: number): string {
   return raw.replace(/\s+/g, ' ').trim().slice(0, maxLen)
 }
@@ -123,6 +138,8 @@ const orderSelect = {
   shipping_ward_name: true,
   shipping_detail: true,
   note: true,
+  payos_order_code: true,
+  payos_link_expires_at: true,
   created_at: true,
   updated_at: true,
   shops: {
@@ -460,6 +477,9 @@ class OrderService {
     )
     const payosItems = buildPayosItemsFromOrder(created, amountVnd)
 
+    const expiredAtUnix = payosLinkExpiredAtUnixSeconds()
+    const payosExpiresAtDate = new Date(expiredAtUnix * 1000)
+
     try {
       const linkResp = await createPayosPaymentLink({
         orderCode,
@@ -467,12 +487,17 @@ class OrderService {
         description: payosDescription,
         returnUrl,
         cancelUrl,
-        items: payosItems
+        items: payosItems,
+        expiredAt: expiredAtUnix
       })
 
       const refreshed = await prisma.orders.update({
         where: { id: created.id },
-        data: { payos_order_code: String(orderCode), updated_at: new Date() },
+        data: {
+          payos_order_code: String(orderCode),
+          payos_link_expires_at: payosExpiresAtDate,
+          updated_at: new Date()
+        },
         select: orderSelect
       })
 
@@ -679,7 +704,8 @@ class OrderService {
         payment_method: true,
         payment_status: true,
         status: true,
-        payos_order_code: true
+        payos_order_code: true,
+        payos_link_expires_at: true
       }
     })
 
@@ -699,6 +725,12 @@ class OrderService {
       throw new ErrorWithStatus({
         status: HTTP_STATUS.BAD_REQUEST,
         message: USER_MESSAGES.ORDER_PAYOS_RESUME_NOT_PENDING
+      })
+    }
+    if (order.payos_link_expires_at && order.payos_link_expires_at.getTime() <= Date.now()) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.ORDER_PAYOS_RESUME_LINK_DEAD
       })
     }
     const codeRaw = order.payos_order_code?.trim()
@@ -754,6 +786,107 @@ class OrderService {
       throw new ErrorWithStatus({
         status: HTTP_STATUS.BAD_GATEWAY,
         message: USER_MESSAGES.ORDER_PAYOS_RESUME_FETCH_FAILED
+      })
+    }
+  }
+
+  /**
+   * Huỷ link PayOS hiện tại (nếu còn) và tạo payment request mới — dùng khi link đã hết hạn,
+   * mã orderCode PayOS mới, TTL giống lúc đặt đơn.
+   */
+  renewPayosPaymentForBuyer = async ({
+    orderId,
+    buyerUserId
+  }: {
+    orderId: string
+    buyerUserId: string
+  }) => {
+    const order = await prisma.orders.findFirst({
+      where: { id: orderId, buyer_user_id: buyerUserId },
+      select: orderSelect
+    })
+
+    if (!order) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.ORDER_NOT_FOUND
+      })
+    }
+    if (order.payment_method !== 'payos') {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.ORDER_PAYOS_RESUME_NOT_APPLICABLE
+      })
+    }
+    if (order.payment_status !== 'pending' || order.status !== 'pending') {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.ORDER_PAYOS_RESUME_NOT_PENDING
+      })
+    }
+
+    const amountVnd = Math.round(Number(order.total_amount))
+    if (amountVnd < 2000) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.ORDER_PAYOS_MIN_AMOUNT
+      })
+    }
+
+    const oldCode = order.payos_order_code?.trim()
+    if (oldCode) {
+      try {
+        await cancelPayosPaymentByOrderCode(oldCode, 'Tạo link thanh toán mới')
+      } catch (e) {
+        console.warn('PayOS cancel before renew:', e)
+      }
+    }
+
+    const orderCode = generatePayosOrderCode()
+    const expiredAtUnix = payosLinkExpiredAtUnixSeconds()
+    const payosExpiresAtDate = new Date(expiredAtUnix * 1000)
+
+    const baseUrl = (
+      process.env.PUBLIC_APP_URL || process.env.FRONTEND_URL || 'http://localhost:3000'
+    ).replace(/\/$/, '')
+    const returnUrl = `${baseUrl}/consumer/orders/${order.id}`
+    const cancelUrl = `${baseUrl}/consumer/cart`
+    const shopLabel = order.shops?.name ?? 'Gian hàng'
+    const firstProductName = order.order_items?.[0]?.products?.name
+    const payosDescription = clipPayosText(
+      firstProductName && firstProductName.length > 0 ? firstProductName : `DH ${shopLabel}`,
+      PAYOS_PAYMENT_DESCRIPTION_MAX_LEN
+    )
+    const payosItems = buildPayosItemsFromOrder(order, amountVnd)
+
+    try {
+      const linkResp = await createPayosPaymentLink({
+        orderCode,
+        amount: amountVnd,
+        description: payosDescription,
+        returnUrl,
+        cancelUrl,
+        items: payosItems,
+        expiredAt: expiredAtUnix
+      })
+
+      await prisma.orders.update({
+        where: { id: orderId },
+        data: {
+          payos_order_code: String(orderCode),
+          payos_link_expires_at: payosExpiresAtDate,
+          updated_at: new Date()
+        }
+      })
+
+      const detail = await this.getOrderById({ orderId, userId: buyerUserId })
+      return { order: detail, checkoutUrl: linkResp.checkoutUrl }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('PayOS renew payment link failed', msg, err)
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_GATEWAY,
+        message: USER_MESSAGES.ORDER_PAYOS_LINK_FAILED
       })
     }
   }

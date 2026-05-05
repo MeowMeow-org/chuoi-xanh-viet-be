@@ -40,17 +40,7 @@ export const loginController = async (
     data: {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
-      user: {
-        id: response.user.id,
-        fullName: response.user.full_name,
-        email: response.user.email,
-        phone: response.user.phone,
-        role: response.user.role,
-        status: response.user.status,
-        onBoarding: response.user.is_onboarding,
-        avatarUrl: response.user.avatar_url ?? null,
-        zaloUserId: response.user.zalo_user_id ?? null
-      }
+      user: response.user
     }
   })
 }
@@ -62,17 +52,7 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_ME_SUCCESS,
-    data: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      status: user.status,
-      onBoarding: user.is_onboarding,
-      avatarUrl: user.avatar_url ?? null,
-      zaloUserId: user.zalo_user_id ?? null
-    }
+    data: user
   })
 }
 
@@ -106,11 +86,31 @@ export const patchMeController = async (
             : body.zaloUserId.trim()
           : undefined
 
+  const contactRaw =
+    body.contactAddress === undefined
+      ? undefined
+      : body.contactAddress === null
+        ? null
+        : typeof body.contactAddress === 'string'
+          ? body.contactAddress.trim() === ''
+            ? null
+            : body.contactAddress.trim()
+          : undefined
+
   const payload: {
     avatar_url?: string | null
     full_name?: string
     phone?: string
     zalo_user_id?: string | null
+    contact_address?: string | null
+    province?: string | null
+    district?: string | null
+    ward?: string | null
+    province_code?: number | null
+    district_code?: number | null
+    ward_code?: number | null
+    latitude?: number | null
+    longitude?: number | null
   } = {}
 
   if (avatarRaw !== undefined) {
@@ -125,6 +125,47 @@ export const patchMeController = async (
   if (zaloRaw !== undefined) {
     payload.zalo_user_id = zaloRaw
   }
+  if (contactRaw !== undefined) {
+    payload.contact_address = contactRaw
+  }
+
+  const strOrNull = (v: unknown): string | null | undefined => {
+    if (v === undefined) return undefined
+    if (v === null) return null
+    if (typeof v === 'string') return v
+    return undefined
+  }
+  const codeOrNull = (v: unknown): number | null | undefined => {
+    if (v === undefined) return undefined
+    if (v === null) return null
+    if (typeof v === 'number' && Number.isInteger(v) && v > 0) return v
+    return undefined
+  }
+  const coordOrNull = (v: unknown): number | null | undefined => {
+    if (v === undefined) return undefined
+    if (v === null) return null
+    if (typeof v === 'number' && Number.isFinite(v)) return v
+    return undefined
+  }
+
+  const p = strOrNull(body.province)
+  if (p !== undefined) payload.province = p
+  const d = strOrNull(body.district)
+  if (d !== undefined) payload.district = d
+  const w = strOrNull(body.ward)
+  if (w !== undefined) payload.ward = w
+
+  const pc = codeOrNull(body.provinceCode)
+  if (pc !== undefined) payload.province_code = pc
+  const dc = codeOrNull(body.districtCode)
+  if (dc !== undefined) payload.district_code = dc
+  const wc = codeOrNull(body.wardCode)
+  if (wc !== undefined) payload.ward_code = wc
+
+  const lat = coordOrNull(body.latitude)
+  const lng = coordOrNull(body.longitude)
+  if (lat !== undefined) payload.latitude = lat
+  if (lng !== undefined) payload.longitude = lng
 
   const user = await authService.updateMe(user_id, payload)
   await auditService.writeFromRequest(req, {
@@ -134,33 +175,31 @@ export const patchMeController = async (
     entityId: user.id,
     status: 'success',
     beforeData: {
-      fullName: beforeUser.full_name,
+      fullName: beforeUser.fullName,
       phone: beforeUser.phone,
-      avatarUrl: beforeUser.avatar_url,
-      zaloUserId: beforeUser.zalo_user_id
+      avatarUrl: beforeUser.avatarUrl,
+      zaloUserId: beforeUser.zaloUserId,
+      contactAddress: beforeUser.contactAddress,
+      provinceCode: beforeUser.provinceCode,
+      districtCode: beforeUser.districtCode,
+      wardCode: beforeUser.wardCode
     },
     afterData: {
-      fullName: user.full_name,
+      fullName: user.fullName,
       phone: user.phone,
-      avatarUrl: user.avatar_url,
-      zaloUserId: user.zalo_user_id
+      avatarUrl: user.avatarUrl,
+      zaloUserId: user.zaloUserId,
+      contactAddress: user.contactAddress,
+      provinceCode: user.provinceCode,
+      districtCode: user.districtCode,
+      wardCode: user.wardCode
     }
   })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.UPDATE_PROFILE_SUCCESS,
-    data: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      status: user.status,
-      onBoarding: user.is_onboarding,
-      avatarUrl: user.avatar_url ?? null,
-      zaloUserId: user.zalo_user_id ?? null
-    }
+    data: user
   })
 }
 
@@ -214,17 +253,7 @@ export const registerController = async (
     data: {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
-      user: {
-        id: response.user.id,
-        fullName: response.user.full_name,
-        email: response.user.email,
-        phone: response.user.phone,
-        role: response.user.role,
-        status: response.user.status,
-        onBoarding: response.user.is_onboarding,
-        avatarUrl: response.user.avatar_url ?? null,
-        zaloUserId: response.user.zalo_user_id ?? null
-      }
+      user: response.user
     }
   })
 }

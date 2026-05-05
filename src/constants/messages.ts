@@ -25,6 +25,9 @@ const USER_MESSAGES = {
   UPDATE_PROFILE_SUCCESS: 'Cập nhật hồ sơ thành công',
 
   ZALO_USER_ID_INVALID: 'zaloUserId phải gồm 1–50 chữ số (ID người dùng Zalo OA)',
+  CONTACT_ADDRESS_INVALID: 'Địa chỉ liên hệ tối đa 500 ký tự',
+
+  COOP_HQ_COORDINATES_INVALID: 'latitude và longitude phải là số hợp lệ (lat −90…90, lng −180…180), hoặc gửi null cho cả hai để xóa.',
 
   CHANGE_PASSWORD_SUCCESS: 'Đổi mật khẩu thành công',
 
@@ -179,6 +182,14 @@ const USER_MESSAGES = {
   FORBIDDEN_NOT_FARMER: 'Chỉ tài khoản nông dân mới thực hiện được thao tác này',
 
   FARM_NAME_IS_REQUIRED: 'Vui lòng nhập tên nông trại',
+
+  FARM_GPS_INVALID:
+    'Tọa độ nông trại không hợp lệ (ví dụ 0,0 hoặc ngoài Việt Nam). Kiểm tra địa chỉ và geocode.',
+
+  FARM_GPS_REQUIRED: 'Vui lòng gửi tọa độ nông trại hợp lệ (latitude và longitude).',
+
+  FARM_ADDRESS_DETAIL_IS_REQUIRED:
+    'Vui lòng nhập số nhà và đường (địa chỉ chi tiết, không ghi lại tỉnh/quận/xã)',
 
   COOPERATIVE_USER_ID_IS_REQUIRED: 'Vui lòng nhập ID tài khoản HTX',
 
@@ -362,6 +373,8 @@ const USER_MESSAGES = {
 
   GET_PAYOS_RESUME_SUCCESS: 'Lấy lại link thanh toán PayOS thành công',
 
+  ORDER_PAYOS_RENEW_SUCCESS: 'Đã tạo link thanh toán PayOS mới',
+
   CANCEL_ORDER_SUCCESS: 'Huỷ đơn hàng thành công',
 
   UPDATE_ORDER_STATUS_SUCCESS: 'Cập nhật trạng thái đơn hàng thành công',
@@ -395,7 +408,7 @@ const USER_MESSAGES = {
   ORDER_PAYOS_RESUME_NO_CODE: 'Không có mã giao dịch PayOS cho đơn này.',
 
   ORDER_PAYOS_RESUME_LINK_DEAD:
-    'Link thanh toán PayOS đã hủy hoặc hết hạn. Bạn có thể hủy đơn trên app và đặt lại.',
+    'Link thanh toán PayOS đã hết hạn hoặc không còn hiệu lực. Bấm «Tạo link thanh toán mới» trên trang đơn hàng (hoặc hủy đơn và đặt lại).',
 
   ORDER_PAYOS_RESUME_FETCH_FAILED:
     'Không lấy lại được thông tin thanh toán từ PayOS. Vui lòng thử lại sau.',

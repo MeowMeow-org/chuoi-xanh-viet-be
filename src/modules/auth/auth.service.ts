@@ -1,4 +1,4 @@
-import type { Prisma, account_status, user_role } from '@prisma/client'
+import { Prisma, type account_status, type user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
 import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
@@ -8,6 +8,27 @@ import { TokenType } from '~/constants/enums'
 import { signToken } from '~/utils/jwt'
 import { sendResetPasswordEmail } from '~/utils/email'
 import ms, { StringValue } from 'ms'
+
+export type AuthPublicUser = {
+  id: string
+  fullName: string
+  email: string | null
+  phone: string
+  role: user_role
+  status: account_status
+  onBoarding: boolean
+  avatarUrl: string | null
+  zaloUserId: string | null
+  contactAddress: string | null
+  province: string | null
+  district: string | null
+  ward: string | null
+  provinceCode: number | null
+  districtCode: number | null
+  wardCode: number | null
+  latitude: number | null
+  longitude: number | null
+}
 
 class AuthService {
   private getRefreshTokenExpiresAt() {
@@ -85,6 +106,48 @@ class AuthService {
     return { access_token, refresh_token }
   }
 
+  private toAuthUser(u: {
+    id: string
+    full_name: string
+    email: string | null
+    phone: string
+    role: user_role
+    status: account_status
+    is_onboarding: boolean
+    avatar_url: string | null
+    zalo_user_id: string | null
+    contact_address: string | null
+    province: string | null
+    district: string | null
+    ward: string | null
+    province_code: number | null
+    district_code: number | null
+    ward_code: number | null
+    latitude: Prisma.Decimal | null
+    longitude: Prisma.Decimal | null
+  }): AuthPublicUser {
+    return {
+      id: u.id,
+      fullName: u.full_name,
+      email: u.email,
+      phone: u.phone,
+      role: u.role,
+      status: u.status,
+      onBoarding: u.is_onboarding,
+      avatarUrl: u.avatar_url ?? null,
+      zaloUserId: u.zalo_user_id ?? null,
+      contactAddress: u.contact_address ?? null,
+      province: u.province ?? null,
+      district: u.district ?? null,
+      ward: u.ward ?? null,
+      provinceCode: u.province_code ?? null,
+      districtCode: u.district_code ?? null,
+      wardCode: u.ward_code ?? null,
+      latitude: u.latitude != null ? Number(u.latitude) : null,
+      longitude: u.longitude != null ? Number(u.longitude) : null
+    }
+  }
+
   login = async (payload: LoginRequestBody) => {
     const { email, password } = payload
     const user = await prisma.users.findFirst({
@@ -118,17 +181,7 @@ class AuthService {
     return {
       access_token,
       refresh_token,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        is_onboarding: user.is_onboarding,
-        avatar_url: user.avatar_url ?? null,
-        zalo_user_id: user.zalo_user_id ?? null
-      }
+      user: this.toAuthUser(user)
     }
   }
 
@@ -174,17 +227,7 @@ class AuthService {
     return {
       access_token,
       refresh_token,
-      user: {
-        id: user.id,
-        full_name: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        is_onboarding: user.is_onboarding,
-        avatar_url: user.avatar_url ?? null,
-        zalo_user_id: user.zalo_user_id ?? null
-      }
+      user: this.toAuthUser(user)
     }
   }
 
@@ -281,19 +324,7 @@ class AuthService {
     }
   }
 
-  getMe = async (
-    user_id: string
-  ): Promise<{
-    id: string
-    full_name: string
-    email: string | null
-    phone: string
-    role: user_role
-    status: account_status
-    is_onboarding: boolean
-    avatar_url: string | null
-    zalo_user_id: string | null
-  }> => {
+  getMe = async (user_id: string): Promise<AuthPublicUser> => {
     const user = await prisma.users.findUnique({
       where: { id: user_id },
       select: {
@@ -305,7 +336,16 @@ class AuthService {
         status: true,
         is_onboarding: true,
         avatar_url: true,
-        zalo_user_id: true
+        zalo_user_id: true,
+        contact_address: true,
+        province: true,
+        district: true,
+        ward: true,
+        province_code: true,
+        district_code: true,
+        ward_code: true,
+        latitude: true,
+        longitude: true
       }
     })
 
@@ -316,11 +356,20 @@ class AuthService {
       })
     }
 
-    return {
+    return this.toAuthUser({
       ...user,
       avatar_url: user.avatar_url ?? null,
-      zalo_user_id: user.zalo_user_id ?? null
-    }
+      zalo_user_id: user.zalo_user_id ?? null,
+      contact_address: user.contact_address ?? null,
+      province: user.province ?? null,
+      district: user.district ?? null,
+      ward: user.ward ?? null,
+      province_code: user.province_code ?? null,
+      district_code: user.district_code ?? null,
+      ward_code: user.ward_code ?? null,
+      latitude: user.latitude ?? null,
+      longitude: user.longitude ?? null
+    })
   }
 
   updateMe = async (
@@ -330,8 +379,29 @@ class AuthService {
       full_name?: string
       phone?: string
       zalo_user_id?: string | null
+      contact_address?: string | null
+      province?: string | null
+      district?: string | null
+      ward?: string | null
+      province_code?: number | null
+      district_code?: number | null
+      ward_code?: number | null
+      latitude?: number | null
+      longitude?: number | null
     }
-  ) => {
+  ): Promise<AuthPublicUser> => {
+    const actor = await prisma.users.findUnique({
+      where: { id: user_id },
+      select: { role: true }
+    })
+    if (actor == null) {
+      throw new ErrorWithStatus({
+        message: USER_MESSAGES.USER_NOT_FOUND,
+        status: HTTP_STATUS.NOT_FOUND
+      })
+    }
+    const isCoop = actor.role === 'cooperative'
+
     const data: Prisma.usersUpdateInput = {}
 
     if (payload.avatar_url !== undefined) {
@@ -404,6 +474,91 @@ class AuthService {
           status: HTTP_STATUS.BAD_REQUEST,
           message: USER_MESSAGES.ZALO_USER_ID_INVALID
         })
+      }
+    }
+
+    if (payload.contact_address !== undefined) {
+      const raw = payload.contact_address
+      if (raw === null || (typeof raw === 'string' && raw.trim() === '')) {
+        data.contact_address = null
+      } else if (typeof raw === 'string') {
+        const v = raw.trim()
+        if (v.length > 500) {
+          throw new ErrorWithStatus({
+            status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            message: USER_MESSAGES.CONTACT_ADDRESS_INVALID
+          })
+        }
+        data.contact_address = v
+      } else {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.BAD_REQUEST,
+          message: USER_MESSAGES.CONTACT_ADDRESS_INVALID
+        })
+      }
+    }
+
+    if (isCoop) {
+      const assignName = (
+        value: string | null | undefined,
+        setter: (v: string | null) => void
+      ) => {
+        if (value === undefined) return
+        if (value === null) {
+          setter(null)
+          return
+        }
+        if (typeof value !== 'string') return
+        const t = value.trim()
+        setter(t === '' ? null : t.length > 100 ? t.slice(0, 100) : t)
+      }
+
+      assignName(payload.province, (v) => {
+        data.province = v
+      })
+      assignName(payload.district, (v) => {
+        data.district = v
+      })
+      assignName(payload.ward, (v) => {
+        data.ward = v
+      })
+
+      if (payload.province_code !== undefined) {
+        data.province_code = payload.province_code
+      }
+      if (payload.district_code !== undefined) {
+        data.district_code = payload.district_code
+      }
+      if (payload.ward_code !== undefined) {
+        data.ward_code = payload.ward_code
+      }
+
+      if (payload.latitude !== undefined || payload.longitude !== undefined) {
+        const la = payload.latitude
+        const lo = payload.longitude
+        if (la === null || lo === null) {
+          data.latitude = null
+          data.longitude = null
+        } else if (
+          typeof la === 'number' &&
+          Number.isFinite(la) &&
+          typeof lo === 'number' &&
+          Number.isFinite(lo)
+        ) {
+          if (la < -90 || la > 90 || lo < -180 || lo > 180) {
+            throw new ErrorWithStatus({
+              status: HTTP_STATUS.BAD_REQUEST,
+              message: USER_MESSAGES.COOP_HQ_COORDINATES_INVALID
+            })
+          }
+          data.latitude = new Prisma.Decimal(la)
+          data.longitude = new Prisma.Decimal(lo)
+        } else {
+          throw new ErrorWithStatus({
+            status: HTTP_STATUS.BAD_REQUEST,
+            message: USER_MESSAGES.COOP_HQ_COORDINATES_INVALID
+          })
+        }
       }
     }
 

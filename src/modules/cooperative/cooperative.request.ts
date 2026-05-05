@@ -5,6 +5,8 @@ export interface GetHtxListQuery {
   searchTerm?: string
   /** UUID một hợp tác xã */
   id?: string
+  /** Lọc theo tỉnh của nông trại (id nông trại) — dùng cho màn hình farmer chọn HTX */
+  farmId?: string
 }
 
 /** Query for GET /cooperative/members (HTX scope) */

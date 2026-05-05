@@ -400,6 +400,100 @@ export const patchMeValidator = validate(
           },
           errorMessage: USER_MESSAGES.ZALO_USER_ID_INVALID
         }
+      },
+      contactAddress: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            if (typeof value !== 'string') return false
+            return value.trim().length <= 500
+          },
+          errorMessage: USER_MESSAGES.CONTACT_ADDRESS_INVALID
+        }
+      },
+      province: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            if (typeof value !== 'string') return false
+            return value.trim().length <= 100
+          },
+          errorMessage: 'province must be at most 100 characters'
+        }
+      },
+      district: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            if (typeof value !== 'string') return false
+            return value.trim().length <= 100
+          },
+          errorMessage: 'district must be at most 100 characters'
+        }
+      },
+      ward: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            if (typeof value !== 'string') return false
+            return value.trim().length <= 100
+          },
+          errorMessage: 'ward must be at most 100 characters'
+        }
+      },
+      provinceCode: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            return typeof value === 'number' && Number.isInteger(value) && value > 0
+          },
+          errorMessage: 'provinceCode must be a positive integer'
+        }
+      },
+      districtCode: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            return typeof value === 'number' && Number.isInteger(value) && value > 0
+          },
+          errorMessage: 'districtCode must be a positive integer'
+        }
+      },
+      wardCode: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            return typeof value === 'number' && Number.isInteger(value) && value > 0
+          },
+          errorMessage: 'wardCode must be a positive integer'
+        }
+      },
+      latitude: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            return typeof value === 'number' && value >= -90 && value <= 90
+          },
+          errorMessage: 'latitude must be between -90 and 90'
+        }
+      },
+      longitude: {
+        optional: true,
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined || value === null) return true
+            return typeof value === 'number' && value >= -180 && value <= 180
+          },
+          errorMessage: 'longitude must be between -180 and 180'
+        }
       }
     },
     ['body']

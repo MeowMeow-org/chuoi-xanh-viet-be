@@ -32,6 +32,12 @@ export const getHtxListQueryValidator = validate(
         isUUID: {
           errorMessage: 'id must be a valid UUID'
         }
+      },
+      farmId: {
+        optional: true,
+        isUUID: {
+          errorMessage: 'farmId must be a valid UUID'
+        }
       }
     },
     ['query']

@@ -43,6 +43,17 @@ export interface PatchMeRequestBody {
   phone?: string
   /** Zalo user_id (OA) để nhận tin nhắn từ Official Account — lấy sau khi user quan tâm OA. Gửi null hoặc rỗng để bỏ liên kết. */
   zaloUserId?: string | null
+  /** Địa chỉ trụ sở / liên hệ HTX (hiển thị cho nông dân khi HTX xét duyệt chứng chỉ). */
+  contactAddress?: string | null
+  /** Trụ sở HTX — tên + mã địa giới (chỉ HTX được ghi xuống DB). */
+  province?: string | null
+  district?: string | null
+  ward?: string | null
+  provinceCode?: number | null
+  districtCode?: number | null
+  wardCode?: number | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export interface ChangePasswordRequestBody {

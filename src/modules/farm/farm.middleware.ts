@@ -110,9 +110,15 @@ export const createFarmBodyValidator = validate(
         toInt: true
       },
       address: {
-        optional: true,
         isString: true,
-        trim: true
+        trim: true,
+        notEmpty: {
+          errorMessage: USER_MESSAGES.FARM_ADDRESS_DETAIL_IS_REQUIRED
+        },
+        isLength: {
+          options: { max: 1000 },
+          errorMessage: 'address must be at most 1000 characters'
+        }
       },
       latitude: {
         optional: true,
@@ -226,9 +232,17 @@ export const updateFarmBodyValidator = validate(
         toInt: true
       },
       address: {
-        optional: true,
-        isString: true,
-        trim: true
+        custom: {
+          options: (value: unknown) => {
+            if (value === undefined) return true
+            if (typeof value !== 'string') return false
+            const t = value.trim()
+            if (t.length === 0) return false
+            if (t.length > 1000) return false
+            return true
+          },
+          errorMessage: USER_MESSAGES.FARM_ADDRESS_DETAIL_IS_REQUIRED
+        }
       },
       latitude: {
         optional: true,
