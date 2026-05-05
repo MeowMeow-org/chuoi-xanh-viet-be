@@ -15,6 +15,9 @@ const mapFarmRow = (farm: {
   province: string | null
   district: string | null
   ward: string | null
+  province_code: number | null
+  district_code: number | null
+  ward_code: number | null
   address: string | null
   latitude: unknown
   longitude: unknown
@@ -30,6 +33,9 @@ const mapFarmRow = (farm: {
   province: farm.province,
   district: farm.district,
   ward: farm.ward,
+  provinceCode: farm.province_code,
+  districtCode: farm.district_code,
+  wardCode: farm.ward_code,
   address: farm.address,
   latitude: farm.latitude,
   longitude: farm.longitude,

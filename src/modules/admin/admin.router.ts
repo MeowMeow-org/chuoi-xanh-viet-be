@@ -10,6 +10,8 @@ import {
 import {
   getDashboardSummaryController,
   getUserByIdController,
+  listFarmsMissingAddressCodeController,
+  listOrdersMissingAddressCodeController,
   listUsersController,
   patchUserStatusController,
   postBroadcastNotificationsController
@@ -39,6 +41,16 @@ adminRouter.post(
   '/notifications/broadcast',
   adminBroadcastBodyValidator,
   wrapAsync(postBroadcastNotificationsController)
+)
+
+/** Quan trắc địa chỉ chuẩn hóa: hồ sơ farm/order còn thiếu *_code để admin fix tay. */
+adminRouter.get(
+  '/farms/missing-address-code',
+  wrapAsync(listFarmsMissingAddressCodeController)
+)
+adminRouter.get(
+  '/orders/missing-address-code',
+  wrapAsync(listOrdersMissingAddressCodeController)
 )
 
 export default adminRouter

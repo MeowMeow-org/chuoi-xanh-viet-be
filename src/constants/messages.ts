@@ -528,7 +528,11 @@ const USER_MESSAGES = {
 
   ADMIN_BROADCAST_EMPTY_AUDIENCE: 'Không có người nhận phù hợp với đối tượng đã chọn',
 
-  ADMIN_BROADCAST_AUDIENCE_INVALID: 'Đối tượng phải là: all, consumers, farmers, hoặc cooperatives'
+  ADMIN_BROADCAST_AUDIENCE_INVALID: 'Đối tượng phải là: all, consumers, farmers, hoặc cooperatives',
+
+  ADMIN_FARMS_MISSING_ADDRESS_CODE_SUCCESS: 'Lấy danh sách farm thiếu mã địa giới thành công',
+
+  ADMIN_ORDERS_MISSING_ADDRESS_CODE_SUCCESS: 'Lấy danh sách đơn hàng thiếu mã địa giới thành công'
 
 } as const
 

@@ -128,7 +128,22 @@ export const getShopsQueryValidator = validate(
       },
       province: { optional: true, isString: true, trim: true },
       district: { optional: true, isString: true, trim: true },
-      ward: { optional: true, isString: true, trim: true }
+      ward: { optional: true, isString: true, trim: true },
+      province_code: {
+        optional: true,
+        isInt: { options: { gt: 0 }, errorMessage: 'province_code must be a positive integer' },
+        toInt: true
+      },
+      district_code: {
+        optional: true,
+        isInt: { options: { gt: 0 }, errorMessage: 'district_code must be a positive integer' },
+        toInt: true
+      },
+      ward_code: {
+        optional: true,
+        isInt: { options: { gt: 0 }, errorMessage: 'ward_code must be a positive integer' },
+        toInt: true
+      }
     },
     ['query']
   )
@@ -153,6 +168,21 @@ export const getPublicProductsQueryValidator = validate(
       province: { optional: true, isString: true, trim: true },
       district: { optional: true, isString: true, trim: true },
       ward: { optional: true, isString: true, trim: true },
+      province_code: {
+        optional: true,
+        isInt: { options: { gt: 0 }, errorMessage: 'province_code must be a positive integer' },
+        toInt: true
+      },
+      district_code: {
+        optional: true,
+        isInt: { options: { gt: 0 }, errorMessage: 'district_code must be a positive integer' },
+        toInt: true
+      },
+      ward_code: {
+        optional: true,
+        isInt: { options: { gt: 0 }, errorMessage: 'ward_code must be a positive integer' },
+        toInt: true
+      },
       shopId: {
         optional: true,
         isUUID: { errorMessage: 'shopId must be a valid UUID' }

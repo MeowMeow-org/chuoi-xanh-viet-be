@@ -118,8 +118,24 @@ export const getShopsController = async (
   const province = typeof req.query.province === 'string' ? req.query.province : undefined
   const district = typeof req.query.district === 'string' ? req.query.district : undefined
   const ward = typeof req.query.ward === 'string' ? req.query.ward : undefined
+  const provinceCode =
+    req.query.province_code !== undefined ? Number(req.query.province_code) : undefined
+  const districtCode =
+    req.query.district_code !== undefined ? Number(req.query.district_code) : undefined
+  const wardCode =
+    req.query.ward_code !== undefined ? Number(req.query.ward_code) : undefined
 
-  const result = await shopService.getShops({ page, limit, searchTerm, province, district, ward })
+  const result = await shopService.getShops({
+    page,
+    limit,
+    searchTerm,
+    province,
+    district,
+    ward,
+    provinceCode: Number.isFinite(provinceCode) ? provinceCode : undefined,
+    districtCode: Number.isFinite(districtCode) ? districtCode : undefined,
+    wardCode: Number.isFinite(wardCode) ? wardCode : undefined
+  })
 
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -206,6 +222,12 @@ export const getPublicProductsController = async (
   const province = typeof req.query.province === 'string' ? req.query.province : undefined
   const district = typeof req.query.district === 'string' ? req.query.district : undefined
   const ward = typeof req.query.ward === 'string' ? req.query.ward : undefined
+  const provinceCode =
+    req.query.province_code !== undefined ? Number(req.query.province_code) : undefined
+  const districtCode =
+    req.query.district_code !== undefined ? Number(req.query.district_code) : undefined
+  const wardCode =
+    req.query.ward_code !== undefined ? Number(req.query.ward_code) : undefined
   const shopId = typeof req.query.shopId === 'string' ? req.query.shopId : undefined
   const sort = typeof req.query.sort === 'string' ? req.query.sort : undefined
   const minPrice = req.query.minPrice !== undefined ? Number(req.query.minPrice) : undefined
@@ -218,6 +240,9 @@ export const getPublicProductsController = async (
     province,
     district,
     ward,
+    provinceCode: Number.isFinite(provinceCode) ? provinceCode : undefined,
+    districtCode: Number.isFinite(districtCode) ? districtCode : undefined,
+    wardCode: Number.isFinite(wardCode) ? wardCode : undefined,
     shopId,
     sort,
     minPrice: Number.isFinite(minPrice) ? minPrice : undefined,

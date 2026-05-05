@@ -103,3 +103,31 @@ export const postBroadcastNotificationsController = async (
     data
   })
 }
+
+export const listFarmsMissingAddressCodeController = async (
+  req: Request<ParamsDictionary, unknown, unknown, { page?: string; limit?: string }>,
+  res: Response
+) => {
+  const page = req.query.page ? Number(req.query.page) : undefined
+  const limit = req.query.limit ? Number(req.query.limit) : undefined
+  const data = await adminService.listFarmsMissingAddressCode({ page, limit })
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.ADMIN_FARMS_MISSING_ADDRESS_CODE_SUCCESS,
+    data
+  })
+}
+
+export const listOrdersMissingAddressCodeController = async (
+  req: Request<ParamsDictionary, unknown, unknown, { page?: string; limit?: string }>,
+  res: Response
+) => {
+  const page = req.query.page ? Number(req.query.page) : undefined
+  const limit = req.query.limit ? Number(req.query.limit) : undefined
+  const data = await adminService.listOrdersMissingAddressCode({ page, limit })
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.ADMIN_ORDERS_MISSING_ADDRESS_CODE_SUCCESS,
+    data
+  })
+}

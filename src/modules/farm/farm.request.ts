@@ -12,6 +12,10 @@ export interface CreateFarmRequestBody {
   province?: string
   district?: string
   ward?: string
+  /** Code hành chính theo provinces.open-api.vn */
+  province_code?: number
+  district_code?: number
+  ward_code?: number
   address?: string
   latitude?: number
   longitude?: number
@@ -25,6 +29,9 @@ export interface UpdateFarmRequestBody {
   province?: string
   district?: string
   ward?: string
+  province_code?: number
+  district_code?: number
+  ward_code?: number
   address?: string
   latitude?: number
   longitude?: number
