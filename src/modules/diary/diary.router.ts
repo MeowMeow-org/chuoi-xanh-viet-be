@@ -1,5 +1,9 @@
 import { Router } from 'express'
-import { accessTokenValidator, requireFarmer } from '../auth/auth.middleware'
+import {
+  accessTokenValidator,
+  requireFarmer,
+  requireFarmerOrCooperativeOrAdmin
+} from '../auth/auth.middleware'
 import { wrapAsync } from '~/utils/handler'
 import {
   addDiaryAttachmentController,
@@ -8,6 +12,7 @@ import {
   deleteDiaryController,
   getDiariesController,
   getDiaryDetailController,
+  scanDiaryController,
   updateDiaryController
 } from './diary.controller'
 import {
@@ -16,6 +21,7 @@ import {
   diaryAttachmentParamsValidator,
   diaryIdValidator,
   getDiariesQueryValidator,
+  scanSeasonIdValidator,
   updateDiaryValidator
 } from './diary.middleware'
 
@@ -45,6 +51,19 @@ diaryRouter.get(
   requireFarmer,
   getDiariesQueryValidator,
   wrapAsync(getDiariesController)
+)
+
+/**
+ * @desc AI scan all diary entries of a season for violations
+ * @route POST /diary/scan/:season_id
+ * @access private (farmer, cooperative, admin)
+ */
+diaryRouter.post(
+  '/scan/:season_id',
+  accessTokenValidator,
+  requireFarmerOrCooperativeOrAdmin,
+  scanSeasonIdValidator,
+  wrapAsync(scanDiaryController)
 )
 
 /**

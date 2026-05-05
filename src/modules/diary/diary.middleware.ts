@@ -162,6 +162,20 @@ export const updateDiaryValidator = validate(
   )
 )
 
+export const scanSeasonIdValidator = validate(
+  checkSchema(
+    {
+      season_id: {
+        in: ['params'],
+        notEmpty: true,
+        isUUID: true,
+        errorMessage: 'season_id must be a valid UUID'
+      }
+    },
+    ['params']
+  )
+)
+
 export const getDiariesQueryValidator = validate(
   checkSchema(
     {

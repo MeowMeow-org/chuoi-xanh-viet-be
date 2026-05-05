@@ -1124,6 +1124,75 @@
 
 /**
  * @swagger
+ * /v1/api/diary/scan/{season_id}:
+ *   post:
+ *     summary: AI scan diary entries of a season for violations
+ *     description: |
+ *       Dùng OpenAI để quét toàn bộ nhật ký canh tác của một vụ mùa và phát hiện các vi phạm:
+ *       - **BANNED_PESTICIDE**: Sử dụng thuốc BVTV bị cấm (Carbofuran, Paraquat, ...)
+ *       - **PHI_VIOLATION**: Phun thuốc quá gần ngày thu hoạch (< 14 ngày)
+ *       - **SEQUENCE_VIOLATION**: Sai trình tự kỹ thuật (thu hoạch trước khi gieo hạt, ...)
+ *       - **EXCESSIVE_PESTICIDE_FREQUENCY**: Phun thuốc quá nhiều lần trong thời gian ngắn
+ *       - **SUSPICIOUS_DIARY_PATTERN**: Dấu hiệu nhập liệu gian lận (backdating)
+ *       - **MISSING_KEY_ACTIVITY**: Thiếu bước kỹ thuật quan trọng
+ *
+ *       Kết quả được tự động lưu vào nhật ký (event_type=other) nếu vụ mùa chưa anchored.
+ *     tags: [Diary]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: season_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *         description: ID của vụ mùa cần kiểm tra
+ *     responses:
+ *       200:
+ *         description: Kiểm tra nhật ký AI thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: Kiểm tra nhật ký AI thành công }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     seasonId: { type: string, format: uuid }
+ *                     scannedAt: { type: string, format: date-time }
+ *                     overallRisk:
+ *                       type: string
+ *                       enum: [safe, warning, critical]
+ *                       description: safe = không có vấn đề, warning = cần chú ý, critical = vi phạm nghiêm trọng
+ *                     violations:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           severity: { type: string, enum: [info, warning, critical] }
+ *                           code: { type: string, example: BANNED_PESTICIDE }
+ *                           title: { type: string, example: Sử dụng thuốc BVTV bị cấm }
+ *                           detail: { type: string }
+ *                           relatedEntryIds:
+ *                             type: array
+ *                             items: { type: string, format: uuid }
+ *                           recommendation: { type: string }
+ *                     summary: { type: string, description: Tóm tắt kết quả bằng tiếng Việt }
+ *       400:
+ *         description: Vụ mùa chưa có nhật ký canh tác để kiểm tra
+ *       403:
+ *         description: Không có quyền truy cập vụ mùa này
+ *       404:
+ *         description: Không tìm thấy vụ mùa
+ *       422:
+ *         description: season_id không phải UUID hợp lệ
+ *       500:
+ *         description: OpenAI API lỗi
+ */
+
+/**
+ * @swagger
  * /v1/api/upload:
  *   post:
  *     summary: Upload images (proxy to image worker)
