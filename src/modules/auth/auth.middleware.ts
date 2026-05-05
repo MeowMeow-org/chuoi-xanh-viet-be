@@ -373,6 +373,12 @@ export const patchMeValidator = validate(
           },
           errorMessage: USER_MESSAGES.ZALO_USER_ID_INVALID
         }
+      },
+      unlinkTelegram: {
+        optional: true,
+        isBoolean: {
+          errorMessage: 'unlinkTelegram phải là true hoặc false'
+        }
       }
     },
     ['body']

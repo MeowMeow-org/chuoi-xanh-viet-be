@@ -1,5 +1,6 @@
 import type { Prisma, account_status, user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
+import { prismaTelegramLinkTokens } from '~/lib/prismaTelegramLinkTokens'
 import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
 import HTTP_STATUS from '~/constants/httpStatus'
@@ -119,7 +120,8 @@ class AuthService {
         role: user.role,
         status: user.status,
         avatar_url: user.avatar_url ?? null,
-        zalo_user_id: user.zalo_user_id ?? null
+        zalo_user_id: user.zalo_user_id ?? null,
+        telegram_linked: Boolean((user as { telegram_chat_id?: string | null }).telegram_chat_id?.trim())
       }
     }
   }
@@ -174,7 +176,8 @@ class AuthService {
         role: user.role,
         status: user.status,
         avatar_url: user.avatar_url ?? null,
-        zalo_user_id: user.zalo_user_id ?? null
+        zalo_user_id: user.zalo_user_id ?? null,
+        telegram_linked: Boolean((user as { telegram_chat_id?: string | null }).telegram_chat_id?.trim())
       }
     }
   }
@@ -276,8 +279,9 @@ class AuthService {
     status: account_status
     avatar_url: string | null
     zalo_user_id: string | null
+    telegram_linked: boolean
   }> => {
-    const user = await prisma.users.findUnique({
+    const user = (await prisma.users.findUnique({
       where: { id: user_id },
       select: {
         id: true,
@@ -287,9 +291,20 @@ class AuthService {
         role: true,
         status: true,
         avatar_url: true,
-        zalo_user_id: true
-      }
-    })
+        zalo_user_id: true,
+        telegram_chat_id: true
+      } as unknown as Prisma.usersSelect
+    })) as {
+      id: string
+      full_name: string
+      email: string | null
+      phone: string
+      role: user_role
+      status: account_status
+      avatar_url: string | null
+      zalo_user_id: string | null
+      telegram_chat_id: string | null
+    } | null
 
     if (user == null) {
       throw new ErrorWithStatus({
@@ -299,9 +314,15 @@ class AuthService {
     }
 
     return {
-      ...user,
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
       avatar_url: user.avatar_url ?? null,
-      zalo_user_id: user.zalo_user_id ?? null
+      zalo_user_id: user.zalo_user_id ?? null,
+      telegram_linked: Boolean(user.telegram_chat_id?.trim())
     }
   }
 
@@ -312,6 +333,7 @@ class AuthService {
       full_name?: string
       phone?: string
       zalo_user_id?: string | null
+      unlinkTelegram?: boolean
     }
   ) => {
     const data: Prisma.usersUpdateInput = {}
@@ -389,13 +411,18 @@ class AuthService {
       }
     }
 
+    if (payload.unlinkTelegram === true) {
+      await prismaTelegramLinkTokens().deleteMany({ where: { user_id } })
+      ;(data as unknown as { telegram_chat_id?: string | null }).telegram_chat_id = null
+    }
+
     if (Object.keys(data).length === 0) {
       return this.getMe(user_id)
     }
 
     await prisma.users.update({
       where: { id: user_id },
-      data
+      data: data as Prisma.usersUpdateInput
     })
     return this.getMe(user_id)
   }

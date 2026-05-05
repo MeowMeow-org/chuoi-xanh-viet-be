@@ -16,6 +16,7 @@ import uploadRouter from '~/modules/upload/upload.router'
 import notificationRouter from '~/modules/notification/notification.router'
 import shopReviewRouter from '~/modules/shop-review/shop-review.router'
 import certificateRouter from '~/modules/certificate/certificate.router'
+import telegramRouter from '~/modules/telegram/telegram.router'
 
 const router = Router()
 
@@ -41,5 +42,6 @@ router.use('/upload', uploadRouter)
 router.use('/notification', notificationRouter)
 router.use('/review', shopReviewRouter)
 router.use('/certificate', certificateRouter)
+router.use('/integrations/telegram', telegramRouter)
 
 export default router

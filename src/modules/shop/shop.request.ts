@@ -57,3 +57,10 @@ export interface GetShopsQuery {
   district?: string
   ward?: string
 }
+
+/** GET /shop/farm-locations — lọc theo địa phương giống chợ */
+export interface GetFarmMapPinsQuery {
+  province?: string
+  district?: string
+  ward?: string
+}
