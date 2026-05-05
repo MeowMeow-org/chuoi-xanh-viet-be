@@ -455,6 +455,37 @@ model users {
   cooperative_certificate_scope_added cooperative_certificate_scope[] @relation("coop_cert_scope_added_by")
   farm_certificates_reviewed         farm_certificates[]            @relation("farm_cert_reviewer_user")
   farm_certificates_reviewer_coop    farm_certificates[]            @relation("farm_cert_reviewer_coop")
+  audit_logs_actor                   audit_logs[]                   @relation("audit_logs_actor")
+}
+
+model audit_logs {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_user_id String?  @db.Uuid
+  actor_role    user_role?
+  source        String   @default("api") @db.VarChar(20)
+  module        String   @db.VarChar(60)
+  action        String   @db.VarChar(80)
+  entity_type   String?  @db.VarChar(80)
+  entity_id     String?  @db.Uuid
+  status        String   @db.VarChar(20)
+  before_data   Json?
+  after_data    Json?
+  diff_data     Json?
+  request_id    String?  @db.VarChar(80)
+  ip_address    String?  @db.VarChar(64)
+  user_agent    String?
+  path          String?  @db.VarChar(2048)
+  method        String?  @db.VarChar(10)
+  error_code    String?  @db.VarChar(120)
+  error_message String?
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+
+  actor users? @relation("audit_logs_actor", fields: [actor_user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_audit_logs_actor")
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_logs_created")
+  @@index([module, created_at(sort: Desc)], map: "idx_audit_logs_module_created")
+  @@index([actor_user_id, created_at(sort: Desc)], map: "idx_audit_logs_actor_created")
+  @@index([entity_type, entity_id, created_at(sort: Desc)], map: "idx_audit_logs_entity_created")
 }
 
 model user_notifications {

@@ -534,6 +534,9 @@ const USER_MESSAGES = {
 
   ADMIN_ORDERS_MISSING_ADDRESS_CODE_SUCCESS: 'Lấy danh sách đơn hàng thiếu mã địa giới thành công'
 
+  ,
+  ADMIN_AUDIT_LOGS_LIST_SUCCESS: 'Lấy danh sách audit log thành công'
+
 } as const
 
 

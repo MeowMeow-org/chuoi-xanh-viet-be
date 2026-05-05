@@ -125,6 +125,7 @@ class AuthService {
         phone: user.phone,
         role: user.role,
         status: user.status,
+        is_onboarding: user.is_onboarding,
         avatar_url: user.avatar_url ?? null,
         zalo_user_id: user.zalo_user_id ?? null
       }
@@ -180,6 +181,7 @@ class AuthService {
         phone: user.phone,
         role: user.role,
         status: user.status,
+        is_onboarding: user.is_onboarding,
         avatar_url: user.avatar_url ?? null,
         zalo_user_id: user.zalo_user_id ?? null
       }
@@ -288,6 +290,7 @@ class AuthService {
     phone: string
     role: user_role
     status: account_status
+    is_onboarding: boolean
     avatar_url: string | null
     zalo_user_id: string | null
   }> => {
@@ -300,6 +303,7 @@ class AuthService {
         phone: true,
         role: true,
         status: true,
+        is_onboarding: true,
         avatar_url: true,
         zalo_user_id: true
       }

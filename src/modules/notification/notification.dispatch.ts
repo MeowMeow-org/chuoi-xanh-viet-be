@@ -315,7 +315,7 @@ export const notificationDispatch = {
   },
 
   /**
-   * Nông hộ nộp chứng chỉ chờ duyệt — báo cho HTX (nếu thuộc HTX) hoặc tất cả admin (nông hộ độc lập).
+   * Nông hộ nộp chứng chỉ chờ duyệt — ưu tiên báo cho HTX được chỉ định duyệt.
    */
   farmCertPendingReview(params: {
     certificateId: string
@@ -365,7 +365,7 @@ export const notificationDispatch = {
           recipientUserId: admin.id,
           actorUserId: params.farmerUserId,
           type: 'system',
-          title: 'Duyệt chứng chỉ nông hộ độc lập',
+          title: 'Cần điều phối duyệt chứng chỉ',
           body,
           entityType: NotificationEntityType.FARM_CERTIFICATE,
           entityId: params.certificateId,

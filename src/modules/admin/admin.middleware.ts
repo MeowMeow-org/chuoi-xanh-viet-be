@@ -98,3 +98,65 @@ export const adminBroadcastBodyValidator = validate(
     ['body']
   )
 )
+
+export const adminListAuditLogsQueryValidator = validate(
+  checkSchema(
+    {
+      page: {
+        optional: true,
+        isInt: { options: { min: 1 } },
+        toInt: true
+      },
+      limit: {
+        optional: true,
+        isInt: { options: { min: 1, max: 100 } },
+        toInt: true
+      },
+      from: {
+        optional: true,
+        isISO8601: true
+      },
+      to: {
+        optional: true,
+        isISO8601: true
+      },
+      module: {
+        optional: true,
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 60 } }
+      },
+      action: {
+        optional: true,
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 80 } }
+      },
+      status: {
+        optional: true,
+        isIn: { options: [['success', 'failed']] }
+      },
+      actorUserId: {
+        optional: true,
+        isUUID: true
+      },
+      entityType: {
+        optional: true,
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 80 } }
+      },
+      entityId: {
+        optional: true,
+        isUUID: true
+      },
+      q: {
+        optional: true,
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 200 } }
+      }
+    },
+    ['query']
+  )
+)

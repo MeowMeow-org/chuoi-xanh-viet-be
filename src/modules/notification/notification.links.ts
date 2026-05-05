@@ -83,14 +83,14 @@ export function resolveNotificationDeepLink(params: {
       return `/cooperative/certificates?tab=pending&${certQ}`
     }
     if (viewerRole === 'admin') {
-      return `/admin/certificates?${certQ}`
+      return '/admin/audit-logs'
     }
     return undefined
   }
 
   if (entityType === NotificationEntityType.COOP_CERTIFICATE) {
     if (viewerRole === 'cooperative') return '/cooperative/certificates'
-    if (viewerRole === 'admin') return '/admin/certificates'
+    if (viewerRole === 'admin') return '/admin/audit-logs'
     return undefined
   }
 
