@@ -311,6 +311,113 @@ class AdminService {
 
     return { sentCount: inserted, recipientTotal: recipients.length, batchId }
   }
+
+  /**
+   * Liệt kê các farm có `province/district/ward` (text) nhưng thiếu code chuẩn.
+   * Dùng để admin fix tay sau khi backfill (script vừa chạy không match được tên).
+   */
+  async listFarmsMissingAddressCode(params: { page?: number; limit?: number }) {
+    const safePage = Math.max(1, params.page ?? 1)
+    const safeLimit = Math.min(100, Math.max(1, params.limit ?? 20))
+    const skip = (safePage - 1) * safeLimit
+
+    /** Coi là "thiếu" khi có name nhưng không có code tương ứng. */
+    const where: Prisma.farmsWhereInput = {
+      OR: [
+        { AND: [{ NOT: { province: null } }, { province_code: null }] },
+        { AND: [{ NOT: { district: null } }, { district_code: null }] },
+        { AND: [{ NOT: { ward: null } }, { ward_code: null }] }
+      ]
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.farms.findMany({
+        where,
+        orderBy: { updated_at: 'desc' },
+        skip,
+        take: safeLimit,
+        select: {
+          id: true,
+          owner_user_id: true,
+          name: true,
+          province: true,
+          district: true,
+          ward: true,
+          province_code: true,
+          district_code: true,
+          ward_code: true,
+          updated_at: true
+        }
+      }),
+      prisma.farms.count({ where })
+    ])
+
+    const totalPages = Math.ceil(total / safeLimit)
+    return {
+      items,
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        previousPage: safePage > 1 ? safePage - 1 : null,
+        nextPage: totalPages > 0 && safePage < totalPages ? safePage + 1 : null
+      }
+    }
+  }
+
+  /** Liệt kê các order có name shipping nhưng thiếu code (chỉ áp dụng đơn mới sau migration). */
+  async listOrdersMissingAddressCode(params: { page?: number; limit?: number }) {
+    const safePage = Math.max(1, params.page ?? 1)
+    const safeLimit = Math.min(100, Math.max(1, params.limit ?? 20))
+    const skip = (safePage - 1) * safeLimit
+
+    const where: Prisma.ordersWhereInput = {
+      OR: [
+        { AND: [{ NOT: { shipping_province_name: null } }, { shipping_province_code: null }] },
+        { AND: [{ NOT: { shipping_district_name: null } }, { shipping_district_code: null }] },
+        { AND: [{ NOT: { shipping_ward_name: null } }, { shipping_ward_code: null }] }
+      ]
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.orders.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: safeLimit,
+        select: {
+          id: true,
+          buyer_user_id: true,
+          shipping_name: true,
+          shipping_phone: true,
+          shipping_address: true,
+          shipping_province_code: true,
+          shipping_district_code: true,
+          shipping_ward_code: true,
+          shipping_province_name: true,
+          shipping_district_name: true,
+          shipping_ward_name: true,
+          shipping_detail: true,
+          created_at: true
+        }
+      }),
+      prisma.orders.count({ where })
+    ])
+
+    const totalPages = Math.ceil(total / safeLimit)
+    return {
+      items,
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        previousPage: safePage > 1 ? safePage - 1 : null,
+        nextPage: totalPages > 0 && safePage < totalPages ? safePage + 1 : null
+      }
+    }
+  }
 }
 
 const adminService = new AdminService()

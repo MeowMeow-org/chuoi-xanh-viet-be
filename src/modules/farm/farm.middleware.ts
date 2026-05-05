@@ -85,6 +85,30 @@ export const createFarmBodyValidator = validate(
           errorMessage: 'ward must be at most 100 characters'
         }
       },
+      province_code: {
+        optional: { options: { nullable: true } },
+        isInt: {
+          options: { gt: 0 },
+          errorMessage: 'province_code must be a positive integer'
+        },
+        toInt: true
+      },
+      district_code: {
+        optional: { options: { nullable: true } },
+        isInt: {
+          options: { gt: 0 },
+          errorMessage: 'district_code must be a positive integer'
+        },
+        toInt: true
+      },
+      ward_code: {
+        optional: { options: { nullable: true } },
+        isInt: {
+          options: { gt: 0 },
+          errorMessage: 'ward_code must be a positive integer'
+        },
+        toInt: true
+      },
       address: {
         optional: true,
         isString: true,
@@ -176,6 +200,30 @@ export const updateFarmBodyValidator = validate(
           options: { max: 100 },
           errorMessage: 'ward must be at most 100 characters'
         }
+      },
+      province_code: {
+        optional: { options: { nullable: true } },
+        isInt: {
+          options: { gt: 0 },
+          errorMessage: 'province_code must be a positive integer'
+        },
+        toInt: true
+      },
+      district_code: {
+        optional: { options: { nullable: true } },
+        isInt: {
+          options: { gt: 0 },
+          errorMessage: 'district_code must be a positive integer'
+        },
+        toInt: true
+      },
+      ward_code: {
+        optional: { options: { nullable: true } },
+        isInt: {
+          options: { gt: 0 },
+          errorMessage: 'ward_code must be a positive integer'
+        },
+        toInt: true
       },
       address: {
         optional: true,

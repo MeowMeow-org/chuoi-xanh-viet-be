@@ -578,38 +578,58 @@ Hãy gợi ý mô tả cho người mua và giá bán (một đơn vị = ${unit
     searchTerm,
     province,
     district,
-    ward
+    ward,
+    provinceCode,
+    districtCode,
+    wardCode
   }: {
     page?: number
     limit?: number
     searchTerm?: string
+    /** @deprecated dùng provinceCode để filter chính xác. Giữ để backward-compat. */
     province?: string
     district?: string
     ward?: string
+    provinceCode?: number
+    districtCode?: number
+    wardCode?: number
   }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
     const skip = (safePage - 1) * safeLimit
 
     const term = searchTerm?.trim()
-    const provinceFilter = province?.trim()
 
     const andFilters: Prisma.shopsWhereInput[] = [{ status: 'open' }]
 
-    if (provinceFilter && provinceFilter.length > 0) {
-      andFilters.push({
-        farms: { province: { contains: provinceFilter, mode: 'insensitive' } }
-      })
+    /** Ưu tiên filter bằng code (chuẩn hóa); fallback name (legacy) khi không có code. */
+    if (provinceCode != null) {
+      andFilters.push({ farms: { province_code: provinceCode } })
+    } else {
+      const provinceFilter = province?.trim()
+      if (provinceFilter && provinceFilter.length > 0) {
+        andFilters.push({
+          farms: { province: { contains: provinceFilter, mode: 'insensitive' } }
+        })
+      }
     }
 
-    const dist = district?.trim()
-    if (dist && dist.length > 0) {
-      andFilters.push({ farms: { district: { contains: dist, mode: 'insensitive' } } })
+    if (districtCode != null) {
+      andFilters.push({ farms: { district_code: districtCode } })
+    } else {
+      const dist = district?.trim()
+      if (dist && dist.length > 0) {
+        andFilters.push({ farms: { district: { contains: dist, mode: 'insensitive' } } })
+      }
     }
 
-    const w = ward?.trim()
-    if (w && w.length > 0) {
-      andFilters.push({ farms: { ward: { contains: w, mode: 'insensitive' } } })
+    if (wardCode != null) {
+      andFilters.push({ farms: { ward_code: wardCode } })
+    } else {
+      const w = ward?.trim()
+      if (w && w.length > 0) {
+        andFilters.push({ farms: { ward: { contains: w, mode: 'insensitive' } } })
+      }
     }
 
     if (term && term.length > 0) {
@@ -1013,6 +1033,9 @@ Hãy gợi ý mô tả cho người mua và giá bán (một đơn vị = ${unit
     province,
     district,
     ward,
+    provinceCode,
+    districtCode,
+    wardCode,
     shopId,
     sort,
     minPrice,
@@ -1021,9 +1044,13 @@ Hãy gợi ý mô tả cho người mua và giá bán (một đơn vị = ${unit
     page?: number
     limit?: number
     searchTerm?: string
+    /** @deprecated dùng provinceCode để filter chính xác. */
     province?: string
     district?: string
     ward?: string
+    provinceCode?: number
+    districtCode?: number
+    wardCode?: number
     shopId?: string
     sort?: string
     minPrice?: number
@@ -1048,19 +1075,26 @@ Hãy gợi ý mô tả cho người mua và giá bán (một đơn vị = ${unit
       })
     }
 
-    if (province && province.trim().length > 0) {
+    /** Ưu tiên filter bằng code (chuẩn hóa); fallback name (legacy) khi không có code. */
+    if (provinceCode != null) {
+      andFilters.push({ shops: { farms: { province_code: provinceCode } } })
+    } else if (province && province.trim().length > 0) {
       andFilters.push({
         shops: { farms: { province: { contains: province.trim(), mode: 'insensitive' } } }
       })
     }
 
-    if (district && district.trim().length > 0) {
+    if (districtCode != null) {
+      andFilters.push({ shops: { farms: { district_code: districtCode } } })
+    } else if (district && district.trim().length > 0) {
       andFilters.push({
         shops: { farms: { district: { contains: district.trim(), mode: 'insensitive' } } }
       })
     }
 
-    if (ward && ward.trim().length > 0) {
+    if (wardCode != null) {
+      andFilters.push({ shops: { farms: { ward_code: wardCode } } })
+    } else if (ward && ward.trim().length > 0) {
       andFilters.push({
         shops: { farms: { ward: { contains: ward.trim(), mode: 'insensitive' } } }
       })

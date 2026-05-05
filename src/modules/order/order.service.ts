@@ -115,6 +115,13 @@ const orderSelect = {
   shipping_name: true,
   shipping_phone: true,
   shipping_address: true,
+  shipping_province_code: true,
+  shipping_district_code: true,
+  shipping_ward_code: true,
+  shipping_province_name: true,
+  shipping_district_name: true,
+  shipping_ward_name: true,
+  shipping_detail: true,
   note: true,
   created_at: true,
   updated_at: true,
@@ -266,7 +273,40 @@ class OrderService {
   }
 
   createOrder = async ({ buyerUserId, payload }: { buyerUserId: string; payload: CreateOrderRequestBody }) => {
-    const { shop_id, items, shipping_name, shipping_phone, shipping_address, payment_method, note } = payload
+    const {
+      shop_id,
+      items,
+      shipping_name,
+      shipping_phone,
+      shipping_address,
+      shipping_province_code,
+      shipping_district_code,
+      shipping_ward_code,
+      shipping_province_name,
+      shipping_district_name,
+      shipping_ward_name,
+      shipping_detail,
+      payment_method,
+      note
+    } = payload
+
+    /** Build shipping_address (legacy gộp) từ chi tiết + name khi client không gửi sẵn,
+     *  để các tích hợp cũ (PayOS description, hiển thị compact) vẫn dùng được. */
+    const composedShippingAddress = (() => {
+      const direct = shipping_address?.trim()
+      if (direct) return direct
+      const parts = [shipping_detail, shipping_ward_name, shipping_district_name, shipping_province_name]
+        .map((v) => v?.trim())
+        .filter((v): v is string => Boolean(v && v.length > 0))
+      return parts.length > 0 ? parts.join(', ') : ''
+    })()
+
+    if (!composedShippingAddress) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: 'shipping_address is required'
+      })
+    }
 
     if (items.length === 0) {
       throw new ErrorWithStatus({
@@ -364,7 +404,14 @@ class OrderService {
           total_amount: totalAmount,
           shipping_name,
           shipping_phone,
-          shipping_address,
+          shipping_address: composedShippingAddress,
+          shipping_province_code: shipping_province_code ?? null,
+          shipping_district_code: shipping_district_code ?? null,
+          shipping_ward_code: shipping_ward_code ?? null,
+          shipping_province_name: shipping_province_name ?? null,
+          shipping_district_name: shipping_district_name ?? null,
+          shipping_ward_name: shipping_ward_name ?? null,
+          shipping_detail: shipping_detail ?? null,
           note,
           order_items: {
             createMany: { data: itemsToCreate }

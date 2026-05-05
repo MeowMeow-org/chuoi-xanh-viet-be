@@ -10,7 +10,17 @@ export interface CreateOrderRequestBody {
   items: OrderItemInput[]
   shipping_name: string
   shipping_phone: string
-  shipping_address: string
+  /** Địa chỉ giao hàng dạng text gộp (legacy / fallback). Server tự build lại nếu thiếu. */
+  shipping_address?: string
+  /** Code hành chính theo provinces.open-api.vn */
+  shipping_province_code?: number
+  shipping_district_code?: number
+  shipping_ward_code?: number
+  shipping_province_name?: string
+  shipping_district_name?: string
+  shipping_ward_name?: string
+  /** Số nhà / đường (không lặp tỉnh-quận-xã). */
+  shipping_detail?: string
   payment_method: payment_method
   note?: string
 }

@@ -37,9 +37,47 @@ export const createOrderValidator = validate(
         isLength: { options: { max: 20 } }
       },
       shipping_address: {
+        optional: { options: { nullable: true } },
+        isString: true,
+        trim: true
+      },
+      shipping_province_code: {
+        optional: { options: { nullable: true } },
+        isInt: { options: { gt: 0 }, errorMessage: 'shipping_province_code must be a positive integer' },
+        toInt: true
+      },
+      shipping_district_code: {
+        optional: { options: { nullable: true } },
+        isInt: { options: { gt: 0 }, errorMessage: 'shipping_district_code must be a positive integer' },
+        toInt: true
+      },
+      shipping_ward_code: {
+        optional: { options: { nullable: true } },
+        isInt: { options: { gt: 0 }, errorMessage: 'shipping_ward_code must be a positive integer' },
+        toInt: true
+      },
+      shipping_province_name: {
+        optional: { options: { nullable: true } },
         isString: true,
         trim: true,
-        notEmpty: { errorMessage: 'shipping_address is required' }
+        isLength: { options: { max: 120 } }
+      },
+      shipping_district_name: {
+        optional: { options: { nullable: true } },
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 120 } }
+      },
+      shipping_ward_name: {
+        optional: { options: { nullable: true } },
+        isString: true,
+        trim: true,
+        isLength: { options: { max: 120 } }
+      },
+      shipping_detail: {
+        optional: { options: { nullable: true } },
+        isString: true,
+        trim: true
       },
       payment_method: {
         isIn: {

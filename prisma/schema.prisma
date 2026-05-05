@@ -102,6 +102,10 @@ model farms {
   province                      String?                          @db.VarChar(100)
   district                      String?                          @db.VarChar(100)
   ward                          String?                          @db.VarChar(100)
+  /// Code hành chính theo provinces.open-api.vn. NULL = chưa chuẩn hóa (dữ liệu cũ).
+  province_code                 Int?
+  district_code                 Int?
+  ward_code                     Int?
   address                       String?
   latitude                      Decimal?                         @db.Decimal(10, 7)
   longitude                     Decimal?                         @db.Decimal(10, 7)
@@ -115,6 +119,9 @@ model farms {
   shops                         shops?
   farm_certificates             farm_certificates[]
   cooperative_certificate_scope cooperative_certificate_scope[]
+
+  @@index([province_code], map: "idx_farms_province_code")
+  @@index([province_code, district_code, ward_code], map: "idx_farms_admin_codes")
 }
 
 model cooperative_members {
@@ -163,7 +170,16 @@ model orders {
   total_amount     Decimal        @default(0) @db.Decimal(12, 2)
   shipping_name    String?        @db.VarChar(120)
   shipping_phone   String?        @db.VarChar(20)
+  /// Địa chỉ giao hàng dạng text gộp (legacy / backward-compat). Service mới sẽ ghi kèm các field _code/_name/detail bên dưới.
   shipping_address String?
+  shipping_province_code Int?
+  shipping_district_code Int?
+  shipping_ward_code     Int?
+  shipping_province_name String? @db.VarChar(120)
+  shipping_district_name String? @db.VarChar(120)
+  shipping_ward_name     String? @db.VarChar(120)
+  /// Số nhà / đường (không lặp tỉnh-quận-xã).
+  shipping_detail        String?
   note             String?
   payos_order_code String?        @unique @db.VarChar(64)
   created_at       DateTime       @default(now()) @db.Timestamp(6)
