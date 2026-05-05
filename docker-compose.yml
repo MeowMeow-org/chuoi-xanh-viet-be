@@ -1,4 +1,3 @@
-# `docker compose` đọc `.env` cùng thư mục để nội suy ${VAR}. FE :3000 — set FRONTEND_URLS + PUBLIC_APP_URL trong .env.
 services:
   api:
     build:
@@ -50,6 +49,7 @@ services:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
       TELEGRAM_NOTIFICATIONS_ENABLED: ${TELEGRAM_NOTIFICATIONS_ENABLED:-0}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET:-}
     ports:
       - '8001:8000'
     networks:
