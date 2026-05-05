@@ -3,6 +3,7 @@ import { wrapAsync } from '~/utils/handler'
 import { accessTokenValidator, requireAdmin } from '~/modules/auth/auth.middleware'
 import {
   adminBroadcastBodyValidator,
+  adminListAuditLogsQueryValidator,
   adminListUsersQueryValidator,
   adminPatchUserStatusBodyValidator,
   adminUserIdParamValidator
@@ -10,6 +11,7 @@ import {
 import {
   getDashboardSummaryController,
   getUserByIdController,
+  listAuditLogsController,
   listFarmsMissingAddressCodeController,
   listOrdersMissingAddressCodeController,
   listUsersController,
@@ -51,6 +53,12 @@ adminRouter.get(
 adminRouter.get(
   '/orders/missing-address-code',
   wrapAsync(listOrdersMissingAddressCodeController)
+)
+
+adminRouter.get(
+  '/audit-logs',
+  adminListAuditLogsQueryValidator,
+  wrapAsync(listAuditLogsController)
 )
 
 export default adminRouter

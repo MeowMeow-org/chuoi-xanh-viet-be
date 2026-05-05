@@ -4,6 +4,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
 import cooperativeService from './cooperative.service'
+import auditService from '~/modules/audit/audit.service'
 import type {
   ApproveMembershipBody,
   GetHtxListQuery,
@@ -118,10 +119,18 @@ export const approveMembershipController = async (
   const membershipId = req.params.membershipId
   const note = typeof req.body?.note === 'string' ? req.body.note : undefined
 
-  await cooperativeService.approveMembership({
+  const result = await cooperativeService.approveMembership({
     membershipId,
     cooperativeUserId: user_id,
     note
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'cooperative',
+    action: 'approve_membership',
+    entityType: 'cooperative_membership',
+    entityId: membershipId,
+    status: 'success',
+    afterData: result
   })
 
   return res.sendResponse({
@@ -140,10 +149,18 @@ export const rejectMembershipController = async (
   const membershipId = req.params.membershipId
   const note = req.body.note
 
-  await cooperativeService.rejectMembership({
+  const result = await cooperativeService.rejectMembership({
     membershipId,
     cooperativeUserId: user_id,
     note
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'cooperative',
+    action: 'reject_membership',
+    entityType: 'cooperative_membership',
+    entityId: membershipId,
+    status: 'success',
+    afterData: result
   })
 
   return res.sendResponse({
@@ -212,6 +229,14 @@ export const requestJoinCooperativeController = async (
     farmerUserId: user_id,
     cooperativeUserId: req.body.cooperative_user_id,
     farmId: req.body.farm_id
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'cooperative',
+    action: 'request_join',
+    entityType: 'cooperative_membership',
+    entityId: row.id,
+    status: 'success',
+    afterData: row
   })
 
   return res.sendResponse({

@@ -5,6 +5,7 @@ import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import { NotificationEntityType } from '~/modules/notification/notification.constants'
+import auditService from '~/modules/audit/audit.service'
 
 const BROADCAST_BATCH_SIZE = 500
 
@@ -417,6 +418,36 @@ class AdminService {
         nextPage: totalPages > 0 && safePage < totalPages ? safePage + 1 : null
       }
     }
+  }
+
+  async listAuditLogs(params: {
+    page?: number
+    limit?: number
+    from?: string
+    to?: string
+    module?: string
+    action?: string
+    status?: 'success' | 'failed'
+    actorUserId?: string
+    entityType?: string
+    entityId?: string
+    q?: string
+  }) {
+    const fromDate = params.from ? new Date(params.from) : undefined
+    const toDate = params.to ? new Date(params.to) : undefined
+    return auditService.listLogs({
+      page: params.page,
+      limit: params.limit,
+      from: fromDate,
+      to: toDate,
+      module: params.module,
+      action: params.action,
+      status: params.status,
+      actorUserId: params.actorUserId,
+      entityType: params.entityType,
+      entityId: params.entityId,
+      q: params.q
+    })
   }
 }
 

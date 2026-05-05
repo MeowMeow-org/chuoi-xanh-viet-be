@@ -2,7 +2,6 @@ import type {
   Prisma,
   cert_type,
   coop_cert_status,
-  farm_cert_approver_scope,
   farm_cert_status
 } from '@prisma/client'
 import prisma from '~/lib/prisma'
@@ -11,6 +10,7 @@ import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 import { syncCoopCertExpiryForCooperative } from '~/modules/certificate/certificate.worker'
+import { rankCooperativeCandidates } from './certificate.reviewer'
 
 export type CertTypeInput = cert_type
 
@@ -68,7 +68,146 @@ function metaFrom(total: number, safePage: number, safeLimit: number) {
   }
 }
 
+function toNumber(value: Prisma.Decimal | number | string | null | undefined): number | null {
+  if (value == null) return null
+  const n = Number(value)
+  return Number.isFinite(n) ? n : null
+}
+
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return 6371 * c
+}
+
 class CertificateService {
+  private pickNearestCooperativeReviewer = async (farmId: string) => {
+    const farm = await prisma.farms.findUnique({
+      where: { id: farmId },
+      select: {
+        id: true,
+        province_code: true,
+        district_code: true,
+        ward_code: true,
+        latitude: true,
+        longitude: true
+      }
+    })
+    if (!farm) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: USER_MESSAGES.CERT_FARM_NOT_FOUND_OR_FORBIDDEN
+      })
+    }
+
+    const coops = await prisma.users.findMany({
+      where: { role: 'cooperative', status: 'active' },
+      select: {
+        id: true,
+        created_at: true,
+        cooperative_members_as_cooperative: {
+          where: { status: 'approved' },
+          select: {
+            farms: {
+              select: {
+                latitude: true,
+                longitude: true,
+                province_code: true,
+                district_code: true,
+                ward_code: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    const farmLat = toNumber(farm.latitude)
+    const farmLng = toNumber(farm.longitude)
+
+    const candidates = coops
+      .map((coop) => {
+        const memberFarms = coop.cooperative_members_as_cooperative.map(
+          (m) => m.farms
+        )
+        if (memberFarms.length === 0) return null
+
+        const withCoords = memberFarms
+          .map((f) => {
+            const lat = toNumber(f.latitude)
+            const lng = toNumber(f.longitude)
+            return lat != null && lng != null ? { lat, lng } : null
+          })
+          .filter((x): x is { lat: number; lng: number } => x != null)
+
+        const centroid =
+          withCoords.length > 0
+            ? {
+                lat:
+                  withCoords.reduce((acc, c) => acc + c.lat, 0) /
+                  withCoords.length,
+                lng:
+                  withCoords.reduce((acc, c) => acc + c.lng, 0) /
+                  withCoords.length
+              }
+            : null
+
+        const matchScore = memberFarms.reduce((best, mf) => {
+          let score = 0
+          if (farm.province_code != null && mf.province_code === farm.province_code)
+            score += 10
+          if (farm.district_code != null && mf.district_code === farm.district_code)
+            score += 25
+          if (farm.ward_code != null && mf.ward_code === farm.ward_code) score += 60
+          return Math.max(best, score)
+        }, 0)
+
+        const distanceKm =
+          farmLat != null && farmLng != null && centroid != null
+            ? haversineKm(farmLat, farmLng, centroid.lat, centroid.lng)
+            : null
+
+        return {
+          cooperativeUserId: coop.id,
+          createdAt: coop.created_at,
+          matchScore,
+          distanceKm
+        }
+      })
+      .filter(
+        (
+          row
+        ): row is {
+          cooperativeUserId: string
+          createdAt: Date
+          matchScore: number
+          distanceKm: number | null
+        } => row != null
+      )
+
+    if (candidates.length === 0) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.CERT_INVALID_STATE
+      })
+    }
+
+    return rankCooperativeCandidates(candidates)[0].cooperativeUserId
+  }
+
   // ======== COOPERATIVE CERTIFICATES ========
   createCoopCert = async (
     cooperativeUserId: string,
@@ -492,14 +631,9 @@ class CertificateService {
       })
     }
 
-    const activeMembership = await prisma.cooperative_members.findFirst({
-      where: { farm_id: input.farm_id, status: 'approved' },
-      select: { cooperative_user_id: true }
-    })
-
-    const approver_scope: farm_cert_approver_scope = activeMembership
-      ? 'cooperative'
-      : 'admin'
+    const cooperativeReviewerUserId = await this.pickNearestCooperativeReviewer(
+      input.farm_id
+    )
 
     const created = await prisma.farm_certificates.create({
       data: {
@@ -511,8 +645,8 @@ class CertificateService {
         expires_at: input.expires_at ?? null,
         file_url: input.file_url,
         status: 'pending',
-        approver_scope,
-        reviewer_cooperative_id: activeMembership?.cooperative_user_id ?? null
+        approver_scope: 'cooperative',
+        reviewer_cooperative_id: cooperativeReviewerUserId
       }
     })
 
@@ -520,8 +654,8 @@ class CertificateService {
       certificateId: created.id,
       farmId: input.farm_id,
       farmerUserId: ownerUserId,
-      approverScope: approver_scope,
-      cooperativeReviewerUserId: activeMembership?.cooperative_user_id ?? null
+      approverScope: 'cooperative',
+      cooperativeReviewerUserId
     })
 
     return created

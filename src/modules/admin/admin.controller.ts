@@ -6,6 +6,7 @@ import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '~/modules/auth/auth.request'
 import type { BroadcastAudience } from './admin.service'
 import adminService from './admin.service'
+import auditService from '~/modules/audit/audit.service'
 
 export const getDashboardSummaryController = async (_req: Request, res: Response) => {
   const data = await adminService.getDashboardSummary()
@@ -52,10 +53,7 @@ export const listUsersController = async (
   })
 }
 
-export const getUserByIdController = async (
-  req: Request<{ userId: string }>,
-  res: Response
-) => {
+export const getUserByIdController = async (req: Request<{ userId: string }>, res: Response) => {
   const data = await adminService.getUserById(req.params.userId)
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -69,6 +67,14 @@ export const patchUserStatusController = async (
   res: Response
 ) => {
   const data = await adminService.updateUserStatus(req.params.userId, req.body.status)
+  await auditService.writeFromRequest(req, {
+    module: 'admin',
+    action: 'patch_user_status',
+    entityType: 'user',
+    entityId: req.params.userId,
+    status: 'success',
+    afterData: { status: data.status }
+  })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.ADMIN_USER_STATUS_UPDATED,
@@ -96,6 +102,14 @@ export const postBroadcastNotificationsController = async (
     body: req.body.body,
     audience: req.body.audience,
     linkPath: req.body.linkPath
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'admin',
+    action: 'broadcast_notifications',
+    entityType: 'system_broadcast',
+    entityId: data.batchId,
+    status: 'success',
+    afterData: { audience: req.body.audience, sentCount: data.sentCount }
   })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -128,6 +142,49 @@ export const listOrdersMissingAddressCodeController = async (
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.ADMIN_ORDERS_MISSING_ADDRESS_CODE_SUCCESS,
+    data
+  })
+}
+
+export const listAuditLogsController = async (
+  req: Request<
+    ParamsDictionary,
+    unknown,
+    unknown,
+    {
+      page?: string
+      limit?: string
+      from?: string
+      to?: string
+      module?: string
+      action?: string
+      status?: 'success' | 'failed'
+      actorUserId?: string
+      entityType?: string
+      entityId?: string
+      q?: string
+    }
+  >,
+  res: Response
+) => {
+  const page = req.query.page ? Number(req.query.page) : undefined
+  const limit = req.query.limit ? Number(req.query.limit) : undefined
+  const data = await adminService.listAuditLogs({
+    page,
+    limit,
+    from: req.query.from,
+    to: req.query.to,
+    module: req.query.module,
+    action: req.query.action,
+    status: req.query.status,
+    actorUserId: req.query.actorUserId,
+    entityType: req.query.entityType,
+    entityId: req.query.entityId,
+    q: req.query.q
+  })
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.ADMIN_AUDIT_LOGS_LIST_SUCCESS,
     data
   })
 }

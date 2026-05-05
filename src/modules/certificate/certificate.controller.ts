@@ -8,6 +8,7 @@ import {
   resolveFarmCertificateBadges,
   serializeBadges
 } from './certificate.badge'
+import auditService from '~/modules/audit/audit.service'
 
 function parseDate(value: unknown): Date | null {
   if (value === null || value === undefined || value === '') return null
@@ -49,6 +50,14 @@ export const createCoopCertController = async (
     issued_at: parseDate(req.body.issued_at),
     expires_at: parseDate(req.body.expires_at),
     file_url: req.body.file_url
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'create_coop_certificate',
+    entityType: 'cooperative_certificate',
+    entityId: created.id,
+    status: 'success',
+    afterData: { type: created.type, status: created.status }
   })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -101,6 +110,14 @@ export const updateCoopCertController = async (
       file_url: req.body.file_url ?? undefined
     }
   )
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'update_coop_certificate',
+    entityType: 'cooperative_certificate',
+    entityId: updated.id,
+    status: 'success',
+    afterData: { type: updated.type, status: updated.status }
+  })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.CERT_UPDATE_SUCCESS,
@@ -114,6 +131,13 @@ export const deleteCoopCertController = async (
 ) => {
   const { user_id } = req.decoded_authorization as TokenPayLoad
   await certificateService.deleteCoopCert(req.params.certificateId, user_id)
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'delete_coop_certificate',
+    entityType: 'cooperative_certificate',
+    entityId: req.params.certificateId,
+    status: 'success'
+  })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.CERT_DELETE_SUCCESS,
@@ -130,6 +154,14 @@ export const revokeCoopCertController = async (
     certificateId: req.params.certificateId,
     adminUserId: user_id,
     reason: req.body.reason
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'revoke_coop_certificate',
+    entityType: 'cooperative_certificate',
+    entityId: updated.id,
+    status: 'success',
+    afterData: { status: updated.status }
   })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -148,6 +180,14 @@ export const addScopeFarmController = async (
     cooperativeUserId: user_id,
     farmId: req.body.farm_id
   })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'add_scope_farm',
+    entityType: 'cooperative_certificate_scope',
+    entityId: row.id,
+    status: 'success',
+    afterData: row
+  })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.CERT_SCOPE_ADD_SUCCESS,
@@ -164,6 +204,14 @@ export const removeScopeFarmController = async (
     certificateId: req.params.certificateId,
     cooperativeUserId: user_id,
     farmId: req.params.farmId
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'remove_scope_farm',
+    entityType: 'cooperative_certificate_scope',
+    entityId: req.params.farmId,
+    status: 'success',
+    afterData: { certificateId: req.params.certificateId, farmId: req.params.farmId }
   })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
@@ -268,6 +316,18 @@ export const createFarmCertController = async (
       file_url: req.body.file_url
     }
   })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'create_farm_certificate',
+    entityType: 'farm_certificate',
+    entityId: created.id,
+    status: 'success',
+    afterData: {
+      farmId: created.farm_id,
+      reviewerCooperativeId: created.reviewer_cooperative_id,
+      approverScope: created.approver_scope
+    }
+  })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.CERT_FARM_UPLOAD_SUCCESS,
@@ -346,6 +406,14 @@ export const approveFarmCertController = async (
     reviewerRole: role,
     note
   })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'approve_farm_certificate',
+    entityType: 'farm_certificate',
+    entityId: updated.id,
+    status: 'success',
+    afterData: { status: updated.status }
+  })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.CERT_APPROVE_SUCCESS,
@@ -366,6 +434,14 @@ export const rejectFarmCertController = async (
     reviewerRole: role,
     reason: req.body.reason
   })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'reject_farm_certificate',
+    entityType: 'farm_certificate',
+    entityId: updated.id,
+    status: 'success',
+    afterData: { status: updated.status }
+  })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.CERT_REJECT_SUCCESS,
@@ -382,6 +458,14 @@ export const revokeFarmCertController = async (
     certificateId: req.params.certificateId,
     adminUserId: user_id,
     reason: req.body.reason
+  })
+  await auditService.writeFromRequest(req, {
+    module: 'certificate',
+    action: 'revoke_farm_certificate',
+    entityType: 'farm_certificate',
+    entityId: updated.id,
+    status: 'success',
+    afterData: { status: updated.status }
   })
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
