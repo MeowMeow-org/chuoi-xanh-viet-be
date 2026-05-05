@@ -1,5 +1,6 @@
 import type { Prisma, account_status, user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
+import { prismaTelegramLinkTokens } from '~/lib/prismaTelegramLinkTokens'
 import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
 import HTTP_STATUS from '~/constants/httpStatus'
@@ -8,6 +9,20 @@ import { TokenType } from '~/constants/enums'
 import { signToken } from '~/utils/jwt'
 import { sendResetPasswordEmail } from '~/utils/email'
 import ms, { StringValue } from 'ms'
+
+/** Scalar users dùng cho login/register — ép kiểu khi Prisma typings chưa có `is_onboarding` / `telegram_chat_id`. */
+type UsersAuthSessionRow = {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string
+  role: user_role
+  status: account_status
+  is_onboarding: boolean
+  avatar_url: string | null
+  zalo_user_id: string | null
+  telegram_chat_id: string | null
+}
 
 class AuthService {
   private getRefreshTokenExpiresAt() {
@@ -108,26 +123,28 @@ class AuthService {
       })
     }
 
-    const user_id = user.id.toString()
+    const row = user as unknown as UsersAuthSessionRow
+    const user_id = row.id.toString()
     const { access_token, refresh_token } = await this.createAuthSessionForUser({
       user_id,
-      role: user.role,
-      status: user.status
+      role: row.role,
+      status: row.status
     })
 
     return {
       access_token,
       refresh_token,
       user: {
-        id: user.id,
-        full_name: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        is_onboarding: user.is_onboarding,
-        avatar_url: user.avatar_url ?? null,
-        zalo_user_id: user.zalo_user_id ?? null
+        id: row.id,
+        full_name: row.full_name,
+        email: row.email,
+        phone: row.phone,
+        role: row.role,
+        status: row.status,
+        is_onboarding: row.is_onboarding,
+        avatar_url: row.avatar_url ?? null,
+        zalo_user_id: row.zalo_user_id ?? null,
+        telegram_linked: Boolean(row.telegram_chat_id?.trim())
       }
     }
   }
@@ -154,7 +171,7 @@ class AuthService {
       })
     }
 
-    const user = await prisma.users.create({
+    const created = await prisma.users.create({
       data: {
         email,
         password_hash: password, // keeping same strategy as current login
@@ -164,26 +181,28 @@ class AuthService {
       }
     })
 
-    const user_id = user.id.toString()
+    const row = created as unknown as UsersAuthSessionRow
+    const user_id = row.id.toString()
     const { access_token, refresh_token } = await this.createAuthSessionForUser({
       user_id,
-      role: user.role,
-      status: user.status
+      role: row.role,
+      status: row.status
     })
 
     return {
       access_token,
       refresh_token,
       user: {
-        id: user.id,
-        full_name: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        is_onboarding: user.is_onboarding,
-        avatar_url: user.avatar_url ?? null,
-        zalo_user_id: user.zalo_user_id ?? null
+        id: row.id,
+        full_name: row.full_name,
+        email: row.email,
+        phone: row.phone,
+        role: row.role,
+        status: row.status,
+        is_onboarding: row.is_onboarding,
+        avatar_url: row.avatar_url ?? null,
+        zalo_user_id: row.zalo_user_id ?? null,
+        telegram_linked: Boolean(row.telegram_chat_id?.trim())
       }
     }
   }
@@ -293,8 +312,9 @@ class AuthService {
     is_onboarding: boolean
     avatar_url: string | null
     zalo_user_id: string | null
+    telegram_linked: boolean
   }> => {
-    const user = await prisma.users.findUnique({
+    const user = (await prisma.users.findUnique({
       where: { id: user_id },
       select: {
         id: true,
@@ -305,9 +325,21 @@ class AuthService {
         status: true,
         is_onboarding: true,
         avatar_url: true,
-        zalo_user_id: true
-      }
-    })
+        zalo_user_id: true,
+        telegram_chat_id: true
+      } as unknown as Prisma.usersSelect
+    })) as {
+      id: string
+      full_name: string
+      email: string | null
+      phone: string
+      role: user_role
+      status: account_status
+      is_onboarding: boolean
+      avatar_url: string | null
+      zalo_user_id: string | null
+      telegram_chat_id: string | null
+    } | null
 
     if (user == null) {
       throw new ErrorWithStatus({
@@ -317,9 +349,16 @@ class AuthService {
     }
 
     return {
-      ...user,
+      id: user.id,
+      full_name: user.full_name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      is_onboarding: user.is_onboarding,
       avatar_url: user.avatar_url ?? null,
-      zalo_user_id: user.zalo_user_id ?? null
+      zalo_user_id: user.zalo_user_id ?? null,
+      telegram_linked: Boolean(user.telegram_chat_id?.trim())
     }
   }
 
@@ -330,6 +369,7 @@ class AuthService {
       full_name?: string
       phone?: string
       zalo_user_id?: string | null
+      unlinkTelegram?: boolean
     }
   ) => {
     const data: Prisma.usersUpdateInput = {}
@@ -407,13 +447,18 @@ class AuthService {
       }
     }
 
+    if (payload.unlinkTelegram === true) {
+      await prismaTelegramLinkTokens().deleteMany({ where: { user_id } })
+      ;(data as unknown as { telegram_chat_id?: string | null }).telegram_chat_id = null
+    }
+
     if (Object.keys(data).length === 0) {
       return this.getMe(user_id)
     }
 
     await prisma.users.update({
       where: { id: user_id },
-      data
+      data: data as Prisma.usersUpdateInput
     })
     return this.getMe(user_id)
   }

@@ -427,6 +427,8 @@ model users {
   avatar_url                         String?               @db.VarChar(2048)
   /** Zalo user_id (Official Account) — nông dân nhập sau khi đã quan tâm OA để nhận tin nhắn */
   zalo_user_id                       String?               @db.VarChar(50)
+  /** Telegram chat_id (tin nhắn riêng với bot) — gắn sau khi nông dân /start qua deep link webhook */
+  telegram_chat_id                   String?               @db.VarChar(32)
   role                               user_role             @default(farmer)
   status                             account_status        @default(active)
   reset_password_token               String?               @db.VarChar(255)
@@ -453,9 +455,22 @@ model users {
   cooperative_certificates_owned     cooperative_certificates[]     @relation("coop_cert_owner")
   cooperative_certificates_revoked   cooperative_certificates[]     @relation("coop_cert_revoker")
   cooperative_certificate_scope_added cooperative_certificate_scope[] @relation("coop_cert_scope_added_by")
-  farm_certificates_reviewed         farm_certificates[]            @relation("farm_cert_reviewer_user")
-  farm_certificates_reviewer_coop    farm_certificates[]            @relation("farm_cert_reviewer_coop")
-  audit_logs_actor                   audit_logs[]                   @relation("audit_logs_actor")
+  farm_certificates_reviewed          farm_certificates[]             @relation("farm_cert_reviewer_user")
+  farm_certificates_reviewer_coop     farm_certificates[]             @relation("farm_cert_reviewer_coop")
+  telegram_link_tokens                telegram_link_tokens[]
+  audit_logs_actor                    audit_logs[]                    @relation("audit_logs_actor")
+}
+
+/// Mã một lần (deep link t.me/bot?start=...) để gắn telegram_chat_id cho user đã đăng nhập
+model telegram_link_tokens {
+  token      String   @id @db.VarChar(64)
+  user_id    String   @db.Uuid
+  expires_at DateTime @db.Timestamp(6)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_telegram_link_user")
+  @@index([expires_at], map: "idx_telegram_link_expires")
 }
 
 model audit_logs {

@@ -26,6 +26,12 @@ const USER_MESSAGES = {
 
   ZALO_USER_ID_INVALID: 'zaloUserId phải gồm 1–50 chữ số (ID người dùng Zalo OA)',
 
+  TELEGRAM_LINK_FARMER_ONLY: 'Chỉ tài khoản nông dân mới dùng được liên kết Telegram nhận thông báo',
+
+  TELEGRAM_DEEP_LINK_NOT_CONFIGURED: 'Máy chủ chưa cấu hình Telegram (thiếu TELEGRAM_BOT_USERNAME)',
+
+  TELEGRAM_LINK_ISSUED: 'Đã tạo link Telegram',
+
   CHANGE_PASSWORD_SUCCESS: 'Đổi mật khẩu thành công',
 
   CURRENT_PASSWORD_INCORRECT: 'Mật khẩu hiện tại không đúng',
@@ -319,6 +325,7 @@ const USER_MESSAGES = {
   GET_MY_SHOP_SUCCESS: 'Lấy gian hàng của bạn thành công',
 
   GET_SHOPS_SUCCESS: 'Lấy danh sách gian hàng thành công',
+  GET_FARM_MAP_PINS_SUCCESS: 'Lấy điểm bản đồ nông hộ thành công',
 
   SHOP_NOT_FOUND_OR_FORBIDDEN: 'Không tìm thấy gian hàng hoặc bạn không có quyền',
 

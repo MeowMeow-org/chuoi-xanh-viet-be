@@ -43,6 +43,8 @@ export interface PatchMeRequestBody {
   phone?: string
   /** Zalo user_id (OA) để nhận tin nhắn từ Official Account — lấy sau khi user quan tâm OA. Gửi null hoặc rỗng để bỏ liên kết. */
   zaloUserId?: string | null
+  /** Gửi `true` để hủy liên kết Telegram (xoá chat_id và mã chờ khớp trong DB). */
+  unlinkTelegram?: boolean
 }
 
 export interface ChangePasswordRequestBody {

@@ -15,8 +15,36 @@ import type {
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import authService from './auth.service'
-import { ErrorWithStatus } from '~/models/Errors'
 import auditService from '~/modules/audit/audit.service'
+import { ErrorWithStatus } from '~/models/Errors'
+import { isTelegramDeepLinkConfigured, issueTelegramDeepLinkForUser } from '~/modules/telegram/telegramLink.service'
+
+/** User shape từ login/register/getMe sau khi map Prisma → API công khai. */
+function serializePublicAuthUser(user: {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string
+  role: string
+  status: string
+  avatar_url: string | null
+  zalo_user_id: string | null
+  is_onboarding?: boolean
+  telegram_linked: boolean
+}) {
+  return {
+    id: user.id,
+    fullName: user.full_name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    status: user.status,
+    onBoarding: user.is_onboarding,
+    avatarUrl: user.avatar_url ?? null,
+    zaloUserId: user.zalo_user_id ?? null,
+    telegramLinked: user.telegram_linked
+  }
+}
 
 //login controller
 export const loginController = async (
@@ -40,17 +68,7 @@ export const loginController = async (
     data: {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
-      user: {
-        id: response.user.id,
-        fullName: response.user.full_name,
-        email: response.user.email,
-        phone: response.user.phone,
-        role: response.user.role,
-        status: response.user.status,
-        onBoarding: response.user.is_onboarding,
-        avatarUrl: response.user.avatar_url ?? null,
-        zaloUserId: response.user.zalo_user_id ?? null
-      }
+      user: serializePublicAuthUser(response.user)
     }
   })
 }
@@ -62,17 +80,7 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_ME_SUCCESS,
-    data: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      status: user.status,
-      onBoarding: user.is_onboarding,
-      avatarUrl: user.avatar_url ?? null,
-      zaloUserId: user.zalo_user_id ?? null
-    }
+    data: serializePublicAuthUser(user)
   })
 }
 
@@ -111,6 +119,7 @@ export const patchMeController = async (
     full_name?: string
     phone?: string
     zalo_user_id?: string | null
+    unlinkTelegram?: boolean
   } = {}
 
   if (avatarRaw !== undefined) {
@@ -124,6 +133,9 @@ export const patchMeController = async (
   }
   if (zaloRaw !== undefined) {
     payload.zalo_user_id = zaloRaw
+  }
+  if (body.unlinkTelegram === true) {
+    payload.unlinkTelegram = true
   }
 
   const user = await authService.updateMe(user_id, payload)
@@ -150,17 +162,7 @@ export const patchMeController = async (
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.UPDATE_PROFILE_SUCCESS,
-    data: {
-      id: user.id,
-      fullName: user.full_name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      status: user.status,
-      onBoarding: user.is_onboarding,
-      avatarUrl: user.avatar_url ?? null,
-      zaloUserId: user.zalo_user_id ?? null
-    }
+    data: serializePublicAuthUser(user)
   })
 }
 
@@ -214,17 +216,7 @@ export const registerController = async (
     data: {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
-      user: {
-        id: response.user.id,
-        fullName: response.user.full_name,
-        email: response.user.email,
-        phone: response.user.phone,
-        role: response.user.role,
-        status: response.user.status,
-        onBoarding: response.user.is_onboarding,
-        avatarUrl: response.user.avatar_url ?? null,
-        zaloUserId: response.user.zalo_user_id ?? null
-      }
+      user: serializePublicAuthUser(response.user)
     }
   })
 }
@@ -356,5 +348,39 @@ export const resetPasswordController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.RESET_PASSWORD_SUCCESS,
     data: null
+  })
+}
+
+export const issueTelegramLinkController = async (
+  req: Request,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const me = await authService.getMe(user_id)
+
+  if (me.role !== 'farmer') {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.FORBIDDEN,
+      message: USER_MESSAGES.TELEGRAM_LINK_FARMER_ONLY
+    })
+  }
+
+  if (!isTelegramDeepLinkConfigured()) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      message: USER_MESSAGES.TELEGRAM_DEEP_LINK_NOT_CONFIGURED
+    })
+  }
+
+  const { deepLink, expiresInSeconds } = await issueTelegramDeepLinkForUser(user_id)
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.TELEGRAM_LINK_ISSUED,
+    data: {
+      deepLink,
+      expiresInSeconds
+    }
   })
 }

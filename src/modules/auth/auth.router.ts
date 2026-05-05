@@ -4,6 +4,7 @@ import {
   changePasswordController,
   forgotPasswordController,
   getMeController,
+  issueTelegramLinkController,
   loginController,
   logoutController,
   patchMeController,
@@ -51,6 +52,13 @@ authRouter.patch(
   patchMeValidator,
   wrapAsync(patchMeController)
 )
+
+/**
+ * @desc Deep link Telegram (?start=…) — nông dân bật webhook + bot trước khi dùng.
+ * @route POST /auth/me/telegram-link
+ * @access private (farmer)
+ */
+authRouter.post('/me/telegram-link', accessTokenValidator, wrapAsync(issueTelegramLinkController))
 
 /**
  * @desc Đổi mật khẩu khi đã đăng nhập
