@@ -38,6 +38,29 @@ const farmSelectMine = {
   }
 } satisfies Prisma.farmsSelect
 
+function assertFarmGpsCoordinatePair(latitude: number, longitude: number) {
+  const la = Number(latitude)
+  const lo = Number(longitude)
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      message: USER_MESSAGES.FARM_GPS_INVALID
+    })
+  }
+  if (la === 0 && lo === 0) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      message: USER_MESSAGES.FARM_GPS_INVALID
+    })
+  }
+  if (la < 8 || la > 24 || lo < 102 || lo > 110) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      message: USER_MESSAGES.FARM_GPS_INVALID
+    })
+  }
+}
+
 class FarmService {
   private async ensureFarmOwner(farmId: string, userId: string) {
     const farm = await prisma.farms.findFirst({
@@ -63,6 +86,13 @@ class FarmService {
     owner_user_id: string
     payload: CreateFarmRequestBody
   }) => {
+    if (payload.latitude === undefined || payload.longitude === undefined) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+        message: USER_MESSAGES.FARM_GPS_REQUIRED
+      })
+    }
+    assertFarmGpsCoordinatePair(payload.latitude, payload.longitude)
     return prisma.farms.create({
       data: {
         owner_user_id,
@@ -94,6 +124,18 @@ class FarmService {
     payload: UpdateFarmRequestBody
   }) => {
     await this.ensureFarmOwner(farm_id, owner_user_id)
+
+    const latP = payload.latitude
+    const lngP = payload.longitude
+    if (latP !== undefined || lngP !== undefined) {
+      if (latP === undefined || lngP === undefined) {
+        throw new ErrorWithStatus({
+          status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          message: USER_MESSAGES.FARM_GPS_INVALID
+        })
+      }
+      assertFarmGpsCoordinatePair(latP, lngP)
+    }
 
     const data: Prisma.farmsUncheckedUpdateInput = {}
     if (payload.name !== undefined) data.name = payload.name

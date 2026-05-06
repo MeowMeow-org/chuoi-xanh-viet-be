@@ -14,35 +14,33 @@ import type {
 } from './auth.request'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
-import authService from './auth.service'
+import authService, { type AuthPublicUser } from './auth.service'
 import auditService from '~/modules/audit/audit.service'
 import { ErrorWithStatus } from '~/models/Errors'
 import { isTelegramDeepLinkConfigured, issueTelegramDeepLinkForUser } from '~/modules/telegram/telegramLink.service'
 
-/** User shape từ login/register/getMe sau khi map Prisma → API công khai. */
-function serializePublicAuthUser(user: {
-  id: string
-  full_name: string
-  email: string | null
-  phone: string
-  role: string
-  status: string
-  avatar_url: string | null
-  zalo_user_id: string | null
-  is_onboarding?: boolean
-  telegram_linked: boolean
-}) {
+/** JSON cho login/register/getMe — gồm HTX + Telegram. */
+function serializePublicAuthUser(user: AuthPublicUser) {
   return {
     id: user.id,
-    fullName: user.full_name,
+    fullName: user.fullName,
     email: user.email,
     phone: user.phone,
     role: user.role,
     status: user.status,
-    onBoarding: user.is_onboarding,
-    avatarUrl: user.avatar_url ?? null,
-    zaloUserId: user.zalo_user_id ?? null,
-    telegramLinked: user.telegram_linked
+    onBoarding: user.onBoarding,
+    avatarUrl: user.avatarUrl,
+    zaloUserId: user.zaloUserId,
+    telegramLinked: user.telegramLinked,
+    contactAddress: user.contactAddress,
+    province: user.province,
+    district: user.district,
+    ward: user.ward,
+    provinceCode: user.provinceCode,
+    districtCode: user.districtCode,
+    wardCode: user.wardCode,
+    latitude: user.latitude,
+    longitude: user.longitude
   }
 }
 
@@ -114,11 +112,31 @@ export const patchMeController = async (
             : body.zaloUserId.trim()
           : undefined
 
+  const contactRaw =
+    body.contactAddress === undefined
+      ? undefined
+      : body.contactAddress === null
+        ? null
+        : typeof body.contactAddress === 'string'
+          ? body.contactAddress.trim() === ''
+            ? null
+            : body.contactAddress.trim()
+          : undefined
+
   const payload: {
     avatar_url?: string | null
     full_name?: string
     phone?: string
     zalo_user_id?: string | null
+    contact_address?: string | null
+    province?: string | null
+    district?: string | null
+    ward?: string | null
+    province_code?: number | null
+    district_code?: number | null
+    ward_code?: number | null
+    latitude?: number | null
+    longitude?: number | null
     unlinkTelegram?: boolean
   } = {}
 
@@ -134,6 +152,47 @@ export const patchMeController = async (
   if (zaloRaw !== undefined) {
     payload.zalo_user_id = zaloRaw
   }
+  if (contactRaw !== undefined) {
+    payload.contact_address = contactRaw
+  }
+
+  const strOrNull = (v: unknown): string | null | undefined => {
+    if (v === undefined) return undefined
+    if (v === null) return null
+    if (typeof v === 'string') return v
+    return undefined
+  }
+  const codeOrNull = (v: unknown): number | null | undefined => {
+    if (v === undefined) return undefined
+    if (v === null) return null
+    if (typeof v === 'number' && Number.isInteger(v) && v > 0) return v
+    return undefined
+  }
+  const coordOrNull = (v: unknown): number | null | undefined => {
+    if (v === undefined) return undefined
+    if (v === null) return null
+    if (typeof v === 'number' && Number.isFinite(v)) return v
+    return undefined
+  }
+
+  const p = strOrNull(body.province)
+  if (p !== undefined) payload.province = p
+  const d = strOrNull(body.district)
+  if (d !== undefined) payload.district = d
+  const w = strOrNull(body.ward)
+  if (w !== undefined) payload.ward = w
+
+  const pc = codeOrNull(body.provinceCode)
+  if (pc !== undefined) payload.province_code = pc
+  const dc = codeOrNull(body.districtCode)
+  if (dc !== undefined) payload.district_code = dc
+  const wc = codeOrNull(body.wardCode)
+  if (wc !== undefined) payload.ward_code = wc
+
+  const lat = coordOrNull(body.latitude)
+  const lng = coordOrNull(body.longitude)
+  if (lat !== undefined) payload.latitude = lat
+  if (lng !== undefined) payload.longitude = lng
   if (body.unlinkTelegram === true) {
     payload.unlinkTelegram = true
   }
@@ -146,16 +205,24 @@ export const patchMeController = async (
     entityId: user.id,
     status: 'success',
     beforeData: {
-      fullName: beforeUser.full_name,
+      fullName: beforeUser.fullName,
       phone: beforeUser.phone,
-      avatarUrl: beforeUser.avatar_url,
-      zaloUserId: beforeUser.zalo_user_id
+      avatarUrl: beforeUser.avatarUrl,
+      zaloUserId: beforeUser.zaloUserId,
+      contactAddress: beforeUser.contactAddress,
+      provinceCode: beforeUser.provinceCode,
+      districtCode: beforeUser.districtCode,
+      wardCode: beforeUser.wardCode
     },
     afterData: {
-      fullName: user.full_name,
+      fullName: user.fullName,
       phone: user.phone,
-      avatarUrl: user.avatar_url,
-      zaloUserId: user.zalo_user_id
+      avatarUrl: user.avatarUrl,
+      zaloUserId: user.zaloUserId,
+      contactAddress: user.contactAddress,
+      provinceCode: user.provinceCode,
+      districtCode: user.districtCode,
+      wardCode: user.wardCode
     }
   })
 

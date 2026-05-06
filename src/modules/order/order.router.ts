@@ -7,6 +7,7 @@ import {
   getShopOrdersController,
   getOrderByIdController,
   getPayosResumeController,
+  renewPayosPaymentController,
   cancelOrderController,
   updateOrderStatusController,
   payosWebhookController
@@ -76,6 +77,18 @@ orderRouter.get(
   requireConsumer,
   orderIdParamValidator,
   wrapAsync(getPayosResumeController)
+)
+
+/**
+ * @desc Tạo giao dịch / link thanh toán PayOS mới (huỷ link cũ nếu còn) — ví dụ sau khi link hết hạn
+ * @route POST /order/:order_id/payos/renew
+ */
+orderRouter.post(
+  '/:order_id/payos/renew',
+  accessTokenValidator,
+  requireConsumer,
+  orderIdParamValidator,
+  wrapAsync(renewPayosPaymentController)
 )
 
 /**

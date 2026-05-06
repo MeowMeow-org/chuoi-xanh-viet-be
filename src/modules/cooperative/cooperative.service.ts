@@ -5,11 +5,24 @@ import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 
+function stripProvinceAdminPrefix(raw: string): string {
+  let s = raw.trim()
+  const prefixes = ['Tỉnh ', 'Thành phố ', 'TP. ', 'TP ']
+  for (const p of prefixes) {
+    if (s.length >= p.length && s.slice(0, p.length).toLowerCase() === p.toLowerCase()) {
+      s = s.slice(p.length).trim()
+      break
+    }
+  }
+  return s
+}
+
 const htxSelect = {
   id: true,
   full_name: true,
   email: true,
   phone: true,
+  contact_address: true,
   role: true,
   status: true,
   created_at: true
@@ -20,13 +33,16 @@ class CooperativeService {
     page = 1,
     limit = 10,
     searchTerm,
-    id
+    id,
+    farmId
   }: {
     page?: number
     limit?: number
     searchTerm?: string
     /** Lọc đúng một HTX (vd. trang xác nhận đơn gia nhập) */
     id?: string
+    /** Nếu có farmId: HTX cùng `province_code`, hoặc đã có hộ viên duyệt cùng tỉnh, hoặc khớp tên tỉnh trên tên/địa chỉ HTX (fallback). */
+    farmId?: string
   }) => {
     const safePage = Math.max(1, page)
     const safeLimit = Math.min(100, Math.max(1, limit))
@@ -34,7 +50,7 @@ class CooperativeService {
 
     const term = searchTerm?.trim()
     const idTrim = id?.trim()
-    const where: Prisma.usersWhereInput = {
+    const whereBase: Prisma.usersWhereInput = {
       role: 'cooperative',
       status: 'active',
       ...(idTrim && idTrim.length > 0 ? { id: idTrim } : {}),
@@ -47,6 +63,52 @@ class CooperativeService {
             ]
           }
         : {})
+    }
+
+    let where: Prisma.usersWhereInput = whereBase
+
+    if (farmId) {
+      const farm = await prisma.farms.findUnique({
+        where: { id: farmId },
+        select: {
+          province_code: true,
+          province: true
+        }
+      })
+
+      if (farm) {
+        const orFilters: Prisma.usersWhereInput[] = []
+
+        if (farm.province_code != null) {
+          orFilters.push({ province_code: farm.province_code })
+          orFilters.push({
+            cooperative_members_as_cooperative: {
+              some: {
+                status: 'approved',
+                farms: { province_code: farm.province_code }
+              }
+            }
+          })
+        }
+
+        const label = farm.province?.trim()
+        if (label) {
+          const short = stripProvinceAdminPrefix(label)
+          /** Tránh match quá rộng (vd. «An» khớp nhiều tỉnh). */
+          if (short.length >= 4) {
+            orFilters.push({
+              full_name: { contains: short, mode: 'insensitive' }
+            })
+            orFilters.push({
+              contact_address: { contains: short, mode: 'insensitive' }
+            })
+          }
+        }
+
+        if (orFilters.length > 0) {
+          where = { ...whereBase, OR: orFilters }
+        }
+      }
     }
 
     const [items, total] = await Promise.all([

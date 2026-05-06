@@ -23,12 +23,15 @@ export const listHtxController = async (
   const searchTerm =
     typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
   const id = typeof req.query.id === 'string' ? req.query.id : undefined
+  const farmId =
+    typeof req.query.farmId === 'string' ? req.query.farmId : undefined
 
   const { items, meta } = await cooperativeService.listHtx({
     page,
     limit,
     searchTerm,
-    id
+    id,
+    farmId
   })
 
   return res.sendResponse({
@@ -40,6 +43,7 @@ export const listHtxController = async (
         fullName: u.full_name,
         email: u.email,
         phone: u.phone,
+        contactAddress: u.contact_address,
         role: u.role,
         status: u.status,
         createdAt: u.created_at

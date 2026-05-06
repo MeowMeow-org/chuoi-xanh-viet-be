@@ -118,6 +118,11 @@ class CertificateService {
       select: {
         id: true,
         created_at: true,
+        province_code: true,
+        district_code: true,
+        ward_code: true,
+        latitude: true,
+        longitude: true,
         cooperative_members_as_cooperative: {
           where: { status: 'approved' },
           select: {
@@ -138,47 +143,104 @@ class CertificateService {
     const farmLat = toNumber(farm.latitude)
     const farmLng = toNumber(farm.longitude)
 
+    const adminMatchScore = (
+      pf: number | null,
+      df: number | null,
+      wf: number | null,
+      pu: number | null,
+      du: number | null,
+      wu: number | null
+    ) => {
+      let score = 0
+      if (pf != null && pu != null && pf === pu) score += 10
+      if (df != null && du != null && df === du) score += 25
+      if (wf != null && wu != null && wf === wu) score += 60
+      return score
+    }
+
     const candidates = coops
       .map((coop) => {
         const memberFarms = coop.cooperative_members_as_cooperative.map(
           (m) => m.farms
         )
-        if (memberFarms.length === 0) return null
 
-        const withCoords = memberFarms
-          .map((f) => {
-            const lat = toNumber(f.latitude)
-            const lng = toNumber(f.longitude)
-            return lat != null && lng != null ? { lat, lng } : null
-          })
-          .filter((x): x is { lat: number; lng: number } => x != null)
+        let memberScore = 0
+        let memberDistanceKm: number | null = null
 
-        const centroid =
-          withCoords.length > 0
-            ? {
-                lat:
-                  withCoords.reduce((acc, c) => acc + c.lat, 0) /
-                  withCoords.length,
-                lng:
-                  withCoords.reduce((acc, c) => acc + c.lng, 0) /
-                  withCoords.length
-              }
+        if (memberFarms.length > 0) {
+          const withCoords = memberFarms
+            .map((f) => {
+              const lat = toNumber(f.latitude)
+              const lng = toNumber(f.longitude)
+              return lat != null && lng != null ? { lat, lng } : null
+            })
+            .filter((x): x is { lat: number; lng: number } => x != null)
+
+          const centroid =
+            withCoords.length > 0
+              ? {
+                  lat:
+                    withCoords.reduce((acc, c) => acc + c.lat, 0) /
+                    withCoords.length,
+                  lng:
+                    withCoords.reduce((acc, c) => acc + c.lng, 0) /
+                    withCoords.length
+                }
+              : null
+
+          memberScore = memberFarms.reduce((best, mf) => {
+            const s = adminMatchScore(
+              farm.province_code,
+              farm.district_code,
+              farm.ward_code,
+              mf.province_code,
+              mf.district_code,
+              mf.ward_code
+            )
+            return Math.max(best, s)
+          }, 0)
+
+          if (farmLat != null && farmLng != null && centroid != null) {
+            memberDistanceKm = haversineKm(
+              farmLat,
+              farmLng,
+              centroid.lat,
+              centroid.lng
+            )
+          }
+        }
+
+        const hqScore = adminMatchScore(
+          farm.province_code,
+          farm.district_code,
+          farm.ward_code,
+          coop.province_code,
+          coop.district_code,
+          coop.ward_code
+        )
+
+        const coopLat = toNumber(coop.latitude)
+        const coopLng = toNumber(coop.longitude)
+        const hqDistanceKm =
+          farmLat != null &&
+          farmLng != null &&
+          coopLat != null &&
+          coopLng != null
+            ? haversineKm(farmLat, farmLng, coopLat, coopLng)
             : null
 
-        const matchScore = memberFarms.reduce((best, mf) => {
-          let score = 0
-          if (farm.province_code != null && mf.province_code === farm.province_code)
-            score += 10
-          if (farm.district_code != null && mf.district_code === farm.district_code)
-            score += 25
-          if (farm.ward_code != null && mf.ward_code === farm.ward_code) score += 60
-          return Math.max(best, score)
-        }, 0)
+        const eligible =
+          memberFarms.length > 0 ||
+          hqScore > 0 ||
+          (coopLat != null && coopLng != null)
+        if (!eligible) return null
 
-        const distanceKm =
-          farmLat != null && farmLng != null && centroid != null
-            ? haversineKm(farmLat, farmLng, centroid.lat, centroid.lng)
-            : null
+        const matchScore = Math.max(memberScore, hqScore)
+
+        const distances = [memberDistanceKm, hqDistanceKm].filter(
+          (d): d is number => d != null
+        )
+        const distanceKm = distances.length > 0 ? Math.min(...distances) : null
 
         return {
           cooperativeUserId: coop.id,
@@ -688,7 +750,18 @@ class CertificateService {
         take: safeLimit,
         include: {
           farm: { select: { id: true, name: true } },
-          reviewer_cooperative: { select: { id: true, full_name: true } },
+          reviewer_cooperative: {
+            select: {
+              id: true,
+              full_name: true,
+              phone: true,
+              email: true,
+              province: true,
+              district: true,
+              ward: true,
+              contact_address: true
+            }
+          },
           reviewer_user: { select: { id: true, full_name: true, role: true } }
         }
       }),
