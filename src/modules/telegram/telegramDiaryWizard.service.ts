@@ -6,6 +6,7 @@ import {
   editTelegramMessageTextUsingBotToken,
   getTelegramFileUrlUsingBotToken,
   sendTelegramInlineKeyboardUsingBotToken,
+  sendTelegramQuickActionsMenuUsingBotToken,
   sendTelegramTextUsingBotToken
 } from './telegramBot.service'
 import { transcribeTelegramVoiceToText } from './telegramVoice.service'
@@ -529,6 +530,7 @@ async function commitDiary(chatId: string, userId: string, draft: WizardDraft) {
     chatId,
     `Đã ghi nhận thành công nhật ký.\n- Loại công việc: ${EVENT_CHOICES.find((e) => e.key === draft.eventType)?.label}\n- Mô tả: ${draft.description}\n- Ảnh: ${fileIds.length} tấm`
   )
+  await sendTelegramQuickActionsMenuUsingBotToken(chatId)
 }
 
 function isStartDiaryKeyword(text: string): boolean {
@@ -575,14 +577,17 @@ export const telegramDiaryWizardService = {
           messageId: callbackMessageId as number,
           text: 'Đã huỷ phiên ghi nhật ký.'
         })
+        await sendTelegramQuickActionsMenuUsingBotToken(params.chatId)
         return true
       }
       await sendTelegramTextUsingBotToken(params.chatId, 'Đã huỷ phiên ghi nhật ký.')
+      await sendTelegramQuickActionsMenuUsingBotToken(params.chatId)
       return true
     }
     if (text && isCancelKeyword(text)) {
       await clearSession(params.chatId)
       await sendTelegramTextUsingBotToken(params.chatId, 'Đã huỷ phiên ghi nhật ký.')
+      await sendTelegramQuickActionsMenuUsingBotToken(params.chatId)
       return true
     }
 
@@ -674,7 +679,9 @@ export const telegramDiaryWizardService = {
             return true
           }
           await sendTelegramTextUsingBotToken(params.chatId, 'Đang nhận diện nội dung voice...')
-          const transcribed = await transcribeTelegramVoiceToText(params.voiceFileId).catch(() => null)
+          const transcribed = await transcribeTelegramVoiceToText(params.voiceFileId, {
+            eventTypeLabel: EVENT_CHOICES.find((e) => e.key === draft.eventType)?.label
+          }).catch(() => null)
           if (transcribed) {
             normalizedDescription = transcribed
             await sendTelegramTextUsingBotToken(params.chatId, `Đã nhận diện: "${normalizedDescription}"`)
@@ -729,7 +736,9 @@ export const telegramDiaryWizardService = {
             return true
           }
           await sendTelegramTextUsingBotToken(params.chatId, 'Đang nhận diện nội dung voice...')
-          const transcribed = await transcribeTelegramVoiceToText(params.voiceFileId).catch(() => null)
+          const transcribed = await transcribeTelegramVoiceToText(params.voiceFileId, {
+            eventTypeLabel: EVENT_CHOICES.find((e) => e.key === draft.eventType)?.label
+          }).catch(() => null)
           if (!transcribed || transcribed.length < 8) {
             await sendTelegramTextUsingBotToken(
               params.chatId,
@@ -931,11 +940,13 @@ export const telegramDiaryWizardService = {
             `Đã tạo mùa vụ thành công.\n- Mã vụ: ${created.code}\n- Cây trồng: ${created.crop_name}\n- Bắt đầu: ${created.start_date.toISOString().slice(0, 10)}`
           )
           await sendFirstCareStepHint(params.chatId, created.id)
+          await sendTelegramQuickActionsMenuUsingBotToken(params.chatId)
           return true
         }
         if (callbackData === 'wiz_cancel' || t === 'huy' || t === 'huỷ') {
           await clearSession(params.chatId)
           await sendTelegramTextUsingBotToken(params.chatId, 'Đã huỷ tạo mùa vụ.')
+          await sendTelegramQuickActionsMenuUsingBotToken(params.chatId)
           return true
         }
         await sendTelegramTextUsingBotToken(params.chatId, 'Gõ XACNHAN để tạo mùa vụ hoặc HUY để huỷ.')
@@ -957,6 +968,7 @@ export const telegramDiaryWizardService = {
         if (callbackData === 'wiz_cancel' || t === 'huy' || t === 'huỷ') {
           await clearSession(params.chatId)
           await sendTelegramTextUsingBotToken(params.chatId, 'Đã huỷ phiên ghi nhật ký.')
+          await sendTelegramQuickActionsMenuUsingBotToken(params.chatId)
           return true
         }
         await sendTelegramTextUsingBotToken(params.chatId, 'Gõ XACNHAN để lưu hoặc HUY để huỷ.')
