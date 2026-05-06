@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
-import { sendTelegramTextUsingBotToken } from './telegramBot.service'
+import { answerTelegramCallbackQueryUsingBotToken, sendTelegramTextUsingBotToken } from './telegramBot.service'
 import { redeemTelegramStartPayload } from './telegramLink.service'
+import { telegramDiaryWizardService } from './telegramDiaryWizard.service'
 
 function webhookSecretOk(req: Request): boolean {
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim()
@@ -8,7 +9,7 @@ function webhookSecretOk(req: Request): boolean {
   return req.get('x-telegram-bot-api-secret-token') === secret
 }
 
-function parseOutgoingChatAndText(body: unknown): { chatId: string; text: string } | null {
+function parseIncomingMessage(body: unknown): { chatId: string; text?: string; photoFileId?: string } | null {
   if (!body || typeof body !== 'object') return null
   const o = body as Record<string, unknown>
   const msg = o.message
@@ -16,10 +17,45 @@ function parseOutgoingChatAndText(body: unknown): { chatId: string; text: string
   const m = msg as Record<string, unknown>
   const chat = m.chat as Record<string, unknown> | undefined
   const chatId = chat?.id
-  const text = m.text
   if (chatId === undefined || chatId === null) return null
-  if (typeof text !== 'string') return null
-  return { chatId: String(chatId), text }
+
+  const text = typeof m.text === 'string' ? m.text : undefined
+  let photoFileId: string | undefined
+  if (Array.isArray(m.photo) && m.photo.length > 0) {
+    const last = m.photo[m.photo.length - 1]
+    if (last && typeof last === 'object' && 'file_id' in last) {
+      const fid = (last as Record<string, unknown>).file_id
+      if (typeof fid === 'string' && fid.trim() !== '') {
+        photoFileId = fid.trim()
+      }
+    }
+  }
+  return { chatId: String(chatId), text, photoFileId }
+}
+
+function parseIncomingCallback(body: unknown): {
+  chatId: string
+  callbackData: string
+  callbackQueryId: string
+  messageId?: number
+} | null {
+  if (!body || typeof body !== 'object') return null
+  const o = body as Record<string, unknown>
+  const q = o.callback_query
+  if (!q || typeof q !== 'object') return null
+  const cq = q as Record<string, unknown>
+  const id = cq.id
+  const data = cq.data
+  const msg = cq.message
+  if (typeof id !== 'string' || typeof data !== 'string') return null
+  if (!msg || typeof msg !== 'object') return null
+  const m = msg as Record<string, unknown>
+  const chat = m.chat as Record<string, unknown> | undefined
+  const chatId = chat?.id
+  if (chatId === undefined || chatId === null) return null
+  const messageIdRaw = m.message_id
+  const messageId = typeof messageIdRaw === 'number' ? messageIdRaw : undefined
+  return { chatId: String(chatId), callbackData: data, callbackQueryId: id, messageId }
 }
 
 /** Trả payload sau /start (Telegram có thể gửi "/start TOKEN" một chuỗi). */
@@ -39,9 +75,20 @@ export const telegramWebhookController = async (req: Request, res: Response): Pr
   }
 
   try {
-    const parsed = parseOutgoingChatAndText(req.body)
+    const cb = parseIncomingCallback(req.body)
+    if (cb) {
+      await telegramDiaryWizardService.handleIncoming({
+        chatId: cb.chatId,
+        callbackData: cb.callbackData,
+        callbackMessageId: cb.messageId
+      })
+      await answerTelegramCallbackQueryUsingBotToken(cb.callbackQueryId).catch(() => {})
+      return res.sendStatus(200)
+    }
+
+    const parsed = parseIncomingMessage(req.body)
     if (parsed) {
-      const startPayload = extractStartPayload(parsed.text)
+      const startPayload = parsed.text ? extractStartPayload(parsed.text) : null
       if (startPayload !== null) {
         if (startPayload === '') {
           await sendTelegramTextUsingBotToken(
@@ -62,6 +109,12 @@ export const telegramWebhookController = async (req: Request, res: Response): Pr
             ).catch(() => {})
           }
         }
+      } else {
+        await telegramDiaryWizardService.handleIncoming({
+          chatId: parsed.chatId,
+          text: parsed.text,
+          photoFileId: parsed.photoFileId
+        })
       }
     }
   } catch (e) {

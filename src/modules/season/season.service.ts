@@ -8,6 +8,8 @@ import { sendAnchorTx } from '~/lib/blockchain'
 import prisma from '~/lib/prisma'
 import { ErrorWithStatus } from '~/models/Errors'
 import anchorService from '../anchor/anchor.service'
+import seasonCarePlanService from './seasonCarePlan.service'
+import { notifyFarmerSeasonPlanTelegramSafe } from '../telegram/telegramSeasonNotify'
 import type { CreateSeasonRequestBody, GetSeasonsQuery, UpdateSeasonRequestBody } from './season.request'
 
 /** Năng suất mùa vụ lưu Decimal(12,2) — chuẩn hoá để tránh lệch kiểu 899.99 vs 900 do float JS. */
@@ -188,7 +190,7 @@ class SeasonService {
     const harvestEnd = payload.harvestEndDate ? new Date(payload.harvestEndDate) : null
     assertSeasonHarvestDateOrder({ start, harvestStart, harvestEnd })
 
-    return prisma.seasons.create({
+    const season = await prisma.seasons.create({
       data: {
         farm_id: payload.farmId,
         code,
@@ -203,6 +205,21 @@ class SeasonService {
       },
       select: seasonSelect
     })
+
+    const plan = await seasonCarePlanService.createPlanForSeason({
+      seasonId: season.id,
+      cropName: season.crop_name,
+      startDate: season.start_date
+    })
+
+    notifyFarmerSeasonPlanTelegramSafe({
+      recipientUserId: userId,
+      cropName: plan.cropName,
+      seasonCode: season.code,
+      steps: plan.steps
+    })
+
+    return season
   }
 
   getSeasons = async ({ userId, query }: { userId: string; query: GetSeasonsQuery }) => {
