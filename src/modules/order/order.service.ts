@@ -5,6 +5,7 @@ import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import type { CreateOrderRequestBody } from './order.request'
 import { toKg } from '~/utils/unit'
+import { computeOrderSettlementVnd, getPlatformCommissionRate } from '~/utils/orderSettlement'
 import {
   cancelPayosPaymentByOrderCode,
   createPayosPaymentLink,
@@ -34,6 +35,77 @@ function payosLinkExpiredAtUnixSeconds(): number {
 
 function clipPayosText(raw: string, maxLen: number): string {
   return raw.replace(/\s+/g, ' ').trim().slice(0, maxLen)
+}
+
+function earningsDec(d: Prisma.Decimal | null | undefined) {
+  return d == null ? 0 : Number(d)
+}
+
+type EarningsBucketMode = 'month' | 'week' | 'day'
+
+/** Chia [from, to) thành các bucket để tổng hợp theo tháng / tuần (7 ngày) / ngày. */
+function buildEarningBuckets(
+  from: Date,
+  to: Date,
+  bucket: EarningsBucketMode
+): Array<{ start: Date; end: Date; label: string }> {
+  const out: Array<{ start: Date; end: Date; label: string }> = []
+  const endMs = to.getTime()
+  if (bucket === 'day') {
+    const cur = new Date(from)
+    cur.setHours(0, 0, 0, 0)
+    while (cur.getTime() < endMs) {
+      const dayEnd = new Date(cur)
+      dayEnd.setDate(dayEnd.getDate() + 1)
+      const end = dayEnd.getTime() > endMs ? new Date(endMs) : dayEnd
+      out.push({
+        start: new Date(cur),
+        end,
+        label: cur.toLocaleDateString('vi-VN', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'numeric',
+          year: 'numeric'
+        })
+      })
+      cur.setDate(cur.getDate() + 1)
+    }
+    return out
+  }
+  if (bucket === 'week') {
+    const cur = new Date(from)
+    cur.setHours(0, 0, 0, 0)
+    const fmtShort = (d: Date) => d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })
+    while (cur.getTime() < endMs) {
+      const chunkEnd = new Date(cur)
+      chunkEnd.setDate(chunkEnd.getDate() + 7)
+      const end = chunkEnd.getTime() > endMs ? new Date(endMs) : chunkEnd
+      const lastDay = new Date(end)
+      lastDay.setMilliseconds(lastDay.getMilliseconds() - 1)
+      out.push({
+        start: new Date(cur),
+        end,
+        label: `${fmtShort(cur)} → ${fmtShort(lastDay)}`
+      })
+      cur.setDate(cur.getDate() + 7)
+    }
+    return out
+  }
+  let curMonth = new Date(from.getFullYear(), from.getMonth(), 1)
+  while (curMonth.getTime() < endMs) {
+    const start = new Date(Math.max(curMonth.getTime(), from.getTime()))
+    const nextMonth = new Date(curMonth.getFullYear(), curMonth.getMonth() + 1, 1)
+    const end = new Date(Math.min(nextMonth.getTime(), endMs))
+    if (start.getTime() < end.getTime()) {
+      out.push({
+        start,
+        end,
+        label: `Tháng ${curMonth.getMonth() + 1}/${curMonth.getFullYear()}`
+      })
+    }
+    curMonth = nextMonth
+  }
+  return out
 }
 
 type OrderTx = Prisma.TransactionClient
@@ -140,6 +212,13 @@ const orderSelect = {
   note: true,
   payos_order_code: true,
   payos_link_expires_at: true,
+  commission_rate: true,
+  estimated_commission_amount: true,
+  estimated_seller_payout: true,
+  estimated_at: true,
+  commission_amount: true,
+  seller_payout: true,
+  settled_at: true,
   created_at: true,
   updated_at: true,
   shops: {
@@ -638,6 +717,298 @@ class OrderService {
     }
   }
 
+  getShopEarnings = async ({ farmerUserId }: { farmerUserId: string }) => {
+    const baseWhere: Prisma.ordersWhereInput = {
+      shops: { farms: { owner_user_id: farmerUserId } }
+    }
+
+    const [finalizedAgg, pipelineAgg, finalizedOrderCount, pipelineOrderCount] = await Promise.all([
+      prisma.orders.aggregate({
+        where: {
+          ...baseWhere,
+          settled_at: { not: null },
+          status: { not: 'cancelled' }
+        },
+        _sum: {
+          seller_payout: true,
+          total_amount: true,
+          commission_amount: true
+        }
+      }),
+      prisma.orders.aggregate({
+        where: {
+          ...baseWhere,
+          settled_at: null,
+          status: { in: ['confirmed', 'shipping'] }
+        },
+        _sum: {
+          estimated_seller_payout: true,
+          estimated_commission_amount: true
+        }
+      }),
+      prisma.orders.count({
+        where: {
+          ...baseWhere,
+          settled_at: { not: null },
+          status: { not: 'cancelled' }
+        }
+      }),
+      prisma.orders.count({
+        where: {
+          ...baseWhere,
+          settled_at: null,
+          status: { in: ['confirmed', 'shipping'] }
+        }
+      })
+    ])
+
+    const dec = earningsDec
+
+    return {
+      finalizedSellerPayout: dec(finalizedAgg._sum.seller_payout),
+      totalGmvFinalized: dec(finalizedAgg._sum.total_amount),
+      totalPlatformCommissionFinalized: dec(finalizedAgg._sum.commission_amount),
+      pipelineEstimatedPayout: dec(pipelineAgg._sum.estimated_seller_payout),
+      pipelineEstimatedCommission: dec(pipelineAgg._sum.estimated_commission_amount),
+      finalizedOrderCount,
+      pipelineOrderCount
+    }
+  }
+
+  getShopEarningsBreakdown = async ({
+    farmerUserId,
+    from,
+    to,
+    bucket
+  }: {
+    farmerUserId: string
+    from: Date
+    to: Date
+    bucket: EarningsBucketMode
+  }) => {
+    const baseWhere: Prisma.ordersWhereInput = {
+      shops: { farms: { owner_user_id: farmerUserId } },
+      status: { not: 'cancelled' }
+    }
+
+    const segments = buildEarningBuckets(from, to, bucket)
+    const buckets: Array<{
+      label: string
+      start: string
+      end: string
+      finalizedSellerPayout: number
+      totalGmvFinalized: number
+      platformFeeFinalized: number
+      finalizedOrderCount: number
+    }> = []
+
+    for (const seg of segments) {
+      const agg = await prisma.orders.aggregate({
+        where: {
+          ...baseWhere,
+          settled_at: { gte: seg.start, lt: seg.end }
+        },
+        _sum: {
+          seller_payout: true,
+          total_amount: true,
+          commission_amount: true
+        },
+        _count: true
+      })
+      buckets.push({
+        label: seg.label,
+        start: seg.start.toISOString(),
+        end: seg.end.toISOString(),
+        finalizedSellerPayout: earningsDec(agg._sum.seller_payout),
+        totalGmvFinalized: earningsDec(agg._sum.total_amount),
+        platformFeeFinalized: earningsDec(agg._sum.commission_amount),
+        finalizedOrderCount: agg._count
+      })
+    }
+
+    const periodTotalsAgg = await prisma.orders.aggregate({
+      where: {
+        ...baseWhere,
+        settled_at: { gte: from, lt: to }
+      },
+      _sum: {
+        seller_payout: true,
+        total_amount: true,
+        commission_amount: true
+      },
+      _count: true
+    })
+
+    return {
+      from: from.toISOString(),
+      to: to.toISOString(),
+      bucket,
+      periodTotals: {
+        finalizedSellerPayout: earningsDec(periodTotalsAgg._sum.seller_payout),
+        totalGmvFinalized: earningsDec(periodTotalsAgg._sum.total_amount),
+        platformFeeFinalized: earningsDec(periodTotalsAgg._sum.commission_amount),
+        finalizedOrderCount: periodTotalsAgg._count
+      },
+      buckets
+    }
+  }
+
+  getShopEarningsOrders = async ({
+    farmerUserId,
+    from,
+    to,
+    page = 1,
+    limit = 30
+  }: {
+    farmerUserId: string
+    from: Date
+    to: Date
+    page?: number
+    limit?: number
+  }) => {
+    const safePage = Math.max(1, page)
+    const safeLimit = Math.min(100, Math.max(1, limit))
+    const skip = (safePage - 1) * safeLimit
+
+    const where: Prisma.ordersWhereInput = {
+      shops: { farms: { owner_user_id: farmerUserId } },
+      status: { not: 'cancelled' },
+      OR: [
+        { settled_at: { gte: from, lt: to } },
+        {
+          settled_at: null,
+          created_at: { gte: from, lt: to }
+        }
+      ]
+    }
+
+    const [items, total] = await Promise.all([
+      prisma.orders.findMany({
+        where,
+        orderBy: { created_at: 'desc' },
+        skip,
+        take: safeLimit,
+        select: orderSelect
+      }),
+      prisma.orders.count({ where })
+    ])
+
+    const totalPages = Math.ceil(total / safeLimit)
+    return {
+      items,
+      meta: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        previousPage: safePage > 1 ? safePage - 1 : null,
+        nextPage: totalPages > 0 && safePage < totalPages ? safePage + 1 : null
+      }
+    }
+  }
+
+  getShopEarningsByFarm = async ({
+    farmerUserId,
+    from,
+    to
+  }: {
+    farmerUserId: string
+    from?: Date
+    to?: Date
+  }) => {
+    const farms = await prisma.farms.findMany({
+      where: { owner_user_id: farmerUserId },
+      select: {
+        id: true,
+        name: true,
+        shops: { select: { id: true, name: true } }
+      },
+      orderBy: { name: 'asc' }
+    })
+
+    const shopIds = farms.map((f) => f.shops?.id).filter((id): id is string => Boolean(id))
+
+    const finMap = new Map<
+      string,
+      { payout: number; gmv: number; fee: number; count: number }
+    >()
+    const pipeMap = new Map<string, { estPayout: number; count: number }>()
+
+    if (shopIds.length > 0) {
+      const finalizedWhere: Prisma.ordersWhereInput = {
+        shop_id: { in: shopIds },
+        status: { not: 'cancelled' },
+        settled_at:
+          from != null && to != null ? { gte: from, lt: to } : { not: null }
+      }
+
+      const pipelineWhere: Prisma.ordersWhereInput = {
+        shop_id: { in: shopIds },
+        settled_at: null,
+        status: { in: ['confirmed', 'shipping'] }
+      }
+      if (from != null && to != null) {
+        pipelineWhere.created_at = { gte: from, lt: to }
+      }
+
+      const [finGroups, pipeGroups] = await Promise.all([
+        prisma.orders.groupBy({
+          by: ['shop_id'],
+          where: finalizedWhere,
+          _sum: {
+            seller_payout: true,
+            total_amount: true,
+            commission_amount: true
+          },
+          _count: true
+        }),
+        prisma.orders.groupBy({
+          by: ['shop_id'],
+          where: pipelineWhere,
+          _sum: { estimated_seller_payout: true },
+          _count: true
+        })
+      ])
+
+      for (const g of finGroups) {
+        finMap.set(g.shop_id, {
+          payout: earningsDec(g._sum.seller_payout),
+          gmv: earningsDec(g._sum.total_amount),
+          fee: earningsDec(g._sum.commission_amount),
+          count: g._count
+        })
+      }
+      for (const g of pipeGroups) {
+        pipeMap.set(g.shop_id, {
+          estPayout: earningsDec(g._sum.estimated_seller_payout),
+          count: g._count
+        })
+      }
+    }
+
+    return {
+      from: from != null ? from.toISOString() : null,
+      to: to != null ? to.toISOString() : null,
+      farms: farms.map((f) => {
+        const sid = f.shops?.id ?? null
+        const fin = sid ? finMap.get(sid) : undefined
+        const pipe = sid ? pipeMap.get(sid) : undefined
+        return {
+          farmId: f.id,
+          farmName: f.name,
+          shopId: sid,
+          shopName: f.shops?.name ?? null,
+          finalizedSellerPayout: fin?.payout ?? 0,
+          totalGmvFinalized: fin?.gmv ?? 0,
+          platformFeeFinalized: fin?.fee ?? 0,
+          finalizedOrderCount: fin?.count ?? 0,
+          pipelineEstimatedPayout: pipe?.estPayout ?? 0,
+          pipelineOrderCount: pipe?.count ?? 0
+        }
+      })
+    }
+  }
+
   getOrderById = async ({ orderId, userId }: { orderId: string; userId: string }) => {
     const order = await prisma.orders.findUnique({
       where: { id: orderId },
@@ -1051,6 +1422,10 @@ class OrderService {
           status: true,
           payment_method: true,
           payment_status: true,
+          total_amount: true,
+          settled_at: true,
+          commission_rate: true,
+          estimated_at: true,
           shops: { select: { farms: { select: { owner_user_id: true } } } },
           order_items: { select: { product_id: true, qty: true } }
         }
@@ -1103,7 +1478,34 @@ class OrderService {
         })
       }
 
-      const extraData: Prisma.ordersUncheckedUpdateInput = { status: nextStatus }
+      const extraData: Prisma.ordersUncheckedUpdateInput = {
+        status: nextStatus,
+        updated_at: new Date()
+      }
+
+      if (nextStatus === 'confirmed' && order.estimated_at == null) {
+        const rate = getPlatformCommissionRate()
+        const { commissionAmount, sellerPayout } = computeOrderSettlementVnd(order.total_amount, rate)
+        extraData.commission_rate = new Prisma.Decimal(rate)
+        extraData.estimated_commission_amount = commissionAmount
+        extraData.estimated_seller_payout = sellerPayout
+        extraData.estimated_at = new Date()
+      }
+
+      if (nextStatus === 'delivered' && order.settled_at == null) {
+        const rate =
+          order.commission_rate != null
+            ? Number(order.commission_rate)
+            : getPlatformCommissionRate()
+        const { commissionAmount, sellerPayout } = computeOrderSettlementVnd(order.total_amount, rate)
+        if (order.commission_rate == null) {
+          extraData.commission_rate = new Prisma.Decimal(rate)
+        }
+        extraData.commission_amount = commissionAmount
+        extraData.seller_payout = sellerPayout
+        extraData.settled_at = new Date()
+      }
+
       if (nextStatus === 'delivered' && order.payment_method === 'cod') {
         extraData.payment_status = 'paid'
       }

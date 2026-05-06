@@ -378,6 +378,14 @@ const USER_MESSAGES = {
 
   GET_ORDER_DETAIL_SUCCESS: 'Lấy chi tiết đơn hàng thành công',
 
+  GET_SHOP_EARNINGS_SUCCESS: 'Lấy báo cáo lợi nhuận gian hàng thành công',
+
+  GET_SHOP_EARNINGS_BREAKDOWN_SUCCESS: 'Lấy tổng kết theo kỳ thành công',
+
+  GET_SHOP_EARNINGS_ORDERS_SUCCESS: 'Lấy danh sách đơn trong kỳ thành công',
+
+  GET_SHOP_EARNINGS_BY_FARM_SUCCESS: 'Lấy doanh thu theo nông trại thành công',
+
   GET_PAYOS_RESUME_SUCCESS: 'Lấy lại link thanh toán PayOS thành công',
 
   ORDER_PAYOS_RENEW_SUCCESS: 'Đã tạo link thanh toán PayOS mới',
@@ -403,6 +411,8 @@ const USER_MESSAGES = {
   ORDER_CANNOT_CANCEL_AFTER_PAYMENT: 'Đơn đã thanh toán không thể huỷ trên ứng dụng',
 
   ORDER_INVALID_STATUS_TRANSITION: 'Chuyển trạng thái đơn hàng không hợp lệ',
+
+  ORDER_EARNINGS_INVALID_PERIOD: 'Tham số from / to không hợp lệ hoặc from phải nhỏ hơn to',
 
   ORDER_PAYOS_MIN_AMOUNT: 'Đơn PayOS cần tổng tiền hàng tối thiểu 2.000đ',
 
