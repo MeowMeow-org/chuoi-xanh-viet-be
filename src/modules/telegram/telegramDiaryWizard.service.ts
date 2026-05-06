@@ -2,6 +2,7 @@ import prisma from '~/lib/prisma'
 import diaryService from '~/modules/diary/diary.service'
 import seasonService from '~/modules/season/season.service'
 import {
+  editTelegramMessageTextWithInlineKeyboardUsingBotToken,
   editTelegramMessageTextUsingBotToken,
   getTelegramFileUrlUsingBotToken,
   sendTelegramInlineKeyboardUsingBotToken,
@@ -25,6 +26,7 @@ type WizardStep =
 
 type SeasonChoice = { seasonId: string; farmId: string; label: string }
 type FarmChoice = { farmId: string; label: string }
+type CalendarField = 'start' | 'harvest'
 
 type WizardDraft = {
   seasonChoices?: SeasonChoice[]
@@ -255,15 +257,23 @@ async function askNewSeasonCropName(chatId: string, userId: string, draft: Wizar
 
 async function askNewSeasonStartDate(chatId: string, userId: string, draft: WizardDraft) {
   await saveSession({ chatId, userId, step: 'awaiting_new_season_start_date', draft })
-  await sendTelegramTextUsingBotToken(chatId, 'Nhập ngày bắt đầu mùa vụ theo định dạng YYYY-MM-DD. Ví dụ: 2026-05-06')
+  await sendCalendarPickerMessage({
+    chatId,
+    field: 'start',
+    month: new Date(),
+    hint: '📅 Chọn ngày bắt đầu mùa vụ'
+  })
 }
 
 async function askNewSeasonHarvestStartDate(chatId: string, userId: string, draft: WizardDraft) {
   await saveSession({ chatId, userId, step: 'awaiting_new_season_harvest_start', draft })
-  await sendTelegramTextUsingBotToken(
+  const baseMonth = draft.createSeasonStartDate ? parseDateOnly(draft.createSeasonStartDate) ?? new Date() : new Date()
+  await sendCalendarPickerMessage({
     chatId,
-    'Nhập ngày dự kiến bắt đầu thu hoạch theo định dạng YYYY-MM-DD. Ví dụ: 2026-07-20'
-  )
+    field: 'harvest',
+    month: baseMonth,
+    hint: '📅 Chọn ngày bắt đầu thu hoạch dự kiến'
+  })
 }
 
 async function askNewSeasonEstimatedYield(chatId: string, userId: string, draft: WizardDraft) {
@@ -273,6 +283,111 @@ async function askNewSeasonEstimatedYield(chatId: string, userId: string, draft:
 
 function validDateInput(s: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(s)
+}
+
+function parseDateOnly(input: string): Date | null {
+  if (!validDateInput(input)) return null
+  const d = new Date(`${input}T00:00:00.000Z`)
+  if (Number.isNaN(d.getTime())) return null
+  return d
+}
+
+function formatDateOnly(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
+
+function parseMonthKey(monthKey: string): Date | null {
+  if (!/^\d{4}-\d{2}$/.test(monthKey)) return null
+  const d = new Date(`${monthKey}-01T00:00:00.000Z`)
+  if (Number.isNaN(d.getTime())) return null
+  return d
+}
+
+function addMonths(base: Date, delta: number): Date {
+  return new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + delta, 1))
+}
+
+function monthLabelVi(month: Date): string {
+  return `Tháng ${month.getUTCMonth() + 1}/${month.getUTCFullYear()}`
+}
+
+function firstDayMondayIndex(month: Date): number {
+  const js = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1)).getUTCDay()
+  return (js + 6) % 7
+}
+
+function daysInMonth(month: Date): number {
+  return new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).getUTCDate()
+}
+
+function buildCalendarKeyboard(field: CalendarField, month: Date): Array<Array<{ text: string; callback_data: string }>> {
+  const monthKey = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, '0')}`
+  const rows: Array<Array<{ text: string; callback_data: string }>> = []
+  rows.push([
+    { text: '◀️', callback_data: `wiz_cal_nav:${field}:${addMonths(month, -1).toISOString().slice(0, 7)}` },
+    { text: monthLabelVi(month), callback_data: 'wiz_noop' },
+    { text: '▶️', callback_data: `wiz_cal_nav:${field}:${addMonths(month, 1).toISOString().slice(0, 7)}` }
+  ])
+  rows.push([
+    { text: 'T2', callback_data: 'wiz_noop' },
+    { text: 'T3', callback_data: 'wiz_noop' },
+    { text: 'T4', callback_data: 'wiz_noop' },
+    { text: 'T5', callback_data: 'wiz_noop' },
+    { text: 'T6', callback_data: 'wiz_noop' },
+    { text: 'T7', callback_data: 'wiz_noop' },
+    { text: 'CN', callback_data: 'wiz_noop' }
+  ])
+  const first = firstDayMondayIndex(month)
+  const total = daysInMonth(month)
+  let day = 1
+  for (let w = 0; w < 6; w++) {
+    const row: Array<{ text: string; callback_data: string }> = []
+    for (let i = 0; i < 7; i++) {
+      if ((w === 0 && i < first) || day > total) {
+        row.push({ text: ' ', callback_data: 'wiz_noop' })
+        continue
+      }
+      const dd = String(day).padStart(2, '0')
+      row.push({
+        text: String(day),
+        callback_data: `wiz_cal_pick:${field}:${monthKey}-${dd}`
+      })
+      day += 1
+    }
+    rows.push(row)
+    if (day > total) break
+  }
+  return rows
+}
+
+async function sendCalendarPickerMessage(params: {
+  chatId: string
+  field: CalendarField
+  month: Date
+  messageId?: number
+  hint?: string
+}) {
+  const keyboard = buildCalendarKeyboard(params.field, params.month)
+  const fieldLabel = params.field === 'start' ? 'ngày bắt đầu mùa vụ' : 'ngày bắt đầu thu hoạch dự kiến'
+  const text =
+    `${params.hint ?? '📅 Chọn ngày trên lịch bên dưới'}\n` +
+    `Đang chọn: ${fieldLabel}\n` +
+    '(Bạn vẫn có thể gõ tay theo định dạng YYYY-MM-DD)'
+
+  if (Number.isFinite(params.messageId)) {
+    await editTelegramMessageTextWithInlineKeyboardUsingBotToken({
+      chatId: params.chatId,
+      messageId: params.messageId as number,
+      text,
+      inlineKeyboard: keyboard
+    })
+    return
+  }
+  await sendTelegramInlineKeyboardUsingBotToken({
+    chatId: params.chatId,
+    text,
+    inlineKeyboard: keyboard
+  })
 }
 
 function buildNewSeasonConfirmText(draft: WizardDraft): string {
@@ -449,6 +564,9 @@ export const telegramDiaryWizardService = {
     const text = params.text?.trim() ?? ''
     const callbackData = params.callbackData?.trim() ?? ''
     const callbackMessageId = params.callbackMessageId
+    if (callbackData === 'wiz_noop') {
+      return true
+    }
     if (callbackData === 'wiz_cancel') {
       await clearSession(params.chatId)
       if (Number.isFinite(callbackMessageId)) {
@@ -701,21 +819,71 @@ export const telegramDiaryWizardService = {
         return true
       }
       case 'awaiting_new_season_start_date': {
-        if (!text || !validDateInput(text)) {
-          await sendTelegramTextUsingBotToken(params.chatId, 'Ngày không hợp lệ. Vui lòng nhập theo định dạng YYYY-MM-DD.')
+        const navMonth = callbackData ? parseInlineChoice('wiz_cal_nav:start', callbackData) : null
+        if (navMonth) {
+          const month = parseMonthKey(navMonth)
+          if (!month) {
+            await sendTelegramTextUsingBotToken(params.chatId, 'Không đọc được tháng lịch. Vui lòng chọn lại.')
+            return true
+          }
+          await sendCalendarPickerMessage({
+            chatId: params.chatId,
+            field: 'start',
+            month,
+            messageId: callbackMessageId,
+            hint: '📅 Chọn ngày bắt đầu mùa vụ'
+          })
           return true
         }
-        await askNewSeasonHarvestStartDate(params.chatId, farmer.id, { ...draft, createSeasonStartDate: text })
+        const pickedDate = callbackData ? parseInlineChoice('wiz_cal_pick:start', callbackData) : null
+        const finalStartDate = pickedDate ?? text
+        if (!finalStartDate || !validDateInput(finalStartDate)) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Ngày không hợp lệ. Vui lòng chọn trên lịch hoặc nhập theo định dạng YYYY-MM-DD.')
+          return true
+        }
+        await askNewSeasonHarvestStartDate(params.chatId, farmer.id, { ...draft, createSeasonStartDate: finalStartDate })
         return true
       }
       case 'awaiting_new_season_harvest_start': {
-        if (!text || !validDateInput(text)) {
-          await sendTelegramTextUsingBotToken(params.chatId, 'Ngày không hợp lệ. Vui lòng nhập theo định dạng YYYY-MM-DD.')
+        const navMonth = callbackData ? parseInlineChoice('wiz_cal_nav:harvest', callbackData) : null
+        if (navMonth) {
+          const month = parseMonthKey(navMonth)
+          if (!month) {
+            await sendTelegramTextUsingBotToken(params.chatId, 'Không đọc được tháng lịch. Vui lòng chọn lại.')
+            return true
+          }
+          await sendCalendarPickerMessage({
+            chatId: params.chatId,
+            field: 'harvest',
+            month,
+            messageId: callbackMessageId,
+            hint: '📅 Chọn ngày bắt đầu thu hoạch dự kiến'
+          })
+          return true
+        }
+        const pickedDate = callbackData ? parseInlineChoice('wiz_cal_pick:harvest', callbackData) : null
+        const finalHarvestStart = pickedDate ?? text
+        if (!finalHarvestStart || !validDateInput(finalHarvestStart)) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Ngày không hợp lệ. Vui lòng chọn trên lịch hoặc nhập theo định dạng YYYY-MM-DD.')
+          return true
+        }
+        const startDate = draft.createSeasonStartDate ? parseDateOnly(draft.createSeasonStartDate) : null
+        const harvestDate = parseDateOnly(finalHarvestStart)
+        if (!startDate || !harvestDate) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Thiếu ngày bắt đầu mùa vụ. Vui lòng chọn lại từ đầu.')
+          await askNewSeasonStartDate(params.chatId, farmer.id, draft)
+          return true
+        }
+        if (harvestDate.getTime() < startDate.getTime()) {
+          await sendTelegramTextUsingBotToken(
+            params.chatId,
+            `Ngày thu hoạch phải từ ${formatDateOnly(startDate)} trở đi. Vui lòng chọn lại.`
+          )
           return true
         }
         await askNewSeasonEstimatedYield(params.chatId, farmer.id, {
           ...draft,
-          createSeasonHarvestStartDate: text
+          createSeasonHarvestStartDate: finalHarvestStart
         })
         return true
       }
