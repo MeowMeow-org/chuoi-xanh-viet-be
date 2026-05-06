@@ -102,6 +102,36 @@ export async function sendTelegramInlineKeyboardUsingBotToken(params: {
   }
 }
 
+/** Gửi bàn phím trả lời cố định để user luôn có nút thao tác nhanh. */
+export async function sendTelegramPersistentDiaryKeyboardUsingBotToken(chatId: string, text?: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
+  if (!token) return
+  const chat = chatId.trim()
+  if (!chat) return
+
+  const url = `https://api.telegram.org/bot${token}/sendMessage`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chat,
+      text: (text?.trim() || 'Chọn thao tác nhanh bên dưới.').slice(0, MAX_TEXT),
+      disable_web_page_preview: true,
+      reply_markup: {
+        keyboard: [[{ text: '📝 Ghi nhật ký' }, { text: '🌱 Tạo mùa vụ' }], [{ text: '📋 Menu' }]],
+        resize_keyboard: true,
+        one_time_keyboard: false,
+        is_persistent: true
+      }
+    })
+  })
+
+  const json = (await res.json()) as { ok?: boolean; description?: string }
+  if (!res.ok || json.ok !== true) {
+    throw new Error(`Telegram persistent keyboard failed: ${JSON.stringify(json)}`)
+  }
+}
+
 /** Trả ACK callback query để Telegram dừng spinner "Loading...". */
 export async function answerTelegramCallbackQueryUsingBotToken(
   callbackQueryId: string,

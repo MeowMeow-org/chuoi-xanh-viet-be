@@ -1,15 +1,30 @@
 import prisma from '~/lib/prisma'
 import diaryService from '~/modules/diary/diary.service'
+import seasonService from '~/modules/season/season.service'
 import {
   editTelegramMessageTextUsingBotToken,
   getTelegramFileUrlUsingBotToken,
   sendTelegramInlineKeyboardUsingBotToken,
   sendTelegramTextUsingBotToken
 } from './telegramBot.service'
+import { transcribeTelegramVoiceToText } from './telegramVoice.service'
 
-type WizardStep = 'awaiting_season' | 'awaiting_event_type' | 'awaiting_description' | 'awaiting_photos' | 'awaiting_confirm'
+type WizardStep =
+  | 'awaiting_season'
+  | 'awaiting_event_type'
+  | 'awaiting_description'
+  | 'awaiting_description_confirm'
+  | 'awaiting_photos'
+  | 'awaiting_new_season_farm'
+  | 'awaiting_new_season_crop'
+  | 'awaiting_new_season_start_date'
+  | 'awaiting_new_season_harvest_start'
+  | 'awaiting_new_season_estimated_yield'
+  | 'awaiting_new_season_confirm'
+  | 'awaiting_confirm'
 
 type SeasonChoice = { seasonId: string; farmId: string; label: string }
+type FarmChoice = { farmId: string; label: string }
 
 type WizardDraft = {
   seasonChoices?: SeasonChoice[]
@@ -18,9 +33,17 @@ type WizardDraft = {
   eventType?: 'land_prep' | 'sowing' | 'fertilizing' | 'pesticide' | 'irrigation' | 'harvesting' | 'packing' | 'other'
   description?: string
   photoFileIds?: string[]
+  createSeasonFarmChoices?: FarmChoice[]
+  createSeasonFarmId?: string
+  createSeasonCropName?: string
+  createSeasonStartDate?: string
+  createSeasonHarvestStartDate?: string
+  createSeasonEstimatedYield?: number
 }
 
 const SESSION_TTL_MS = 30 * 60 * 1000
+const MAX_PHOTOS_PER_DIARY = 3
+const MAX_VOICE_SECONDS = Number(process.env.TELEGRAM_MAX_VOICE_SECONDS || 60)
 
 const EVENT_CHOICES: Array<{ key: WizardDraft['eventType']; label: string }> = [
   { key: 'land_prep', label: 'Làm đất' },
@@ -32,6 +55,41 @@ const EVENT_CHOICES: Array<{ key: WizardDraft['eventType']; label: string }> = [
   { key: 'packing', label: 'Đóng gói' },
   { key: 'other', label: 'Khác' }
 ]
+
+const EVENT_DESCRIPTION_GUIDE: Record<NonNullable<WizardDraft['eventType']>, { write: string; voice: string }> = {
+  land_prep: {
+    write: 'Viết theo mẫu: khu vực + việc đã làm + khối lượng/thời gian. Ví dụ: "Lô A, cày xới 2 luống, dọn cỏ 200m2, làm từ 7h-9h".',
+    voice: 'Nói rõ: đang ở lô nào, làm đất bằng cách gì, diện tích bao nhiêu, bắt đầu-kết thúc lúc nào.'
+  },
+  sowing: {
+    write: 'Viết theo mẫu: giống + mật độ/số lượng + cách gieo + tưới sau gieo. Ví dụ: "Gieo cà rốt giống X, 30 hạt/m2, gieo hàng, tưới nhẹ sau gieo".',
+    voice: 'Nói rõ: giống cây gì, gieo bao nhiêu, cách gieo, sau gieo có tưới hay phủ đất không.'
+  },
+  fertilizing: {
+    write: 'Viết theo mẫu: loại phân + liều lượng + cách bón + khu vực bón. Ví dụ: "Bón NPK 16-16-8, 30kg/1000m2, bón rải quanh gốc lô B".',
+    voice: 'Nói rõ tên phân, lượng dùng, bón cho khu nào và bón bằng cách nào.'
+  },
+  pesticide: {
+    write: 'Viết theo mẫu: tên thuốc/hoạt chất + liều pha + mục tiêu phòng trừ + thời gian phun. Ví dụ: "Phun Abamectin 3ml/bình 16L trị sâu tơ lúc 16h".',
+    voice: 'Nói rõ: phun thuốc gì, pha liều bao nhiêu, trị sâu/bệnh gì, phun lúc mấy giờ.'
+  },
+  irrigation: {
+    write: 'Viết theo mẫu: phương pháp tưới + thời lượng/lượng nước + khu vực. Ví dụ: "Tưới nhỏ giọt lô C trong 25 phút, độ ẩm đất đạt yêu cầu".',
+    voice: 'Nói rõ: tưới kiểu gì, tưới bao lâu hoặc bao nhiêu nước, tưới ở lô nào.'
+  },
+  harvesting: {
+    write: 'Viết theo mẫu: sản phẩm + sản lượng + chất lượng sơ bộ + khu vực thu. Ví dụ: "Thu hoạch cải xanh lô A, 120kg, lá đồng đều, không dập".',
+    voice: 'Nói rõ: thu hoạch gì, được bao nhiêu kg, chất lượng ra sao, thu ở khu nào.'
+  },
+  packing: {
+    write: 'Viết theo mẫu: cách đóng gói + số kiện/số kg + quy cách. Ví dụ: "Đóng gói 40 túi x 1kg, dán tem truy xuất, bảo quản mát".',
+    voice: 'Nói rõ: đóng bao nhiêu gói/thùng, mỗi gói bao nhiêu kg, có dán tem hay phân loại không.'
+  },
+  other: {
+    write: 'Viết ngắn gọn theo mẫu: việc đã làm + kết quả + ghi chú. Ví dụ: "Làm cỏ rãnh thoát nước lô D, thông rãnh tốt, không còn đọng nước".',
+    voice: 'Nói rõ bạn đã làm việc gì, ở đâu, kết quả sau khi làm.'
+  }
+}
 
 const db = prisma as unknown as {
   telegram_diary_sessions: {
@@ -158,14 +216,142 @@ async function askEventType(chatId: string, userId: string, draft: WizardDraft) 
   })
 }
 
+async function askNewSeasonFarm(chatId: string, userId: string) {
+  const farms = await prisma.farms.findMany({
+    where: { owner_user_id: userId },
+    orderBy: { created_at: 'desc' },
+    take: 8,
+    select: { id: true, name: true, crop_main: true }
+  })
+  if (farms.length === 0) {
+    await sendTelegramTextUsingBotToken(chatId, 'Bạn chưa có nông trại nào. Vui lòng tạo nông trại trên app trước khi tạo mùa vụ.')
+    return
+  }
+  const choices: FarmChoice[] = farms.map((f) => ({
+    farmId: f.id,
+    label: f.crop_main ? `${f.name} (${f.crop_main})` : f.name
+  }))
+  await saveSession({
+    chatId,
+    userId,
+    step: 'awaiting_new_season_farm',
+    draft: { createSeasonFarmChoices: choices }
+  })
+  const list = choices.map((c, i) => `${i + 1}. ${c.label}`).join('\n')
+  await sendTelegramInlineKeyboardUsingBotToken({
+    chatId,
+    text: `Tạo mùa vụ mới. Chọn nông trại:\n${list}\n\n(Bạn có thể bấm nút hoặc gõ số)`,
+    inlineKeyboard: [
+      ...choices.map((c, i) => [{ text: `${i + 1}. ${c.label}`, callback_data: `wiz_new_farm:${i + 1}` }]),
+      [{ text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+    ]
+  })
+}
+
+async function askNewSeasonCropName(chatId: string, userId: string, draft: WizardDraft) {
+  await saveSession({ chatId, userId, step: 'awaiting_new_season_crop', draft })
+  await sendTelegramTextUsingBotToken(chatId, 'Nhập tên cây trồng. Ví dụ: Cà rốt, Dưa leo, Cải xanh.')
+}
+
+async function askNewSeasonStartDate(chatId: string, userId: string, draft: WizardDraft) {
+  await saveSession({ chatId, userId, step: 'awaiting_new_season_start_date', draft })
+  await sendTelegramTextUsingBotToken(chatId, 'Nhập ngày bắt đầu mùa vụ theo định dạng YYYY-MM-DD. Ví dụ: 2026-05-06')
+}
+
+async function askNewSeasonHarvestStartDate(chatId: string, userId: string, draft: WizardDraft) {
+  await saveSession({ chatId, userId, step: 'awaiting_new_season_harvest_start', draft })
+  await sendTelegramTextUsingBotToken(
+    chatId,
+    'Nhập ngày dự kiến bắt đầu thu hoạch theo định dạng YYYY-MM-DD. Ví dụ: 2026-07-20'
+  )
+}
+
+async function askNewSeasonEstimatedYield(chatId: string, userId: string, draft: WizardDraft) {
+  await saveSession({ chatId, userId, step: 'awaiting_new_season_estimated_yield', draft })
+  await sendTelegramTextUsingBotToken(chatId, 'Nhập sản lượng ước tính (kg). Ví dụ: 1200')
+}
+
+function validDateInput(s: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(s)
+}
+
+function buildNewSeasonConfirmText(draft: WizardDraft): string {
+  return (
+    'Xác nhận tạo mùa vụ:\n' +
+    `- Cây trồng: ${draft.createSeasonCropName ?? '—'}\n` +
+    `- Ngày bắt đầu: ${draft.createSeasonStartDate ?? '—'}\n` +
+    `- Dự kiến thu hoạch: ${draft.createSeasonHarvestStartDate ?? '—'}\n` +
+    `- Sản lượng ước tính: ${draft.createSeasonEstimatedYield ?? '—'} kg`
+  )
+}
+
+async function askNewSeasonConfirm(chatId: string, userId: string, draft: WizardDraft) {
+  await saveSession({ chatId, userId, step: 'awaiting_new_season_confirm', draft })
+  await sendTelegramInlineKeyboardUsingBotToken({
+    chatId,
+    text: `${buildNewSeasonConfirmText(draft)}\n\n(Bấm nút hoặc gõ XACNHAN/HUY)`,
+    inlineKeyboard: [
+      [{ text: '✅ Xác nhận tạo mùa vụ', callback_data: 'wiz_new_confirm' }, { text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+    ]
+  })
+}
+
+async function sendFirstCareStepHint(chatId: string, seasonId: string): Promise<void> {
+  const plan = await prisma.season_care_plans.findUnique({
+    where: { season_id: seasonId },
+    select: { id: true }
+  })
+  if (!plan) return
+  const step = await prisma.season_care_plan_steps.findFirst({
+    where: { plan_id: plan.id },
+    orderBy: { step_no: 'asc' },
+    select: { step_no: true, title: true, detail: true, day_offset: true, scheduled_date: true }
+  })
+  if (!step) return
+  const scheduledDateLabel = step.scheduled_date ? step.scheduled_date.toISOString().slice(0, 10) : 'chưa xác định'
+  await sendTelegramTextUsingBotToken(
+    chatId,
+    `Bước đầu tiên của mùa vụ:\n- Bước ${step.step_no}: ${step.title}\n- Thời điểm: ngày +${step.day_offset} (${scheduledDateLabel})\n- Việc cần làm: ${step.detail}`
+  )
+}
+
 async function askDescription(chatId: string, userId: string, draft: WizardDraft) {
   await saveSession({ chatId, userId, step: 'awaiting_description', draft })
-  await sendTelegramTextUsingBotToken(chatId, 'Nhập mô tả công việc (voice bổ sung sau). Ví dụ: Bón NPK 16-16-8, 30kg/1000m2.')
+  const selectedType = draft.eventType
+  const guide = selectedType ? EVENT_DESCRIPTION_GUIDE[selectedType] : null
+  const typeLabel = EVENT_CHOICES.find((e) => e.key === selectedType)?.label ?? 'Công việc đã chọn'
+  const guideText = guide
+    ? `\n\nHướng dẫn cho "${typeLabel}":\n- Viết: ${guide.write}\n- Voice: ${guide.voice}`
+    : ''
+  await sendTelegramTextUsingBotToken(
+    chatId,
+    `Nhập mô tả công việc (ít nhất 8 ký tự) hoặc gửi voice tối đa ${MAX_VOICE_SECONDS}s.${guideText}`
+  )
+}
+
+async function askDescriptionConfirm(chatId: string, userId: string, draft: WizardDraft) {
+  await saveSession({ chatId, userId, step: 'awaiting_description_confirm', draft })
+  await sendTelegramInlineKeyboardUsingBotToken({
+    chatId,
+    text:
+      `Mô tả đã nhận:\n"${draft.description ?? ''}"\n\n` +
+      'Nếu đúng, bấm ✅ Xác nhận mô tả.\n' +
+      'Nếu muốn ghi âm lại, bấm 🎙️ Voice lại.\n' +
+      'Bạn cũng có thể sửa mô tả bằng cách gửi text mới, rồi bấm xác nhận.',
+    inlineKeyboard: [
+      [{ text: '✅ Xác nhận mô tả', callback_data: 'wiz_desc_confirm' }],
+      [{ text: '🎙️ Voice lại', callback_data: 'wiz_desc_revoice' }],
+      [{ text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+    ]
+  })
 }
 
 async function askPhotos(chatId: string, userId: string, draft: WizardDraft) {
   await saveSession({ chatId, userId, step: 'awaiting_photos', draft })
-  await sendTelegramTextUsingBotToken(chatId, 'Gửi ảnh thực địa (có thể gửi nhiều ảnh).\nGõ BOQUA để bỏ qua ảnh, hoặc XONG để sang bước xác nhận.')
+  await sendTelegramTextUsingBotToken(
+    chatId,
+    `Gửi ảnh thực địa (tối đa ${MAX_PHOTOS_PER_DIARY} ảnh).\nGõ BOQUA để bỏ qua ảnh, hoặc XONG để sang bước xác nhận.`
+  )
 }
 
 function buildConfirmText(draft: WizardDraft): string {
@@ -235,6 +421,11 @@ function isStartDiaryKeyword(text: string): boolean {
   return t === 'nhatky' || t === 'nhật ký' || t === '/nhatky' || t === '/diary'
 }
 
+function isStartNewSeasonKeyword(text: string): boolean {
+  const t = text.trim().toLowerCase()
+  return t === 'taomuavu' || t === 'tạo mùa vụ' || t === '/taomuavu' || t === '/newseason'
+}
+
 function isCancelKeyword(text: string): boolean {
   const t = text.trim().toLowerCase()
   return t === 'huy' || t === 'huỷ' || t === '/cancel'
@@ -245,6 +436,8 @@ export const telegramDiaryWizardService = {
     chatId: string
     text?: string
     photoFileId?: string
+    voiceFileId?: string
+    voiceDurationSec?: number
     callbackData?: string
     callbackMessageId?: number
   }): Promise<boolean> {
@@ -278,9 +471,24 @@ export const telegramDiaryWizardService = {
     const session = await db.telegram_diary_sessions.findUnique({ where: { chat_id: params.chatId } })
 
     if (!session) {
-      if (!text || !isStartDiaryKeyword(text)) return false
-      await askSeason(params.chatId, farmer.id)
-      return true
+      if (callbackData === 'wiz_start') {
+        await askSeason(params.chatId, farmer.id)
+        return true
+      }
+      if (callbackData === 'wiz_new_season_start') {
+        await askNewSeasonFarm(params.chatId, farmer.id)
+        return true
+      }
+      if (!text) return false
+      if (isStartDiaryKeyword(text)) {
+        await askSeason(params.chatId, farmer.id)
+        return true
+      }
+      if (isStartNewSeasonKeyword(text)) {
+        await askNewSeasonFarm(params.chatId, farmer.id)
+        return true
+      }
+      return false
     }
 
     const draft = toDraft(session.draft_data)
@@ -335,23 +543,119 @@ export const telegramDiaryWizardService = {
         return true
       }
       case 'awaiting_description': {
-        if (!text || text.length < 8) {
+        let normalizedDescription = text
+        if (!normalizedDescription && params.voiceFileId) {
+          if (
+            Number.isFinite(params.voiceDurationSec) &&
+            (params.voiceDurationSec as number) > MAX_VOICE_SECONDS
+          ) {
+            await sendTelegramTextUsingBotToken(
+              params.chatId,
+              `Voice quá dài (${params.voiceDurationSec}s). Vui lòng gửi voice tối đa ${MAX_VOICE_SECONDS}s hoặc nhập mô tả bằng chữ.`
+            )
+            return true
+          }
+          await sendTelegramTextUsingBotToken(params.chatId, 'Đang nhận diện nội dung voice...')
+          const transcribed = await transcribeTelegramVoiceToText(params.voiceFileId).catch(() => null)
+          if (transcribed) {
+            normalizedDescription = transcribed
+            await sendTelegramTextUsingBotToken(params.chatId, `Đã nhận diện: "${normalizedDescription}"`)
+          } else {
+            await sendTelegramTextUsingBotToken(
+              params.chatId,
+              'Không nhận diện được voice. Bạn hãy nói rõ hơn, gửi voice ngắn hơn, hoặc nhập mô tả bằng chữ.'
+            )
+            return true
+          }
+        }
+
+        if (!normalizedDescription || normalizedDescription.length < 8) {
           await sendTelegramTextUsingBotToken(params.chatId, 'Mô tả quá ngắn. Vui lòng nhập chi tiết hơn (ít nhất 8 ký tự).')
           return true
         }
-        await askPhotos(params.chatId, farmer.id, { ...draft, description: text, photoFileIds: draft.photoFileIds ?? [] })
+        if (params.voiceFileId) {
+          await askDescriptionConfirm(params.chatId, farmer.id, {
+            ...draft,
+            description: normalizedDescription,
+            photoFileIds: draft.photoFileIds ?? []
+          })
+          return true
+        }
+        await askPhotos(params.chatId, farmer.id, { ...draft, description: normalizedDescription, photoFileIds: draft.photoFileIds ?? [] })
+        return true
+      }
+      case 'awaiting_description_confirm': {
+        const t = text.toLowerCase()
+        if (callbackData === 'wiz_desc_revoice' || t === 'voice lai' || t === 'ghi am lai' || t === 'ghi âm lại') {
+          await askDescription(params.chatId, farmer.id, { ...draft, description: undefined })
+          return true
+        }
+        if (callbackData === 'wiz_desc_confirm' || t === 'xacnhan' || t === 'xác nhận' || t === 'ok') {
+          if (!draft.description || draft.description.length < 8) {
+            await askDescription(params.chatId, farmer.id, draft)
+            return true
+          }
+          await askPhotos(params.chatId, farmer.id, { ...draft, photoFileIds: draft.photoFileIds ?? [] })
+          return true
+        }
+
+        if (params.voiceFileId) {
+          if (
+            Number.isFinite(params.voiceDurationSec) &&
+            (params.voiceDurationSec as number) > MAX_VOICE_SECONDS
+          ) {
+            await sendTelegramTextUsingBotToken(
+              params.chatId,
+              `Voice quá dài (${params.voiceDurationSec}s). Vui lòng gửi voice tối đa ${MAX_VOICE_SECONDS}s hoặc nhập mô tả bằng chữ.`
+            )
+            return true
+          }
+          await sendTelegramTextUsingBotToken(params.chatId, 'Đang nhận diện nội dung voice...')
+          const transcribed = await transcribeTelegramVoiceToText(params.voiceFileId).catch(() => null)
+          if (!transcribed || transcribed.length < 8) {
+            await sendTelegramTextUsingBotToken(
+              params.chatId,
+              'Không nhận diện được mô tả đủ rõ. Bạn có thể voice lại hoặc gửi text mô tả chi tiết hơn.'
+            )
+            return true
+          }
+          await askDescriptionConfirm(params.chatId, farmer.id, { ...draft, description: transcribed, photoFileIds: draft.photoFileIds ?? [] })
+          return true
+        }
+
+        if (text && text.length >= 8) {
+          await askDescriptionConfirm(params.chatId, farmer.id, { ...draft, description: text, photoFileIds: draft.photoFileIds ?? [] })
+          return true
+        }
+        await sendTelegramTextUsingBotToken(
+          params.chatId,
+          'Bấm ✅ để xác nhận mô tả hiện tại, bấm 🎙️ để voice lại, hoặc gửi text mới để sửa mô tả.'
+        )
         return true
       }
       case 'awaiting_photos': {
         const currentPhotos = draft.photoFileIds ?? []
         if (params.photoFileId) {
-          if (currentPhotos.length >= 6) {
-            await sendTelegramTextUsingBotToken(params.chatId, 'Đã đủ 6 ảnh cho một nhật ký. Gõ XONG để tiếp tục.')
+          if (currentPhotos.length >= MAX_PHOTOS_PER_DIARY) {
+            await sendTelegramTextUsingBotToken(
+              params.chatId,
+              `Đã đủ ${MAX_PHOTOS_PER_DIARY} ảnh cho một nhật ký. Gõ XONG để tiếp tục.`
+            )
             return true
           }
           const next = [...currentPhotos, params.photoFileId]
           await saveSession({ chatId: params.chatId, userId: farmer.id, step: 'awaiting_photos', draft: { ...draft, photoFileIds: next } })
-          await sendTelegramTextUsingBotToken(params.chatId, `Đã nhận ảnh ${next.length}. Gửi thêm ảnh hoặc gõ XONG.`)
+          if (next.length >= MAX_PHOTOS_PER_DIARY) {
+            await sendTelegramTextUsingBotToken(
+              params.chatId,
+              `Đã nhận ảnh ${next.length}/${MAX_PHOTOS_PER_DIARY}. Bạn đã đủ số ảnh, gõ XONG để sang bước xác nhận.`
+            )
+            return true
+          }
+          await sendTelegramTextUsingBotToken(
+            params.chatId,
+            `Đã nhận ảnh ${next.length}/${MAX_PHOTOS_PER_DIARY}. Gửi thêm ảnh hoặc gõ XONG.`
+          )
           return true
         }
         const t = text.toLowerCase()
@@ -360,6 +664,113 @@ export const telegramDiaryWizardService = {
           return true
         }
         await sendTelegramTextUsingBotToken(params.chatId, 'Bạn có thể gửi ảnh, hoặc gõ BOQUA / XONG.')
+        return true
+      }
+      case 'awaiting_new_season_farm': {
+        const pickedFromCallback = callbackData ? parseInlineChoice('wiz_new_farm', callbackData) : null
+        if (!text && !pickedFromCallback) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Vui lòng trả lời bằng số thứ tự nông trại.')
+          return true
+        }
+        const choice = pickedFromCallback ? parseNumberChoice(pickedFromCallback) : parseNumberChoice(text)
+        const farmChoices = draft.createSeasonFarmChoices ?? []
+        if (!choice || choice < 1 || choice > farmChoices.length) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Số không hợp lệ. Vui lòng chọn lại nông trại theo danh sách.')
+          return true
+        }
+        const selected = farmChoices[choice - 1]!
+        if (pickedFromCallback && Number.isFinite(callbackMessageId)) {
+          await editTelegramMessageTextUsingBotToken({
+            chatId: params.chatId,
+            messageId: callbackMessageId as number,
+            text: `Đã chọn nông trại: ${selected.label}`
+          })
+        }
+        await askNewSeasonCropName(params.chatId, farmer.id, {
+          ...draft,
+          createSeasonFarmId: selected.farmId
+        })
+        return true
+      }
+      case 'awaiting_new_season_crop': {
+        if (!text || text.length < 2) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Tên cây trồng quá ngắn. Vui lòng nhập lại.')
+          return true
+        }
+        await askNewSeasonStartDate(params.chatId, farmer.id, { ...draft, createSeasonCropName: text })
+        return true
+      }
+      case 'awaiting_new_season_start_date': {
+        if (!text || !validDateInput(text)) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Ngày không hợp lệ. Vui lòng nhập theo định dạng YYYY-MM-DD.')
+          return true
+        }
+        await askNewSeasonHarvestStartDate(params.chatId, farmer.id, { ...draft, createSeasonStartDate: text })
+        return true
+      }
+      case 'awaiting_new_season_harvest_start': {
+        if (!text || !validDateInput(text)) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Ngày không hợp lệ. Vui lòng nhập theo định dạng YYYY-MM-DD.')
+          return true
+        }
+        await askNewSeasonEstimatedYield(params.chatId, farmer.id, {
+          ...draft,
+          createSeasonHarvestStartDate: text
+        })
+        return true
+      }
+      case 'awaiting_new_season_estimated_yield': {
+        const n = Number(text)
+        if (!text || !Number.isFinite(n) || n <= 0) {
+          await sendTelegramTextUsingBotToken(params.chatId, 'Sản lượng ước tính không hợp lệ. Vui lòng nhập số > 0.')
+          return true
+        }
+        await askNewSeasonConfirm(params.chatId, farmer.id, {
+          ...draft,
+          createSeasonEstimatedYield: Math.round(n * 100) / 100
+        })
+        return true
+      }
+      case 'awaiting_new_season_confirm': {
+        const t = text.toLowerCase()
+        if (callbackData === 'wiz_new_confirm' || t === 'xacnhan' || t === 'xác nhận' || t === 'ok') {
+          if (
+            !draft.createSeasonFarmId ||
+            !draft.createSeasonCropName ||
+            !draft.createSeasonStartDate ||
+            !draft.createSeasonHarvestStartDate ||
+            !draft.createSeasonEstimatedYield
+          ) {
+            await sendTelegramTextUsingBotToken(params.chatId, 'Thiếu dữ liệu tạo mùa vụ. Vui lòng bắt đầu lại bằng "Tạo mùa vụ".')
+            await clearSession(params.chatId)
+            return true
+          }
+          await sendTelegramTextUsingBotToken(params.chatId, 'Đang tạo mùa vụ, vui lòng chờ...')
+          const created = await seasonService.createSeason({
+            userId: farmer.id,
+            payload: {
+              farmId: draft.createSeasonFarmId,
+              cropName: draft.createSeasonCropName,
+              startDate: draft.createSeasonStartDate,
+              harvestStartDate: draft.createSeasonHarvestStartDate,
+              estimatedYield: draft.createSeasonEstimatedYield,
+              yieldUnit: 'kg'
+            }
+          })
+          await clearSession(params.chatId)
+          await sendTelegramTextUsingBotToken(
+            params.chatId,
+            `Đã tạo mùa vụ thành công.\n- Mã vụ: ${created.code}\n- Cây trồng: ${created.crop_name}\n- Bắt đầu: ${created.start_date.toISOString().slice(0, 10)}`
+          )
+          await sendFirstCareStepHint(params.chatId, created.id)
+          return true
+        }
+        if (callbackData === 'wiz_cancel' || t === 'huy' || t === 'huỷ') {
+          await clearSession(params.chatId)
+          await sendTelegramTextUsingBotToken(params.chatId, 'Đã huỷ tạo mùa vụ.')
+          return true
+        }
+        await sendTelegramTextUsingBotToken(params.chatId, 'Gõ XACNHAN để tạo mùa vụ hoặc HUY để huỷ.')
         return true
       }
       case 'awaiting_confirm': {
