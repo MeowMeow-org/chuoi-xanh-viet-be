@@ -21,6 +21,7 @@ const mapOrderRow = (order: {
   shipping_phone: string | null
   shipping_address: string | null
   note: string | null
+  payos_link_expires_at?: Date | null
   created_at: Date
   updated_at: Date
   shops?: {
@@ -58,6 +59,10 @@ const mapOrderRow = (order: {
   shippingPhone: order.shipping_phone,
   shippingAddress: order.shipping_address,
   note: order.note,
+  payosLinkExpiresAt:
+    order.payos_link_expires_at != null
+      ? order.payos_link_expires_at.toISOString()
+      : null,
   createdAt: order.created_at,
   updatedAt: order.updated_at,
   shop: order.shops
@@ -203,6 +208,23 @@ export const getPayosResumeController = async (req: Request<{ order_id: string }
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_PAYOS_RESUME_SUCCESS,
     data: payload
+  })
+}
+
+export const renewPayosPaymentController = async (req: Request<{ order_id: string }>, res: Response) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const { order, checkoutUrl } = await orderService.renewPayosPaymentForBuyer({
+    orderId: req.params.order_id,
+    buyerUserId: user_id
+  })
+
+  const row = mapOrderRow(order as any)
+  const data = { ...row, checkoutUrl }
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.ORDER_PAYOS_RENEW_SUCCESS,
+    data
   })
 }
 

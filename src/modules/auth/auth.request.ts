@@ -45,6 +45,17 @@ export interface PatchMeRequestBody {
   zaloUserId?: string | null
   /** Gửi `true` để hủy liên kết Telegram (xoá chat_id và mã chờ khớp trong DB). */
   unlinkTelegram?: boolean
+  /** Địa chỉ trụ sở / liên hệ HTX (hiển thị cho nông dân khi HTX xét duyệt chứng chỉ). */
+  contactAddress?: string | null
+  /** Trụ sở HTX — tên + mã địa giới (chỉ HTX được ghi xuống DB). */
+  province?: string | null
+  district?: string | null
+  ward?: string | null
+  provinceCode?: number | null
+  districtCode?: number | null
+  wardCode?: number | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 export interface ChangePasswordRequestBody {

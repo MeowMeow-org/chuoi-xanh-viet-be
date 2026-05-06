@@ -18,6 +18,8 @@ export type PayosCreateLinkInput = {
   returnUrl: string
   signature?: string
   items?: Array<{ name: string; quantity: number; price: number }>
+  /** Unix timestamp (giây), Int32 theo API PayOS */
+  expiredAt?: number
 }
 
 export type PayosWebhookBody = {

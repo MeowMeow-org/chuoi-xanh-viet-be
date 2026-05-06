@@ -182,6 +182,8 @@ model orders {
   shipping_detail        String?
   note             String?
   payos_order_code String?        @unique @db.VarChar(64)
+  /// Thời điểm hết hiệu lực link thanh toán PayOS (đồng bộ TTL gửi lên PayOS, dùng đếm ngược phía client).
+  payos_link_expires_at DateTime? @db.Timestamp(6)
   created_at       DateTime       @default(now()) @db.Timestamp(6)
   updated_at       DateTime       @default(now()) @db.Timestamp(6)
   order_items      order_items[]
@@ -429,6 +431,19 @@ model users {
   zalo_user_id                       String?               @db.VarChar(50)
   /** Telegram chat_id (tin nhắn riêng với bot) — gắn sau khi nông dân /start qua deep link webhook */
   telegram_chat_id                   String?               @db.VarChar(32)
+  /** Địa chỉ liên hệ / trụ sở (dùng cho HTX; hiển thị khi xét duyệt chứng chỉ nông trại). */
+  contact_address                    String?               @db.VarChar(500)
+  /** Trụ sở / khu vực HTX — tên địa giới (chỉ cooperative; nông dân để null). */
+  province                           String?               @db.VarChar(100)
+  district                           String?               @db.VarChar(100)
+  ward                               String?               @db.VarChar(100)
+  /// Mã provinces.open-api.vn — cùng quy ước với farms.*
+  province_code                      Int?
+  district_code                      Int?
+  ward_code                          Int?
+  /// Tọa độ trụ sở HTX (chỉ cooperative). Tên field giống farms để map FE; farmer để null.
+  latitude                           Decimal?              @db.Decimal(10, 7)
+  longitude                          Decimal?              @db.Decimal(10, 7)
   role                               user_role             @default(farmer)
   status                             account_status        @default(active)
   reset_password_token               String?               @db.VarChar(255)

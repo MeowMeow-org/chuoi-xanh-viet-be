@@ -52,6 +52,11 @@ export function registerChatSocket(io: Server) {
   })
 
   io.on('connection', (socket) => {
+    const uid = socket.data.userId as string | undefined
+    if (uid) {
+      void socket.join(`user:${uid}`)
+    }
+
     socket.on('chat:join', async (payload: { conversationId: string }, cb?: (err?: Error) => void) => {
       try {
         const conversationId = payload?.conversationId

@@ -17,6 +17,16 @@ type SeedUser = {
   email: string
   phone: string
   full_name: string
+  contact_address?: string
+  /** provinces.open-api.vn — chỉ dùng cho role cooperative */
+  province_code?: number | null
+  province?: string | null
+  district?: string | null
+  ward?: string | null
+  district_code?: number | null
+  ward_code?: number | null
+  latitude?: number | null
+  longitude?: number | null
   role: 'consumer' | 'farmer' | 'cooperative'
 }
 
@@ -79,39 +89,51 @@ const consumers: SeedUser[] = [
   }
 ]
 
-/** Tài khoản HTX đăng nhập (role cooperative). Mật khẩu: 123456 — cùng convention seed hiện tại. */
-const cooperatives: SeedUser[] = [
-  {
-    email: 'lienhe@htx-rauxanh-laichau.vn',
-    phone: '0902000001',
-    full_name: 'Hợp tác xã Rau an toàn Lai Châu',
-    role: 'cooperative'
-  },
-  {
-    email: 'vanphong@htx-nongsan-dienbien.vn',
-    phone: '0902000002',
-    full_name: 'Hợp tác xã Nông sản sạch Điện Biên',
-    role: 'cooperative'
-  },
-  {
-    email: 'tonghop@htx-chuoi-lamdong.vn',
-    phone: '0902000003',
-    full_name: 'Hợp tác xã Chuối hữu cơ Lâm Đồng',
-    role: 'cooperative'
-  },
-  {
-    email: 'kinhdoanh@htx-raucu-tiengiang.vn',
-    phone: '0902000004',
-    full_name: 'Hợp tác xã Rau củ quả Tiền Giang',
-    role: 'cooperative'
-  },
-  {
-    email: 'hotro@htx-thuysan-caomau.vn',
-    phone: '0902000005',
-    full_name: 'Hợp tác xã Thủy sản bền vững Cà Mau',
-    role: 'cooperative'
-  }
+type SouthernProvinceSeed = {
+  code: string
+  name: string
+  /** Mã tỉnh/TP theo https://provinces.open-api.vn/api/p/ */
+  provinceApiCode: number
+}
+
+const SOUTHERN_PROVINCES: SouthernProvinceSeed[] = [
+  { code: 'tphcm', name: 'TP. Hồ Chí Minh', provinceApiCode: 79 },
+  { code: 'binhduong', name: 'Bình Dương', provinceApiCode: 74 },
+  { code: 'dongnai', name: 'Đồng Nai', provinceApiCode: 75 },
+  { code: 'baria-vungtau', name: 'Bà Rịa - Vũng Tàu', provinceApiCode: 77 },
+  { code: 'binhphuoc', name: 'Bình Phước', provinceApiCode: 70 },
+  { code: 'tayninh', name: 'Tây Ninh', provinceApiCode: 72 },
+  { code: 'longan', name: 'Long An', provinceApiCode: 80 },
+  { code: 'tiengiang', name: 'Tiền Giang', provinceApiCode: 82 },
+  { code: 'bentre', name: 'Bến Tre', provinceApiCode: 83 },
+  { code: 'travinh', name: 'Trà Vinh', provinceApiCode: 84 },
+  { code: 'vinhlong', name: 'Vĩnh Long', provinceApiCode: 86 },
+  { code: 'dongthap', name: 'Đồng Tháp', provinceApiCode: 87 },
+  { code: 'angiang', name: 'An Giang', provinceApiCode: 89 },
+  { code: 'kiengiang', name: 'Kiên Giang', provinceApiCode: 91 },
+  { code: 'cantho', name: 'Cần Thơ', provinceApiCode: 92 },
+  { code: 'haugiang', name: 'Hậu Giang', provinceApiCode: 93 },
+  { code: 'soctrang', name: 'Sóc Trăng', provinceApiCode: 94 },
+  { code: 'baclieu', name: 'Bạc Liêu', provinceApiCode: 95 },
+  { code: 'camau', name: 'Cà Mau', provinceApiCode: 96 }
 ]
+
+/** Tài khoản HTX đăng nhập (role cooperative). Mật khẩu: 123456 — mỗi tỉnh miền Nam 2 tài khoản. */
+const cooperatives: SeedUser[] = SOUTHERN_PROVINCES.flatMap((province, idx) => {
+  return [1, 2].map((n) => {
+    const sequence = idx * 2 + (n - 1)
+    const phone = `0${String(930000000 + sequence)}`
+    return {
+      email: `htx${n}.${province.code}@miennam.vn`,
+      phone,
+      full_name: `Hợp tác xã Nông nghiệp ${province.name} ${n}`,
+      contact_address: `Văn phòng HTX ${n}, ${province.name}`,
+      province: province.name,
+      province_code: province.provinceApiCode,
+      role: 'cooperative' as const
+    }
+  })
+})
 
 const farmers: SeedUser[] = [
   {
@@ -477,7 +499,7 @@ const forumPostsSeed: {
     label: 'thi-truong'
   },
   {
-    author_email: 'lienhe@htx-rauxanh-laichau.vn',
+    author_email: 'htx1.tphcm@miennam.vn',
     title: 'Gợi ý lịch tưới mùa nắng cho rau ăn lá',
     content:
       'HTX khuyến nghị tưới sáng sớm (trước 8h) hoặc chiều mát, tránh giữa trưa. Lượng nước tham khảo 4–6 lít/m²/lần tùy độ ẩm đất. Nên kết hợp mulching rơm mỏng để giảm bay hơi.',
@@ -525,7 +547,7 @@ const forumCommentsSeed: { postIndex: number; author_email: string; content: str
   },
   {
     postIndex: 2,
-    author_email: 'lienhe@htx-rauxanh-laichau.vn',
+    author_email: 'htx1.tphcm@miennam.vn',
     content:
       'Neem nên phun chiều mát, liều theo nhãn, lặp lại sau 7 ngày nếu còn rệp. Lưu ý thời gian cách ly trước thu hoạch.'
   },
@@ -550,6 +572,23 @@ async function upsertUser(u: SeedUser) {
     email: u.email,
     phone: u.phone,
     full_name: u.full_name,
+    contact_address: u.contact_address ?? null,
+    province:
+      u.role === 'cooperative' ? (u.province ?? null) : null,
+    district:
+      u.role === 'cooperative' ? (u.district ?? null) : null,
+    ward: u.role === 'cooperative' ? (u.ward ?? null) : null,
+    province_code: u.role === 'cooperative' ? (u.province_code ?? null) : null,
+    district_code: u.role === 'cooperative' ? (u.district_code ?? null) : null,
+    ward_code: u.role === 'cooperative' ? (u.ward_code ?? null) : null,
+    latitude:
+      u.role === 'cooperative' && u.latitude != null
+        ? new Prisma.Decimal(u.latitude)
+        : null,
+    longitude:
+      u.role === 'cooperative' && u.longitude != null
+        ? new Prisma.Decimal(u.longitude)
+        : null,
     role: u.role,
     password_hash: DEFAULT_PASSWORD,
     status: 'active' as const,
@@ -769,7 +808,7 @@ async function main() {
   console.log('')
   console.log('Demo accounts (password: 123456):')
   console.log('  Consumer   : mai@consumer.vn / nam@consumer.vn')
-  console.log('  Cooperative (5 HTX):')
+  console.log(`  Cooperative (${cooperatives.length} HTX):`)
   for (const c of cooperatives) {
     console.log(`    • ${c.email}  |  ${c.phone}  |  ${c.full_name}`)
   }
