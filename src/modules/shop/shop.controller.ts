@@ -9,6 +9,7 @@ import type {
   CreateShopRequestBody,
   UpdateShopRequestBody,
   GetShopsQuery,
+  GetFarmMapPinsQuery,
   AddProductRequestBody,
   GetPublicProductsQuery
 } from './shop.request'
@@ -141,6 +142,24 @@ export const getShopsController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_SHOPS_SUCCESS,
     data: result
+  })
+}
+
+export const getFarmMapPinsController = async (
+  req: Request<ParamsDictionary, unknown, unknown, GetFarmMapPinsQuery>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const province = typeof req.query.province === 'string' ? req.query.province : undefined
+  const district = typeof req.query.district === 'string' ? req.query.district : undefined
+  const ward = typeof req.query.ward === 'string' ? req.query.ward : undefined
+
+  const data = await shopService.getFarmMapPins({ province, district, ward })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_FARM_MAP_PINS_SUCCESS,
+    data
   })
 }
 

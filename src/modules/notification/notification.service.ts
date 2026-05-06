@@ -6,6 +6,7 @@ import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
 import { resolveNotificationDeepLink } from './notification.links'
 import { notifyFarmerZaloAfterInAppNotificationSafe } from '~/modules/zalo/zaloFarmerNotify'
+import { notifyFarmerTelegramAfterInAppNotificationSafe } from '~/modules/telegram/telegramFarmerNotify'
 
 export type NotificationCreateInput = {
   recipientUserId: string
@@ -100,12 +101,22 @@ class NotificationService {
           title: input.title,
           body: input.body
         })
+        notifyFarmerTelegramAfterInAppNotificationSafe({
+          recipientUserId: input.recipientUserId,
+          title: input.title,
+          body: input.body
+        })
       }
       return created
     }
 
     await prisma.user_notifications.create({ data })
     notifyFarmerZaloAfterInAppNotificationSafe({
+      recipientUserId: input.recipientUserId,
+      title: input.title,
+      body: input.body
+    })
+    notifyFarmerTelegramAfterInAppNotificationSafe({
       recipientUserId: input.recipientUserId,
       title: input.title,
       body: input.body

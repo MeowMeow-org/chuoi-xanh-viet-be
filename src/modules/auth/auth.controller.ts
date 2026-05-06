@@ -14,9 +14,35 @@ import type {
 } from './auth.request'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
-import authService from './auth.service'
-import { ErrorWithStatus } from '~/models/Errors'
+import authService, { type AuthPublicUser } from './auth.service'
 import auditService from '~/modules/audit/audit.service'
+import { ErrorWithStatus } from '~/models/Errors'
+import { isTelegramDeepLinkConfigured, issueTelegramDeepLinkForUser } from '~/modules/telegram/telegramLink.service'
+
+/** JSON cho login/register/getMe — gồm HTX + Telegram. */
+function serializePublicAuthUser(user: AuthPublicUser) {
+  return {
+    id: user.id,
+    fullName: user.fullName,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    status: user.status,
+    onBoarding: user.onBoarding,
+    avatarUrl: user.avatarUrl,
+    zaloUserId: user.zaloUserId,
+    telegramLinked: user.telegramLinked,
+    contactAddress: user.contactAddress,
+    province: user.province,
+    district: user.district,
+    ward: user.ward,
+    provinceCode: user.provinceCode,
+    districtCode: user.districtCode,
+    wardCode: user.wardCode,
+    latitude: user.latitude,
+    longitude: user.longitude
+  }
+}
 
 //login controller
 export const loginController = async (
@@ -40,7 +66,7 @@ export const loginController = async (
     data: {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
-      user: response.user
+      user: serializePublicAuthUser(response.user)
     }
   })
 }
@@ -52,7 +78,7 @@ export const getMeController = async (req: Request, res: Response, next: NextFun
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_ME_SUCCESS,
-    data: user
+    data: serializePublicAuthUser(user)
   })
 }
 
@@ -111,6 +137,7 @@ export const patchMeController = async (
     ward_code?: number | null
     latitude?: number | null
     longitude?: number | null
+    unlinkTelegram?: boolean
   } = {}
 
   if (avatarRaw !== undefined) {
@@ -166,6 +193,9 @@ export const patchMeController = async (
   const lng = coordOrNull(body.longitude)
   if (lat !== undefined) payload.latitude = lat
   if (lng !== undefined) payload.longitude = lng
+  if (body.unlinkTelegram === true) {
+    payload.unlinkTelegram = true
+  }
 
   const user = await authService.updateMe(user_id, payload)
   await auditService.writeFromRequest(req, {
@@ -199,7 +229,7 @@ export const patchMeController = async (
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.UPDATE_PROFILE_SUCCESS,
-    data: user
+    data: serializePublicAuthUser(user)
   })
 }
 
@@ -253,7 +283,7 @@ export const registerController = async (
     data: {
       accessToken: response.access_token,
       refreshToken: response.refresh_token,
-      user: response.user
+      user: serializePublicAuthUser(response.user)
     }
   })
 }
@@ -385,5 +415,39 @@ export const resetPasswordController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.RESET_PASSWORD_SUCCESS,
     data: null
+  })
+}
+
+export const issueTelegramLinkController = async (
+  req: Request,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const me = await authService.getMe(user_id)
+
+  if (me.role !== 'farmer') {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.FORBIDDEN,
+      message: USER_MESSAGES.TELEGRAM_LINK_FARMER_ONLY
+    })
+  }
+
+  if (!isTelegramDeepLinkConfigured()) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.UNPROCESSABLE_ENTITY,
+      message: USER_MESSAGES.TELEGRAM_DEEP_LINK_NOT_CONFIGURED
+    })
+  }
+
+  const { deepLink, expiresInSeconds } = await issueTelegramDeepLinkForUser(user_id)
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.TELEGRAM_LINK_ISSUED,
+    data: {
+      deepLink,
+      expiresInSeconds
+    }
   })
 }

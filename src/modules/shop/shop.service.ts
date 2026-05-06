@@ -747,6 +747,104 @@ Hãy gợi ý mô tả cho người mua và giá bán (một đơn vị = ${unit
     }
   }
 
+  /**
+   * Điểm GPS các nông trại đang bán (gian hàng mở, đã ghim lat/lng).
+   * Dùng bản đồ tổng quan trên trang chủ người mua — tối đa 500 điểm.
+   */
+  getFarmMapPins = async ({
+    province,
+    district,
+    ward
+  }: {
+    province?: string
+    district?: string
+    ward?: string
+  }) => {
+    const provinceFilter = province?.trim()
+    const andFilters: Prisma.shopsWhereInput[] = [
+      { status: 'open' },
+      {
+        farms: {
+          latitude: { not: null },
+          longitude: { not: null }
+        }
+      }
+    ]
+
+    if (provinceFilter && provinceFilter.length > 0) {
+      andFilters.push({
+        farms: { province: { contains: provinceFilter, mode: 'insensitive' } }
+      })
+    }
+
+    const dist = district?.trim()
+    if (dist && dist.length > 0) {
+      andFilters.push({ farms: { district: { contains: dist, mode: 'insensitive' } } })
+    }
+
+    const w = ward?.trim()
+    if (w && w.length > 0) {
+      andFilters.push({ farms: { ward: { contains: w, mode: 'insensitive' } } })
+    }
+
+    const rows = await prisma.shops.findMany({
+      where: { AND: andFilters },
+      select: {
+        id: true,
+        name: true,
+        is_verified: true,
+        farms: {
+          select: {
+            id: true,
+            name: true,
+            province: true,
+            district: true,
+            ward: true,
+            latitude: true,
+            longitude: true
+          }
+        }
+      },
+      take: 500,
+      orderBy: { created_at: 'desc' }
+    })
+
+    const items: Array<{
+      shop_id: string
+      shop_name: string
+      is_verified: boolean
+      farm_id: string
+      farm_name: string
+      province: string | null
+      district: string | null
+      ward: string | null
+      latitude: number
+      longitude: number
+    }> = []
+
+    for (const s of rows) {
+      const f = s.farms
+      if (!f?.latitude || !f.longitude) continue
+      const lat = Number(f.latitude)
+      const lng = Number(f.longitude)
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue
+      items.push({
+        shop_id: s.id,
+        shop_name: s.name,
+        is_verified: s.is_verified,
+        farm_id: f.id,
+        farm_name: f.name,
+        province: f.province,
+        district: f.district,
+        ward: f.ward,
+        latitude: lat,
+        longitude: lng
+      })
+    }
+
+    return { items, total: items.length }
+  }
+
   // ─── Products ────────────────────────────────────────────
 
   getAvailableSeasons = async (userId: string) => {

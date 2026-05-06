@@ -401,6 +401,12 @@ export const patchMeValidator = validate(
           errorMessage: USER_MESSAGES.ZALO_USER_ID_INVALID
         }
       },
+      unlinkTelegram: {
+        optional: true,
+        isBoolean: {
+          errorMessage: 'unlinkTelegram phải là true hoặc false'
+        }
+      },
       contactAddress: {
         optional: true,
         custom: {
@@ -490,7 +496,8 @@ export const patchMeValidator = validate(
         custom: {
           options: (value: unknown) => {
             if (value === undefined || value === null) return true
-            return typeof value === 'number' && value >= -180 && value <= 180
+            if (typeof value !== 'number') return false
+            return value >= -180 && value <= 180
           },
           errorMessage: 'longitude must be between -180 and 180'
         }

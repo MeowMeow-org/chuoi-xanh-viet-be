@@ -106,6 +106,17 @@ export const shopIdParamValidator = validate(
   )
 )
 
+export const getFarmMapPinsQueryValidator = validate(
+  checkSchema(
+    {
+      province: { optional: true, isString: true, trim: true },
+      district: { optional: true, isString: true, trim: true },
+      ward: { optional: true, isString: true, trim: true }
+    },
+    ['query']
+  )
+)
+
 export const getShopsQueryValidator = validate(
   checkSchema(
     {

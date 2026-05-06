@@ -1,5 +1,6 @@
 import { Prisma, type account_status, type user_role } from '@prisma/client'
 import prisma from '~/lib/prisma'
+import { prismaTelegramLinkTokens } from '~/lib/prismaTelegramLinkTokens'
 import { LoginRequestBody, RegisterRequestBody } from './auth.request'
 import { ErrorWithStatus } from '~/models/Errors'
 import HTTP_STATUS from '~/constants/httpStatus'
@@ -8,6 +9,19 @@ import { TokenType } from '~/constants/enums'
 import { signToken } from '~/utils/jwt'
 import { sendResetPasswordEmail } from '~/utils/email'
 import ms, { StringValue } from 'ms'
+
+type UsersAuthSessionRow = {
+  id: string
+  full_name: string
+  email: string | null
+  phone: string
+  role: user_role
+  status: account_status
+  is_onboarding: boolean
+  avatar_url: string | null
+  zalo_user_id: string | null
+  telegram_chat_id?: string | null
+}
 
 export type AuthPublicUser = {
   id: string
@@ -19,6 +33,7 @@ export type AuthPublicUser = {
   onBoarding: boolean
   avatarUrl: string | null
   zaloUserId: string | null
+  telegramLinked: boolean
   contactAddress: string | null
   province: string | null
   district: string | null
@@ -116,15 +131,16 @@ class AuthService {
     is_onboarding: boolean
     avatar_url: string | null
     zalo_user_id: string | null
-    contact_address: string | null
-    province: string | null
-    district: string | null
-    ward: string | null
-    province_code: number | null
-    district_code: number | null
-    ward_code: number | null
-    latitude: Prisma.Decimal | null
-    longitude: Prisma.Decimal | null
+    telegram_chat_id?: string | null
+    contact_address?: string | null
+    province?: string | null
+    district?: string | null
+    ward?: string | null
+    province_code?: number | null
+    district_code?: number | null
+    ward_code?: number | null
+    latitude?: Prisma.Decimal | null
+    longitude?: Prisma.Decimal | null
   }): AuthPublicUser {
     return {
       id: u.id,
@@ -136,6 +152,7 @@ class AuthService {
       onBoarding: u.is_onboarding,
       avatarUrl: u.avatar_url ?? null,
       zaloUserId: u.zalo_user_id ?? null,
+      telegramLinked: Boolean(u.telegram_chat_id?.trim()),
       contactAddress: u.contact_address ?? null,
       province: u.province ?? null,
       district: u.district ?? null,
@@ -171,17 +188,18 @@ class AuthService {
       })
     }
 
-    const user_id = user.id.toString()
+    const row = user as unknown as UsersAuthSessionRow
+    const user_id = row.id.toString()
     const { access_token, refresh_token } = await this.createAuthSessionForUser({
       user_id,
-      role: user.role,
-      status: user.status
+      role: row.role,
+      status: row.status
     })
 
     return {
       access_token,
       refresh_token,
-      user: this.toAuthUser(user)
+      user: this.toAuthUser(user as any)
     }
   }
 
@@ -207,7 +225,7 @@ class AuthService {
       })
     }
 
-    const user = await prisma.users.create({
+    const created = await prisma.users.create({
       data: {
         email,
         password_hash: password, // keeping same strategy as current login
@@ -217,17 +235,18 @@ class AuthService {
       }
     })
 
-    const user_id = user.id.toString()
+    const row = created as unknown as UsersAuthSessionRow
+    const user_id = row.id.toString()
     const { access_token, refresh_token } = await this.createAuthSessionForUser({
       user_id,
-      role: user.role,
-      status: user.status
+      role: row.role,
+      status: row.status
     })
 
     return {
       access_token,
       refresh_token,
-      user: this.toAuthUser(user)
+      user: this.toAuthUser(created as any)
     }
   }
 
@@ -337,6 +356,7 @@ class AuthService {
         is_onboarding: true,
         avatar_url: true,
         zalo_user_id: true,
+        telegram_chat_id: true,
         contact_address: true,
         province: true,
         district: true,
@@ -360,6 +380,7 @@ class AuthService {
       ...user,
       avatar_url: user.avatar_url ?? null,
       zalo_user_id: user.zalo_user_id ?? null,
+      telegram_chat_id: user.telegram_chat_id ?? null,
       contact_address: user.contact_address ?? null,
       province: user.province ?? null,
       district: user.district ?? null,
@@ -388,6 +409,7 @@ class AuthService {
       ward_code?: number | null
       latitude?: number | null
       longitude?: number | null
+      unlinkTelegram?: boolean
     }
   ): Promise<AuthPublicUser> => {
     const actor = await prisma.users.findUnique({
@@ -562,13 +584,18 @@ class AuthService {
       }
     }
 
+    if (payload.unlinkTelegram === true) {
+      await prismaTelegramLinkTokens().deleteMany({ where: { user_id } })
+      data.telegram_chat_id = null
+    }
+
     if (Object.keys(data).length === 0) {
       return this.getMe(user_id)
     }
 
     await prisma.users.update({
       where: { id: user_id },
-      data
+      data: data as Prisma.usersUpdateInput
     })
     return this.getMe(user_id)
   }

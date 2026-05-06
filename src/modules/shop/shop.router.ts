@@ -9,6 +9,7 @@ import {
   getShopByIdController,
   getMyShopController,
   getShopsController,
+  getFarmMapPinsController,
   getAvailableSeasonsController,
   getAvailableSaleUnitsController,
   addProductController,
@@ -23,6 +24,7 @@ import {
   updateShopBodyValidator,
   shopIdParamValidator,
   getShopsQueryValidator,
+  getFarmMapPinsQueryValidator,
   addProductBodyValidator,
   getPublicProductsQueryValidator,
   productIdParamValidator
@@ -77,6 +79,17 @@ shopRouter.get('/products/:product_id', productIdParamValidator, wrapAsync(getPu
  * @access public (guest vẫn xem được)
  */
 shopRouter.get('/', getShopsQueryValidator, wrapAsync(getShopsController))
+
+/**
+ * @desc điểm GPS nông trại (gian hàng mở, đã ghim tọa độ) — bản đồ trang chủ
+ * @route GET /shop/farm-locations?province=&district=&ward=
+ * @access public
+ */
+shopRouter.get(
+  '/farm-locations',
+  getFarmMapPinsQueryValidator,
+  wrapAsync(getFarmMapPinsController)
+)
 
 /**
  * @desc sale units on shop's farm that can still be listed (active, not yet a product)

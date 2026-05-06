@@ -66,3 +66,10 @@ export interface GetShopsQuery {
   district_code?: string
   ward_code?: string
 }
+
+/** GET /shop/farm-locations — lọc theo địa phương giống chợ */
+export interface GetFarmMapPinsQuery {
+  province?: string
+  district?: string
+  ward?: string
+}
