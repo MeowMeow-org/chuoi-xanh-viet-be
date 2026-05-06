@@ -464,10 +464,15 @@ async function askDescriptionConfirm(chatId: string, userId: string, draft: Wiza
 
 async function askPhotos(chatId: string, userId: string, draft: WizardDraft) {
   await saveSession({ chatId, userId, step: 'awaiting_photos', draft })
-  await sendTelegramTextUsingBotToken(
+  await sendTelegramInlineKeyboardUsingBotToken({
     chatId,
-    `Gửi ảnh thực địa (tối đa ${MAX_PHOTOS_PER_DIARY} ảnh).\nGõ BOQUA để bỏ qua ảnh, hoặc XONG để sang bước xác nhận.`
-  )
+    text: `Gửi ảnh thực địa (tối đa ${MAX_PHOTOS_PER_DIARY} ảnh).\nBạn có thể bấm nút bên dưới để hoàn tất/bỏ qua, hoặc tiếp tục gửi ảnh.`,
+    inlineKeyboard: [
+      [{ text: '✅ Hoàn tất', callback_data: 'wiz_photos_done' }],
+      [{ text: '⏭️ Bỏ qua ảnh', callback_data: 'wiz_photos_skip' }],
+      [{ text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+    ]
+  })
 }
 
 function buildConfirmText(draft: WizardDraft): string {
@@ -762,27 +767,44 @@ export const telegramDiaryWizardService = {
       }
       case 'awaiting_photos': {
         const currentPhotos = draft.photoFileIds ?? []
+        if (callbackData === 'wiz_photos_done' || callbackData === 'wiz_photos_skip') {
+          await askConfirm(params.chatId, farmer.id, draft)
+          return true
+        }
         if (params.photoFileId) {
           if (currentPhotos.length >= MAX_PHOTOS_PER_DIARY) {
-            await sendTelegramTextUsingBotToken(
-              params.chatId,
-              `Đã đủ ${MAX_PHOTOS_PER_DIARY} ảnh cho một nhật ký. Gõ XONG để tiếp tục.`
-            )
+            await sendTelegramInlineKeyboardUsingBotToken({
+              chatId: params.chatId,
+              text: `Đã đủ ${MAX_PHOTOS_PER_DIARY} ảnh cho một nhật ký. Bấm "✅ Hoàn tất" để tiếp tục.`,
+              inlineKeyboard: [
+                [{ text: '✅ Hoàn tất', callback_data: 'wiz_photos_done' }],
+                [{ text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+              ]
+            })
             return true
           }
           const next = [...currentPhotos, params.photoFileId]
           await saveSession({ chatId: params.chatId, userId: farmer.id, step: 'awaiting_photos', draft: { ...draft, photoFileIds: next } })
           if (next.length >= MAX_PHOTOS_PER_DIARY) {
-            await sendTelegramTextUsingBotToken(
-              params.chatId,
-              `Đã nhận ảnh ${next.length}/${MAX_PHOTOS_PER_DIARY}. Bạn đã đủ số ảnh, gõ XONG để sang bước xác nhận.`
-            )
+            await sendTelegramInlineKeyboardUsingBotToken({
+              chatId: params.chatId,
+              text: `Đã nhận ảnh ${next.length}/${MAX_PHOTOS_PER_DIARY}. Bạn đã đủ số ảnh, bấm "✅ Hoàn tất" để sang bước xác nhận.`,
+              inlineKeyboard: [
+                [{ text: '✅ Hoàn tất', callback_data: 'wiz_photos_done' }],
+                [{ text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+              ]
+            })
             return true
           }
-          await sendTelegramTextUsingBotToken(
-            params.chatId,
-            `Đã nhận ảnh ${next.length}/${MAX_PHOTOS_PER_DIARY}. Gửi thêm ảnh hoặc gõ XONG.`
-          )
+          await sendTelegramInlineKeyboardUsingBotToken({
+            chatId: params.chatId,
+            text: `Đã nhận ảnh ${next.length}/${MAX_PHOTOS_PER_DIARY}. Gửi thêm ảnh hoặc bấm "✅ Hoàn tất".`,
+            inlineKeyboard: [
+              [{ text: '✅ Hoàn tất', callback_data: 'wiz_photos_done' }],
+              [{ text: '⏭️ Bỏ qua ảnh', callback_data: 'wiz_photos_skip' }],
+              [{ text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+            ]
+          })
           return true
         }
         const t = text.toLowerCase()
@@ -790,7 +812,15 @@ export const telegramDiaryWizardService = {
           await askConfirm(params.chatId, farmer.id, draft)
           return true
         }
-        await sendTelegramTextUsingBotToken(params.chatId, 'Bạn có thể gửi ảnh, hoặc gõ BOQUA / XONG.')
+        await sendTelegramInlineKeyboardUsingBotToken({
+          chatId: params.chatId,
+          text: 'Bạn có thể gửi ảnh hoặc bấm "✅ Hoàn tất" để tiếp tục.',
+          inlineKeyboard: [
+            [{ text: '✅ Hoàn tất', callback_data: 'wiz_photos_done' }],
+            [{ text: '⏭️ Bỏ qua ảnh', callback_data: 'wiz_photos_skip' }],
+            [{ text: '❌ Hủy', callback_data: 'wiz_cancel' }]
+          ]
+        })
         return true
       }
       case 'awaiting_new_season_farm': {
