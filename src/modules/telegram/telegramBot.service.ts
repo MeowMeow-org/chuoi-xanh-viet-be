@@ -15,6 +15,10 @@ export function isTelegramOutboundConfigured(): boolean {
 const MAX_TEXT = 3900
 type InlineButton = { text: string; callback_data: string }
 type InlineKeyboard = InlineButton[][]
+const DEFAULT_QUICK_ACTIONS_INLINE_KEYBOARD: InlineKeyboard = [
+  [{ text: '📝 Ghi nhật ký', callback_data: 'wiz_start' }],
+  [{ text: '🌱 Tạo mùa vụ', callback_data: 'wiz_new_season_start' }]
+]
 
 export async function sendTelegramText(chatId: string, text: string): Promise<void> {
   if (!isTelegramOutboundConfigured()) return
@@ -34,7 +38,10 @@ export async function sendTelegramText(chatId: string, text: string): Promise<vo
     body: JSON.stringify({
       chat_id: chat,
       text: safeText,
-      disable_web_page_preview: true
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: DEFAULT_QUICK_ACTIONS_INLINE_KEYBOARD
+      }
     })
   })
 
@@ -61,7 +68,10 @@ export async function sendTelegramTextUsingBotToken(chatId: string, text: string
     body: JSON.stringify({
       chat_id: chat,
       text: safeText,
-      disable_web_page_preview: true
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: DEFAULT_QUICK_ACTIONS_INLINE_KEYBOARD
+      }
     })
   })
 
@@ -174,6 +184,34 @@ export async function editTelegramMessageTextUsingBotToken(params: {
       message_id: params.messageId,
       text: params.text.trim().slice(0, MAX_TEXT),
       disable_web_page_preview: true
+    })
+  }).catch(() => {})
+}
+
+/** Edit message + inline keyboard (dùng cho UI chọn ngày dạng lịch). */
+export async function editTelegramMessageTextWithInlineKeyboardUsingBotToken(params: {
+  chatId: string
+  messageId: number
+  text: string
+  inlineKeyboard: InlineKeyboard
+}): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN?.trim()
+  if (!token) return
+  const chat = params.chatId.trim()
+  if (!chat || !Number.isFinite(params.messageId)) return
+
+  const url = `https://api.telegram.org/bot${token}/editMessageText`
+  await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chat,
+      message_id: params.messageId,
+      text: params.text.trim().slice(0, MAX_TEXT),
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: params.inlineKeyboard
+      }
     })
   }).catch(() => {})
 }
