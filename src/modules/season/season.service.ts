@@ -216,7 +216,8 @@ class SeasonService {
       recipientUserId: userId,
       cropName: plan.cropName,
       seasonCode: season.code,
-      steps: plan.steps
+      steps: plan.steps,
+      seasonStartDate: season.start_date
     })
 
     return season
