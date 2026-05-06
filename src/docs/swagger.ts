@@ -21,6 +21,8 @@
  *     description: Proxy image upload to IMAGE_WORKER (Bearer JWT; multipart field `images`, max 3 files)
  *   - name: Chat
  *     description: Consumer–farmer chat (REST + Socket.IO on same server, path /socket.io/)
+ *   - name: AgriTrend
+ *     description: Xu hướng nông nghiệp real-time (cây trồng hot, tín hiệu thị trường, công nghệ, cảnh báo)
  */
 
 /**
@@ -1926,6 +1928,126 @@
  *         description: Products retrieved successfully (sorted by rank_score)
  *       401:
  *         description: Unauthorized
+ */
+
+/**
+ * @swagger
+ * /v1/api/agri-trend:
+ *   get:
+ *     summary: Lấy xu hướng nông nghiệp real-time (cây trồng hot, tín hiệu thị trường, công nghệ mới, cảnh báo)
+ *     description: |
+ *       Phân tích tin tức RSS nông nghiệp bằng AI và trả về:
+ *       - **hotCrops**: Danh sách cây trồng đang được chú ý (trendScore, sentiment, lý do, nguồn dẫn chứng)
+ *       - **marketSignals**: Tín hiệu cung-cầu, cảnh báo giá
+ *       - **techSpotlight**: Công nghệ / kỹ thuật nông nghiệp nổi bật
+ *       - **alerts**: Cảnh báo dịch bệnh, thời tiết, giá, chính sách
+ *
+ *       Kết quả được cache 6 giờ. Thêm `?refresh=true` để bỏ qua cache và lấy dữ liệu mới ngay.
+ *     tags: [AgriTrend]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: refresh
+ *         required: false
+ *         schema: { type: boolean }
+ *         description: Bỏ qua cache, lấy dữ liệu mới ngay (dùng khi cần thiết)
+ *     responses:
+ *       200:
+ *         description: Lấy xu hướng nông nghiệp thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: number, example: 200 }
+ *                 message: { type: string, example: Lấy xu hướng nông nghiệp thành công }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     generatedAt: { type: string, format: date-time }
+ *                     cacheExpiresAt: { type: string, format: date-time }
+ *                     summary: { type: string, description: Tóm tắt tổng quan bằng tiếng Việt }
+ *                     totalArticlesAnalyzed: { type: integer, example: 42 }
+ *                     hotCrops:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name: { type: string, example: Chuối }
+ *                           trendScore: { type: number, minimum: 0, maximum: 10, example: 8.5 }
+ *                           sentiment:
+ *                             type: string
+ *                             enum: [positive, negative, neutral]
+ *                           reason: { type: string }
+ *                           evidence:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 title: { type: string }
+ *                                 url: { type: string, format: uri }
+ *                                 source: { type: string }
+ *                                 publishedAt: { type: string, format: date-time }
+ *                     marketSignals:
+ *                       type: object
+ *                       properties:
+ *                         supplyPressure: { type: string }
+ *                         demandSignals: { type: string }
+ *                         priceAlerts:
+ *                           type: array
+ *                           items: { type: string }
+ *                         evidence:
+ *                           type: array
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               title: { type: string }
+ *                               url: { type: string, format: uri }
+ *                               source: { type: string }
+ *                               publishedAt: { type: string, format: date-time }
+ *                     techSpotlight:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           title: { type: string }
+ *                           summary: { type: string }
+ *                           impact: { type: string }
+ *                           evidence:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 title: { type: string }
+ *                                 url: { type: string, format: uri }
+ *                                 source: { type: string }
+ *                                 publishedAt: { type: string, format: date-time }
+ *                     alerts:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           type:
+ *                             type: string
+ *                             enum: [disease, weather, price, policy]
+ *                           severity:
+ *                             type: string
+ *                             enum: [high, medium, low]
+ *                           message: { type: string }
+ *                           evidence:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 title: { type: string }
+ *                                 url: { type: string, format: uri }
+ *                                 source: { type: string }
+ *                                 publishedAt: { type: string, format: date-time }
+ *       401:
+ *         description: Access token không hợp lệ hoặc thiếu
+ *       500:
+ *         description: Lỗi AI hoặc không lấy được dữ liệu RSS
  */
 
 export {}

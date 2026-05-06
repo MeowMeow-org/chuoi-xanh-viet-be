@@ -18,6 +18,7 @@ import shopReviewRouter from '~/modules/shop-review/shop-review.router'
 import certificateRouter from '~/modules/certificate/certificate.router'
 import telegramRouter from '~/modules/telegram/telegram.router'
 import adminRouter from '~/modules/admin/admin.router'
+import agriTrendRouter from '~/modules/agri-trend/agri-trend.router'
 
 const router = Router()
 
@@ -45,5 +46,6 @@ router.use('/review', shopReviewRouter)
 router.use('/certificate', certificateRouter)
 router.use('/integrations/telegram', telegramRouter)
 router.use('/admin', adminRouter)
+router.use('/agri-trend', agriTrendRouter)
 
 export default router
