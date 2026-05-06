@@ -2,6 +2,7 @@ import type { Request, Response } from 'express'
 import type { ParamsDictionary } from 'express-serve-static-core'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
+import { ErrorWithStatus } from '~/models/Errors'
 import type { TokenPayLoad } from '../auth/auth.request'
 import orderService from './order.service'
 import { verifyPayosWebhook } from './order.payos'
@@ -22,6 +23,13 @@ const mapOrderRow = (order: {
   shipping_address: string | null
   note: string | null
   payos_link_expires_at?: Date | null
+  commission_rate?: unknown | null
+  estimated_commission_amount?: unknown | null
+  estimated_seller_payout?: unknown | null
+  estimated_at?: Date | null
+  commission_amount?: unknown | null
+  seller_payout?: unknown | null
+  settled_at?: Date | null
   created_at: Date
   updated_at: Date
   shops?: {
@@ -63,6 +71,15 @@ const mapOrderRow = (order: {
     order.payos_link_expires_at != null
       ? order.payos_link_expires_at.toISOString()
       : null,
+  commissionRate: order.commission_rate != null ? Number(order.commission_rate) : null,
+  estimatedCommissionAmount:
+    order.estimated_commission_amount != null ? Number(order.estimated_commission_amount) : null,
+  estimatedSellerPayout:
+    order.estimated_seller_payout != null ? Number(order.estimated_seller_payout) : null,
+  estimatedAt: order.estimated_at != null ? order.estimated_at.toISOString() : null,
+  commissionAmount: order.commission_amount != null ? Number(order.commission_amount) : null,
+  sellerPayout: order.seller_payout != null ? Number(order.seller_payout) : null,
+  settledAt: order.settled_at != null ? order.settled_at.toISOString() : null,
   createdAt: order.created_at,
   updatedAt: order.updated_at,
   shop: order.shops
@@ -159,6 +176,134 @@ export const getMyOrdersController = async (
   return res.sendResponse({
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.GET_ORDERS_SUCCESS,
+    data: { items: items.map((o) => mapOrderRow(o as any)), meta }
+  })
+}
+
+export const getShopEarningsController = async (req: Request, res: Response) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const data = await orderService.getShopEarnings({ farmerUserId: user_id })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_SHOP_EARNINGS_SUCCESS,
+    data
+  })
+}
+
+export const getShopEarningsByFarmController = async (
+  req: Request<
+    ParamsDictionary,
+    unknown,
+    unknown,
+    { from?: string; to?: string }
+  >,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const fromQ = req.query.from
+  const toQ = req.query.to
+  const fromRaw = typeof fromQ === 'string' ? fromQ : undefined
+  const toRaw = typeof toQ === 'string' ? toQ : undefined
+
+  if ((fromRaw && !toRaw) || (!fromRaw && toRaw)) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.BAD_REQUEST,
+      message: USER_MESSAGES.ORDER_EARNINGS_INVALID_PERIOD
+    })
+  }
+
+  let from: Date | undefined
+  let to: Date | undefined
+  if (fromRaw && toRaw) {
+    from = new Date(fromRaw)
+    to = new Date(toRaw)
+    if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from.getTime() >= to.getTime()) {
+      throw new ErrorWithStatus({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: USER_MESSAGES.ORDER_EARNINGS_INVALID_PERIOD
+      })
+    }
+  }
+
+  const data = await orderService.getShopEarningsByFarm({
+    farmerUserId: user_id,
+    from,
+    to
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_SHOP_EARNINGS_BY_FARM_SUCCESS,
+    data
+  })
+}
+
+export const getShopEarningsBreakdownController = async (
+  req: Request<
+    ParamsDictionary,
+    unknown,
+    unknown,
+    { from: string; to: string; bucket: 'month' | 'week' | 'day' }
+  >,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const from = new Date(req.query.from)
+  const to = new Date(req.query.to)
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from.getTime() >= to.getTime()) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.BAD_REQUEST,
+      message: USER_MESSAGES.ORDER_EARNINGS_INVALID_PERIOD
+    })
+  }
+  const bucket = req.query.bucket
+  const data = await orderService.getShopEarningsBreakdown({
+    farmerUserId: user_id,
+    from,
+    to,
+    bucket
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_SHOP_EARNINGS_BREAKDOWN_SUCCESS,
+    data
+  })
+}
+
+export const getShopEarningsOrdersController = async (
+  req: Request<
+    ParamsDictionary,
+    unknown,
+    unknown,
+    { from: string; to: string; page?: string; limit?: string }
+  >,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const from = new Date(req.query.from)
+  const to = new Date(req.query.to)
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || from.getTime() >= to.getTime()) {
+    throw new ErrorWithStatus({
+      status: HTTP_STATUS.BAD_REQUEST,
+      message: USER_MESSAGES.ORDER_EARNINGS_INVALID_PERIOD
+    })
+  }
+  const page = req.query.page !== undefined ? Number(req.query.page) : undefined
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
+
+  const { items, meta } = await orderService.getShopEarningsOrders({
+    farmerUserId: user_id,
+    from,
+    to,
+    page,
+    limit
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_SHOP_EARNINGS_ORDERS_SUCCESS,
     data: { items: items.map((o) => mapOrderRow(o as any)), meta }
   })
 }

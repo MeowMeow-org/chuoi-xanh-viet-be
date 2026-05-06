@@ -184,6 +184,14 @@ model orders {
   payos_order_code String?        @unique @db.VarChar(64)
   /// Thời điểm hết hiệu lực link thanh toán PayOS (đồng bộ TTL gửi lên PayOS, dùng đếm ngược phía client).
   payos_link_expires_at DateTime? @db.Timestamp(6)
+  /// Tỷ lệ hoa hồng snapshot khi xác nhận đơn (PLATFORM_COMMISSION_RATE).
+  commission_rate               Decimal?  @db.Decimal(5, 4)
+  estimated_commission_amount   Decimal?  @db.Decimal(12, 2)
+  estimated_seller_payout       Decimal?  @db.Decimal(12, 2)
+  estimated_at                  DateTime? @db.Timestamp(6)
+  commission_amount             Decimal?  @db.Decimal(12, 2)
+  seller_payout                 Decimal?  @db.Decimal(12, 2)
+  settled_at                    DateTime? @db.Timestamp(6)
   created_at       DateTime       @default(now()) @db.Timestamp(6)
   updated_at       DateTime       @default(now()) @db.Timestamp(6)
   order_items      order_items[]
