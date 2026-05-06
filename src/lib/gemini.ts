@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI, type Schema } from '@google/generative-ai'
+import HTTP_STATUS from '~/constants/httpStatus'
+import { ErrorWithStatus } from '~/models/Errors'
 
 class GeminiKeyManager {
   private apiKeys: string[]
@@ -106,7 +108,10 @@ class GeminiService {
           if (currentKey) this.keyManager.markKeyFailed(currentKey)
 
           if (this.keyManager.allKeysFailed()) {
-            throw new Error('All API keys have reached rate limit. Please try again later.')
+            throw new ErrorWithStatus({
+              status: HTTP_STATUS.SERVICE_UNAVAILABLE,
+              message: 'All API keys have reached rate limit. Please try again later.'
+            })
           }
 
           this.keyManager.switchToNextKey()
