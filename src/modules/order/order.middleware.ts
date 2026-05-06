@@ -131,6 +131,52 @@ export const getOrdersQueryValidator = validate(
   )
 )
 
+export const shopEarningsBreakdownQueryValidator = validate(
+  checkSchema(
+    {
+      from: { isISO8601: true, errorMessage: 'from phải là ISO 8601' },
+      to: { isISO8601: true, errorMessage: 'to phải là ISO 8601' },
+      bucket: {
+        isIn: {
+          options: [['month', 'week', 'day']],
+          errorMessage: 'bucket phải là month | week | day'
+        }
+      }
+    },
+    ['query']
+  )
+)
+
+export const shopEarningsOrdersQueryValidator = validate(
+  checkSchema(
+    {
+      from: { isISO8601: true, errorMessage: 'from phải là ISO 8601' },
+      to: { isISO8601: true, errorMessage: 'to phải là ISO 8601' },
+      page: {
+        optional: true,
+        isInt: { options: { min: 1 } },
+        toInt: true
+      },
+      limit: {
+        optional: true,
+        isInt: { options: { min: 1, max: 100 } },
+        toInt: true
+      }
+    },
+    ['query']
+  )
+)
+
+export const shopEarningsByFarmQueryValidator = validate(
+  checkSchema(
+    {
+      from: { optional: true, isISO8601: true, errorMessage: 'from phải là ISO 8601' },
+      to: { optional: true, isISO8601: true, errorMessage: 'to phải là ISO 8601' }
+    },
+    ['query']
+  )
+)
+
 export const updateOrderStatusValidator = validate(
   checkSchema(
     {

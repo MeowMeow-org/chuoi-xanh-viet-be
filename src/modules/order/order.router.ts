@@ -4,6 +4,10 @@ import { wrapAsync } from '~/utils/handler'
 import {
   createOrderController,
   getMyOrdersController,
+  getShopEarningsBreakdownController,
+  getShopEarningsByFarmController,
+  getShopEarningsController,
+  getShopEarningsOrdersController,
   getShopOrdersController,
   getOrderByIdController,
   getPayosResumeController,
@@ -16,6 +20,9 @@ import {
   createOrderValidator,
   orderIdParamValidator,
   getOrdersQueryValidator,
+  shopEarningsBreakdownQueryValidator,
+  shopEarningsByFarmQueryValidator,
+  shopEarningsOrdersQueryValidator,
   updateOrderStatusValidator
 } from './order.middleware'
 
@@ -52,6 +59,57 @@ orderRouter.get(
   accessTokenValidator,
   getOrdersQueryValidator,
   wrapAsync(getMyOrdersController)
+)
+
+/**
+ * @desc Tổng kết tiền đã nhận theo từng khoảng (tháng / tuần 7 ngày / ngày) trong [from, to)
+ * @route GET /order/shop/earnings/breakdown
+ * @access private (farmer)
+ */
+orderRouter.get(
+  '/shop/earnings/breakdown',
+  accessTokenValidator,
+  requireFarmer,
+  shopEarningsBreakdownQueryValidator,
+  wrapAsync(getShopEarningsBreakdownController)
+)
+
+/**
+ * @desc Danh sách đơn liên quan kỳ: đã chốt (settled_at) hoặc tạo trong kỳ (chưa chốt)
+ * @route GET /order/shop/earnings/orders
+ * @access private (farmer)
+ */
+orderRouter.get(
+  '/shop/earnings/orders',
+  accessTokenValidator,
+  requireFarmer,
+  shopEarningsOrdersQueryValidator,
+  wrapAsync(getShopEarningsOrdersController)
+)
+
+/**
+ * @desc Doanh thu / lợi nhuận theo từng nông trại (kỳ tuỳ chọn [from, to), không truyền = toàn thời gian)
+ * @route GET /order/shop/earnings/by-farm
+ * @access private (farmer)
+ */
+orderRouter.get(
+  '/shop/earnings/by-farm',
+  accessTokenValidator,
+  requireFarmer,
+  shopEarningsByFarmQueryValidator,
+  wrapAsync(getShopEarningsByFarmController)
+)
+
+/**
+ * @desc Báo cáo lợi nhuận / hoa hồng (ước tính + đã chốt) theo gian hàng của nông dân
+ * @route GET /order/shop/earnings
+ * @access private (farmer)
+ */
+orderRouter.get(
+  '/shop/earnings',
+  accessTokenValidator,
+  requireFarmer,
+  wrapAsync(getShopEarningsController)
 )
 
 /**
