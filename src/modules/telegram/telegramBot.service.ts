@@ -38,10 +38,7 @@ export async function sendTelegramText(chatId: string, text: string): Promise<vo
     body: JSON.stringify({
       chat_id: chat,
       text: safeText,
-      disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: DEFAULT_QUICK_ACTIONS_INLINE_KEYBOARD
-      }
+      disable_web_page_preview: true
     })
   })
 
@@ -68,10 +65,7 @@ export async function sendTelegramTextUsingBotToken(chatId: string, text: string
     body: JSON.stringify({
       chat_id: chat,
       text: safeText,
-      disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: DEFAULT_QUICK_ACTIONS_INLINE_KEYBOARD
-      }
+      disable_web_page_preview: true
     })
   })
 
@@ -110,6 +104,15 @@ export async function sendTelegramInlineKeyboardUsingBotToken(params: {
   if (!res.ok || json.ok !== true) {
     throw new Error(`Telegram inline keyboard failed: ${JSON.stringify(json)}`)
   }
+}
+
+/** Gửi menu thao tác nhanh độc lập (2 nút lớn như menu chính). */
+export async function sendTelegramQuickActionsMenuUsingBotToken(chatId: string, text = 'Chọn thao tác nhanh:'): Promise<void> {
+  await sendTelegramInlineKeyboardUsingBotToken({
+    chatId,
+    text,
+    inlineKeyboard: DEFAULT_QUICK_ACTIONS_INLINE_KEYBOARD
+  })
 }
 
 /** Gửi bàn phím trả lời cố định để user luôn có nút thao tác nhanh. */
