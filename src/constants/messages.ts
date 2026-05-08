@@ -543,6 +543,12 @@ const USER_MESSAGES = {
 
   SHOP_REVIEW_NOTHING_TO_UPDATE: 'Vui lòng gửi ít nhất điểm sao hoặc nội dung để cập nhật',
 
+  REVIEW_SUMMARY_ANALYZE_SUCCESS: 'Phân tích nhận xét thành công',
+  REVIEW_SUMMARY_GET_SUCCESS: 'Lấy kết quả phân tích thành công',
+  REVIEW_SUMMARY_NOT_FOUND: 'Chưa có kết quả phân tích. Nhấn "Phân tích" để tạo báo cáo.',
+  REVIEW_SUMMARY_NO_REVIEWS: 'Chưa có nhận xét nào để phân tích',
+  REVIEW_SUMMARY_AI_FAILED: 'Phân tích thất bại, vui lòng thử lại sau',
+
   ACCOUNT_SUSPENDED:
     'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên nếu cần hỗ trợ.',
 

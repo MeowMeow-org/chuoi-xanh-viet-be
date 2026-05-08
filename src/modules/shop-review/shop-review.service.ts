@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client'
 import prisma from '~/lib/prisma'
+import openAIService from '~/lib/openai'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import { ErrorWithStatus } from '~/models/Errors'
@@ -311,5 +312,265 @@ class ShopReviewService {
   }
 }
 
+// ─── AI Review Summary ────────────────────────────────────────────────────────
+
+const REVIEW_SUMMARY_SYSTEM_PROMPT = `Bạn là trợ lý AI phân tích đánh giá sản phẩm nông nghiệp Việt Nam. Nhiệm vụ là tổng hợp nhận xét từ người mua và tạo báo cáo ngắn gọn, thực tế cho người nông dân/chủ gian hàng.
+
+Hướng dẫn phân tích:
+1. CHỈ phân tích nhận xét có nội dung thực chất: tích cực, tiêu cực hoặc mang tính góp ý
+2. BỎ QUA nhận xét: spam, ngoài lề (không liên quan sản phẩm/dịch vụ), chỉ emoji/ký hiệu vô nghĩa, quảng cáo, câu không có nghĩa
+3. summary: tóm tắt 2-3 câu ngắn về tình hình chung
+4. positive_points: danh sách những gì khách khen (nếu không có thì để mảng rỗng)
+5. negative_points: danh sách phàn nàn có cơ sở (nếu không có thì để mảng rỗng)
+6. suggestions: góp ý cụ thể từ phía khách hàng (nếu không có thì để mảng rỗng)
+7. action_items: việc người nông dân nên làm ngay để khắc phục (nếu không có vấn đề thì để mảng rỗng)
+8. overall_sentiment: "positive" (phần lớn tích cực), "negative" (phần lớn tiêu cực), "mixed" (lẫn lộn)
+9. analyzed_count: số nhận xét đã phân tích (có nội dung thực chất)
+10. ignored_count: số nhận xét bị bỏ qua (noise/spam/ngoài lề)
+Viết hoàn toàn bằng tiếng Việt, ngắn gọn và thực tế.`
+
+const REVIEW_SUMMARY_SCHEMA = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    overall_sentiment: { type: 'string', description: 'positive | negative | mixed' },
+    summary: { type: 'string' },
+    positive_points: { type: 'array', items: { type: 'string' } },
+    negative_points: { type: 'array', items: { type: 'string' } },
+    suggestions: { type: 'array', items: { type: 'string' } },
+    action_items: { type: 'array', items: { type: 'string' } },
+    analyzed_count: { type: 'integer' },
+    ignored_count: { type: 'integer' }
+  },
+  required: [
+    'overall_sentiment',
+    'summary',
+    'positive_points',
+    'negative_points',
+    'suggestions',
+    'action_items',
+    'analyzed_count',
+    'ignored_count'
+  ]
+}
+
+type ReviewSummaryAiResult = {
+  overall_sentiment: string
+  summary: string
+  positive_points: string[]
+  negative_points: string[]
+  suggestions: string[]
+  action_items: string[]
+  analyzed_count: number
+  ignored_count: number
+}
+
+type ReviewSummaryRow = {
+  id: string
+  target_type: string
+  target_id: string
+  overall_sentiment: string
+  summary: string
+  positive_points: Prisma.JsonValue
+  negative_points: Prisma.JsonValue
+  suggestions: Prisma.JsonValue
+  action_items: Prisma.JsonValue
+  analyzed_count: number
+  ignored_count: number
+  average_rating: { toNumber(): number } | null
+  analyzed_at: Date
+  created_at: Date
+  updated_at: Date
+}
+
+function mapReviewSummary(row: ReviewSummaryRow) {
+  return {
+    id: row.id,
+    targetType: row.target_type,
+    targetId: row.target_id,
+    overallSentiment: row.overall_sentiment,
+    summary: row.summary,
+    positivePoints: row.positive_points as string[],
+    negativePoints: row.negative_points as string[],
+    suggestions: row.suggestions as string[],
+    actionItems: row.action_items as string[],
+    analyzedCount: row.analyzed_count,
+    ignoredCount: row.ignored_count,
+    averageRating: row.average_rating != null ? row.average_rating.toNumber() : null,
+    analyzedAt: row.analyzed_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  }
+}
+
+function formatReviewsForPrompt(reviews: { rating: number; comment: string | null; created_at: Date }[]): string {
+  return reviews
+    .map((r, i) => {
+      const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)
+      const date = r.created_at.toISOString().slice(0, 10)
+      const text = r.comment?.trim() || '(không có nhận xét)'
+      return `[${i + 1}] ${stars} - "${text}" (${date})`
+    })
+    .join('\n')
+}
+
+async function callOpenAISummary(
+  targetLabel: string,
+  reviews: { rating: number; comment: string | null; created_at: Date }[],
+  avgRating: number
+): Promise<ReviewSummaryAiResult | null> {
+  const content = `Phân tích ${reviews.length} nhận xét dưới đây cho ${targetLabel} (điểm trung bình: ${avgRating}/5):\n\n${formatReviewsForPrompt(reviews)}`
+  return openAIService.generate<ReviewSummaryAiResult>({
+    content,
+    systemInstruction: REVIEW_SUMMARY_SYSTEM_PROMPT,
+    jsonSchema: REVIEW_SUMMARY_SCHEMA
+  })
+}
+
+async function upsertSummary(
+  targetType: 'product' | 'shop',
+  targetId: string,
+  result: ReviewSummaryAiResult,
+  avgRating: number
+) {
+  const now = new Date()
+  const data = {
+    overall_sentiment: result.overall_sentiment,
+    summary: result.summary,
+    positive_points: result.positive_points,
+    negative_points: result.negative_points,
+    suggestions: result.suggestions,
+    action_items: result.action_items,
+    analyzed_count: result.analyzed_count,
+    ignored_count: result.ignored_count,
+    average_rating: avgRating,
+    analyzed_at: now,
+    updated_at: now
+  }
+  return prisma.review_summaries.upsert({
+    where: { target_type_target_id: { target_type: targetType, target_id: targetId } },
+    create: { target_type: targetType, target_id: targetId, ...data },
+    update: data
+  })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ReviewSummaryService {
+  analyzeProduct = async ({ productId, farmerUserId }: { productId: string; farmerUserId: string }) => {
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+      select: {
+        id: true,
+        name: true,
+        shops: {
+          select: { id: true, farms: { select: { owner_user_id: true } } }
+        }
+      }
+    })
+    if (!product) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.PRODUCT_NOT_FOUND })
+    }
+    if (product.shops.farms.owner_user_id !== farmerUserId) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.FORBIDDEN, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
+    }
+
+    const reviews = await prisma.shop_reviews.findMany({
+      where: { product_id: productId },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+      select: { rating: true, comment: true, created_at: true }
+    })
+    if (reviews.length === 0) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.BAD_REQUEST, message: USER_MESSAGES.REVIEW_SUMMARY_NO_REVIEWS })
+    }
+
+    const avgRating = Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+    const result = await callOpenAISummary(`sản phẩm "${product.name}"`, reviews, avgRating)
+    if (!result) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: USER_MESSAGES.REVIEW_SUMMARY_AI_FAILED })
+    }
+
+    const saved = await upsertSummary('product', productId, result, avgRating)
+    return mapReviewSummary(saved as ReviewSummaryRow)
+  }
+
+  getProductSummary = async ({ productId, farmerUserId }: { productId: string; farmerUserId: string }) => {
+    const product = await prisma.products.findUnique({
+      where: { id: productId },
+      select: { shops: { select: { farms: { select: { owner_user_id: true } } } } }
+    })
+    if (!product) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.PRODUCT_NOT_FOUND })
+    }
+    if (product.shops.farms.owner_user_id !== farmerUserId) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.FORBIDDEN, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
+    }
+
+    const row = await prisma.review_summaries.findUnique({
+      where: { target_type_target_id: { target_type: 'product', target_id: productId } }
+    })
+    if (!row) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.REVIEW_SUMMARY_NOT_FOUND })
+    }
+    return mapReviewSummary(row as unknown as ReviewSummaryRow)
+  }
+
+  analyzeShop = async ({ shopId, farmerUserId }: { shopId: string; farmerUserId: string }) => {
+    const shop = await prisma.shops.findUnique({
+      where: { id: shopId },
+      select: { id: true, name: true, farms: { select: { owner_user_id: true } } }
+    })
+    if (!shop) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
+    }
+    if (shop.farms.owner_user_id !== farmerUserId) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.FORBIDDEN, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
+    }
+
+    const reviews = await prisma.shop_reviews.findMany({
+      where: { shop_id: shopId },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+      select: { rating: true, comment: true, created_at: true }
+    })
+    if (reviews.length === 0) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.BAD_REQUEST, message: USER_MESSAGES.REVIEW_SUMMARY_NO_REVIEWS })
+    }
+
+    const avgRating = Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+    const result = await callOpenAISummary(`gian hàng "${shop.name}"`, reviews, avgRating)
+    if (!result) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.INTERNAL_SERVER_ERROR, message: USER_MESSAGES.REVIEW_SUMMARY_AI_FAILED })
+    }
+
+    const saved = await upsertSummary('shop', shopId, result, avgRating)
+    return mapReviewSummary(saved as ReviewSummaryRow)
+  }
+
+  getShopSummary = async ({ shopId, farmerUserId }: { shopId: string; farmerUserId: string }) => {
+    const shop = await prisma.shops.findUnique({
+      where: { id: shopId },
+      select: { farms: { select: { owner_user_id: true } } }
+    })
+    if (!shop) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
+    }
+    if (shop.farms.owner_user_id !== farmerUserId) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.FORBIDDEN, message: USER_MESSAGES.SHOP_NOT_FOUND_OR_FORBIDDEN })
+    }
+
+    const row = await prisma.review_summaries.findUnique({
+      where: { target_type_target_id: { target_type: 'shop', target_id: shopId } }
+    })
+    if (!row) {
+      throw new ErrorWithStatus({ status: HTTP_STATUS.NOT_FOUND, message: USER_MESSAGES.REVIEW_SUMMARY_NOT_FOUND })
+    }
+    return mapReviewSummary(row as unknown as ReviewSummaryRow)
+  }
+}
+
 const shopReviewService = new ShopReviewService()
+const reviewSummaryService = new ReviewSummaryService()
+export { reviewSummaryService }
 export default shopReviewService

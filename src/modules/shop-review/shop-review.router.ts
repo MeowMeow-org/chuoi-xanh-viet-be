@@ -1,11 +1,15 @@
 import { Router } from 'express'
-import { accessTokenValidator, requireConsumer } from '../auth/auth.middleware'
+import { accessTokenValidator, requireConsumer, requireFarmer } from '../auth/auth.middleware'
 import { wrapAsync } from '~/utils/handler'
 import {
   createShopReviewController,
   listProductReviewsController,
   listShopReviewsController,
-  updateShopReviewController
+  updateShopReviewController,
+  analyzeProductReviewsController,
+  getProductReviewSummaryController,
+  analyzeShopReviewsController,
+  getShopReviewSummaryController
 } from './shop-review.controller'
 import {
   createShopReviewValidator,
@@ -63,6 +67,56 @@ shopReviewRouter.patch(
   requireConsumer,
   updateShopReviewValidator,
   wrapAsync(updateShopReviewController)
+)
+
+// ─── AI Review Summary (chỉ farmer/chủ shop) ─────────────────────────────────
+
+/**
+ * @desc Farmer kích hoạt phân tích AI cho nhận xét của một sản phẩm (tạo/ghi đè kết quả cũ)
+ * @route POST /review/product/:product_id/summary
+ */
+shopReviewRouter.post(
+  '/product/:product_id/summary',
+  accessTokenValidator,
+  requireFarmer,
+  productIdInParamsValidator,
+  wrapAsync(analyzeProductReviewsController)
+)
+
+/**
+ * @desc Lấy kết quả phân tích AI đã lưu cho sản phẩm
+ * @route GET /review/product/:product_id/summary
+ */
+shopReviewRouter.get(
+  '/product/:product_id/summary',
+  accessTokenValidator,
+  requireFarmer,
+  productIdInParamsValidator,
+  wrapAsync(getProductReviewSummaryController)
+)
+
+/**
+ * @desc Farmer kích hoạt phân tích AI cho toàn bộ nhận xét của shop (tạo/ghi đè kết quả cũ)
+ * @route POST /review/shop/:shop_id/summary
+ */
+shopReviewRouter.post(
+  '/shop/:shop_id/summary',
+  accessTokenValidator,
+  requireFarmer,
+  shopIdInParamsValidator,
+  wrapAsync(analyzeShopReviewsController)
+)
+
+/**
+ * @desc Lấy kết quả phân tích AI đã lưu cho shop
+ * @route GET /review/shop/:shop_id/summary
+ */
+shopReviewRouter.get(
+  '/shop/:shop_id/summary',
+  accessTokenValidator,
+  requireFarmer,
+  shopIdInParamsValidator,
+  wrapAsync(getShopReviewSummaryController)
 )
 
 export default shopReviewRouter

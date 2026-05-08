@@ -3,7 +3,7 @@ import type { ParamsDictionary } from 'express-serve-static-core'
 import HTTP_STATUS from '~/constants/httpStatus'
 import USER_MESSAGES from '~/constants/messages'
 import type { TokenPayLoad } from '../auth/auth.request'
-import shopReviewService from './shop-review.service'
+import shopReviewService, { reviewSummaryService } from './shop-review.service'
 import type { CreateShopReviewBody, ListShopReviewsQuery, UpdateShopReviewBody } from './shop-review.request'
 import { notificationDispatch } from '~/modules/notification/notification.dispatch'
 import prisma from '~/lib/prisma'
@@ -98,5 +98,71 @@ export const updateShopReviewController = async (
     statusCode: HTTP_STATUS.OK,
     message: USER_MESSAGES.SHOP_REVIEW_UPDATE_SUCCESS,
     data: review
+  })
+}
+
+// ─── AI Review Summary ────────────────────────────────────────────────────────
+
+export const analyzeProductReviewsController = async (
+  req: Request<{ product_id: string }>,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const data = await reviewSummaryService.analyzeProduct({
+    productId: req.params.product_id,
+    farmerUserId: user_id
+  })
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.REVIEW_SUMMARY_ANALYZE_SUCCESS,
+    data
+  })
+}
+
+export const getProductReviewSummaryController = async (
+  req: Request<{ product_id: string }>,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const data = await reviewSummaryService.getProductSummary({
+    productId: req.params.product_id,
+    farmerUserId: user_id
+  })
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.REVIEW_SUMMARY_GET_SUCCESS,
+    data
+  })
+}
+
+export const analyzeShopReviewsController = async (
+  req: Request<{ shop_id: string }>,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const data = await reviewSummaryService.analyzeShop({
+    shopId: req.params.shop_id,
+    farmerUserId: user_id
+  })
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.REVIEW_SUMMARY_ANALYZE_SUCCESS,
+    data
+  })
+}
+
+export const getShopReviewSummaryController = async (
+  req: Request<{ shop_id: string }>,
+  res: Response
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const data = await reviewSummaryService.getShopSummary({
+    shopId: req.params.shop_id,
+    farmerUserId: user_id
+  })
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.REVIEW_SUMMARY_GET_SUCCESS,
+    data
   })
 }
