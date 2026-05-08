@@ -3,8 +3,9 @@ import type { ParamsDictionary } from 'express-serve-static-core'
 import fs from 'fs'
 import HTTP_STATUS from '~/constants/httpStatus'
 import { ErrorWithStatus } from '~/models/Errors'
-import type { ChatRequestBody, DiagnoseRequestBody, MarketQueryRequestBody } from './chatbot.request'
+import type { AppGuideRequestBody, ChatRequestBody, DiagnoseRequestBody, MarketQueryRequestBody } from './chatbot.request'
 import chatbotService from './chatbot.service'
+import { queryAppGuide } from './appGuide.service'
 
 export const chatController = async (
   req: Request<ParamsDictionary, any, ChatRequestBody>,
@@ -57,6 +58,26 @@ export const diagnoseController = async (
       fs.unlinkSync(imagePath)
     }
   }
+}
+
+export const appGuideController = async (
+  req: Request<ParamsDictionary, any, AppGuideRequestBody>,
+  res: Response,
+  _next: NextFunction
+) => {
+  const { message, conversationHistory } = req.body
+
+  const result = await queryAppGuide(message, conversationHistory)
+
+  res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: 'Hướng dẫn sử dụng',
+    data: {
+      reply: result.reply,
+      matchedSections: result.matchedSections,
+      usage: result.usage
+    }
+  })
 }
 
 export const marketQueryController = async (

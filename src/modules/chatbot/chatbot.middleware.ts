@@ -56,6 +56,27 @@ export const marketQueryValidator = validate(
   )
 )
 
+export const appGuideValidator = validate(
+  checkSchema(
+    {
+      message: {
+        isString: { errorMessage: 'Message phải là chuỗi ký tự' },
+        notEmpty: { errorMessage: 'Message không được để trống' },
+        trim: true,
+        isLength: {
+          options: { max: 1000 },
+          errorMessage: 'Message không được vượt quá 1000 ký tự'
+        }
+      },
+      conversationHistory: {
+        optional: true,
+        isArray: { errorMessage: 'conversationHistory phải là mảng' }
+      }
+    },
+    ['body']
+  )
+)
+
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
 

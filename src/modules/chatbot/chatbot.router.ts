@@ -1,8 +1,8 @@
 import { Router } from 'express'
 import { wrapAsync } from '~/utils/handler'
 import { accessTokenValidator } from '~/modules/auth/auth.middleware'
-import { chatController, diagnoseController, marketQueryController } from './chatbot.controller'
-import { chatValidator, marketQueryValidator, uploadImage } from './chatbot.middleware'
+import { appGuideController, chatController, diagnoseController, marketQueryController } from './chatbot.controller'
+import { appGuideValidator, chatValidator, marketQueryValidator, uploadImage } from './chatbot.middleware'
 
 const chatbotRouter = Router()
 
@@ -37,5 +37,12 @@ chatbotRouter.post(
  * @access private
  */
 chatbotRouter.post('/market', accessTokenValidator, marketQueryValidator, wrapAsync(marketQueryController))
+
+/**
+ * @desc Hướng dẫn sử dụng ứng dụng Chuỗi Xanh Việt (RAG từ tài liệu nội bộ)
+ * @route POST /chatbot/guide
+ * @access private
+ */
+chatbotRouter.post('/guide', accessTokenValidator, appGuideValidator, wrapAsync(appGuideController))
 
 export default chatbotRouter

@@ -15,3 +15,8 @@ export interface MarketQueryRequestBody {
 export interface DiagnoseRequestBody {
   note?: string
 }
+
+export interface AppGuideRequestBody {
+  message: string
+  conversationHistory?: { role: 'user' | 'assistant'; content: string }[]
+}
