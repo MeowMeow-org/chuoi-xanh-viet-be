@@ -1,4 +1,5 @@
 export enum TokenType {
   AccessToken,
-  RefreshToken
+  RefreshToken,
+  ResetPasswordToken
 }

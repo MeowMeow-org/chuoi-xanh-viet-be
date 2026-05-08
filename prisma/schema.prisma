@@ -1,0 +1,803 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model diary_entries {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id         String              @db.Uuid
+  farm_id           String              @db.Uuid
+  actor_user_id     String              @db.Uuid
+  event_type        diary_event_type
+  event_date        DateTime            @db.Date
+  server_timestamp  DateTime            @default(now()) @db.Timestamp(6)
+  description       String?
+  extra_data        Json?
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  diary_attachments diary_attachments[]
+  users             users               @relation(fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_actor")
+  farms             farms               @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_farm")
+  seasons           seasons             @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_diary_season")
+
+  @@index([season_id, event_date], map: "idx_diary_season_event_date")
+  @@index([season_id, server_timestamp], map: "idx_diary_season_server_ts")
+}
+
+model diary_attachments {
+  id             String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  diary_entry_id String        @db.Uuid
+  file_url       String
+  mime_type      String?       @db.VarChar(120)
+  sort_order     Int           @default(0)
+  meta           Json?
+  created_at     DateTime      @default(now()) @db.Timestamp(6)
+  diary_entries  diary_entries @relation(fields: [diary_entry_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_diary_attachments_entry")
+
+  @@index([diary_entry_id, sort_order], map: "idx_diary_attachments_entry_sort")
+}
+
+model forum_posts {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  author_user_id    String              @db.Uuid
+  title             String              @db.VarChar(220)
+  content           String
+  status            forum_post_status   @default(active)
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  updated_at        DateTime            @default(now()) @db.Timestamp(6)
+  forum_comments    forum_comments[]
+  forum_post_images forum_post_images[]
+  forum_post_labels forum_post_labels[]
+  users             users               @relation(fields: [author_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_forum_posts_author")
+
+  @@index([author_user_id, created_at], map: "idx_forum_posts_author_created")
+  @@index([status, created_at], map: "idx_forum_posts_status_created")
+}
+
+model forum_post_images {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id     String      @db.Uuid
+  object_key  String      @db.VarChar(2048)
+  file_url    String
+  sort_order  Int         @default(0)
+  created_at  DateTime    @default(now()) @db.Timestamp(6)
+  forum_posts forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_forum_post_images_post")
+
+  @@index([post_id, sort_order], map: "idx_forum_post_images_post_sort")
+}
+
+model forum_comments {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id        String      @db.Uuid
+  author_user_id String      @db.Uuid
+  content        String
+  created_at     DateTime    @default(now()) @db.Timestamp(6)
+  updated_at     DateTime    @default(now()) @db.Timestamp(6)
+  forum_posts    forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_forum_comments_post")
+  users          users       @relation(fields: [author_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_forum_comments_author")
+
+  @@index([post_id, created_at], map: "idx_forum_comments_post_created")
+  @@index([author_user_id, created_at], map: "idx_forum_comments_author_created")
+}
+
+model forum_post_labels {
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  post_id     String      @db.Uuid
+  label       String      @db.VarChar(80)
+  created_at  DateTime    @default(now()) @db.Timestamp(6)
+  forum_posts forum_posts @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_forum_labels_post")
+
+  @@unique([post_id, label], map: "uq_forum_post_label")
+  @@index([label, created_at], map: "idx_forum_labels_label_created")
+}
+
+model farms {
+  id                            String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  owner_user_id                 String                           @db.Uuid
+  name                          String                           @db.VarChar(180)
+  area_ha                       Decimal?                         @db.Decimal(14, 6)
+  crop_main                     String?                          @db.VarChar(120)
+  province                      String?                          @db.VarChar(100)
+  district                      String?                          @db.VarChar(100)
+  ward                          String?                          @db.VarChar(100)
+  /// Code hành chính theo provinces.open-api.vn. NULL = chưa chuẩn hóa (dữ liệu cũ).
+  province_code                 Int?
+  district_code                 Int?
+  ward_code                     Int?
+  address                       String?
+  latitude                      Decimal?                         @db.Decimal(10, 7)
+  longitude                     Decimal?                         @db.Decimal(10, 7)
+  in_cooperative                Boolean                          @default(false)
+  created_at                    DateTime                         @default(now()) @db.Timestamp(6)
+  updated_at                    DateTime                         @default(now()) @db.Timestamp(6)
+  cooperative_members           cooperative_members[]
+  diary_entries                 diary_entries[]
+  users                         users                            @relation(fields: [owner_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farms_owner")
+  seasons                       seasons[]
+  shops                         shops?
+  farm_certificates             farm_certificates[]
+  cooperative_certificate_scope cooperative_certificate_scope[]
+
+  @@index([province_code], map: "idx_farms_province_code")
+  @@index([province_code, district_code, ward_code], map: "idx_farms_admin_codes")
+}
+
+model cooperative_members {
+  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cooperative_user_id String                    @db.Uuid
+  farmer_user_id      String                    @db.Uuid
+  farm_id             String                    @db.Uuid
+  status              cooperative_member_status @default(pending)
+  requested_by        String?                   @db.Uuid
+  verified_by         String?                   @db.Uuid
+  verified_at         DateTime?                 @db.Timestamp(6)
+  note                String?
+  created_at          DateTime                  @default(now()) @db.Timestamp(6)
+  updated_at          DateTime                  @default(now()) @db.Timestamp(6)
+  farms               farms                     @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_farm")
+  cooperative_user    users                     @relation("cooperative_user_members", fields: [cooperative_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_cooperative_user")
+  farmer_user         users                     @relation("farmer_user_members", fields: [farmer_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_farmer_user")
+  requester           users?                    @relation("requested_by_members", fields: [requested_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_requested_by")
+  verifier            users?                    @relation("verified_by_members", fields: [verified_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_members_verified_by")
+
+  @@index([farm_id, status], map: "idx_coop_members_farm_status")
+  @@index([cooperative_user_id, status], map: "idx_coop_members_cooperative_status")
+  @@index([farmer_user_id, status], map: "idx_coop_members_farmer_status")
+}
+
+model order_items {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id   String   @db.Uuid
+  product_id String   @db.Uuid
+  qty        Decimal  @db.Decimal(10, 2)
+  unit_price Decimal  @db.Decimal(12, 2)
+  line_total Decimal  @db.Decimal(12, 2)
+  orders     orders   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_order_items_order")
+  products   products @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_order_items_product")
+
+  @@index([order_id, product_id], map: "idx_order_items_order_product")
+}
+
+model orders {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  buyer_user_id    String         @db.Uuid
+  shop_id          String         @db.Uuid
+  status           order_status   @default(pending)
+  payment_method   payment_method @default(cod)
+  payment_status   payment_status @default(pending)
+  total_amount     Decimal        @default(0) @db.Decimal(12, 2)
+  shipping_name    String?        @db.VarChar(120)
+  shipping_phone   String?        @db.VarChar(20)
+  /// Địa chỉ giao hàng dạng text gộp (legacy / backward-compat). Service mới sẽ ghi kèm các field _code/_name/detail bên dưới.
+  shipping_address String?
+  shipping_province_code Int?
+  shipping_district_code Int?
+  shipping_ward_code     Int?
+  shipping_province_name String? @db.VarChar(120)
+  shipping_district_name String? @db.VarChar(120)
+  shipping_ward_name     String? @db.VarChar(120)
+  /// Số nhà / đường (không lặp tỉnh-quận-xã).
+  shipping_detail        String?
+  note             String?
+  payos_order_code String?        @unique @db.VarChar(64)
+  /// Thời điểm hết hiệu lực link thanh toán PayOS (đồng bộ TTL gửi lên PayOS, dùng đếm ngược phía client).
+  payos_link_expires_at DateTime? @db.Timestamp(6)
+  /// Tỷ lệ hoa hồng snapshot khi xác nhận đơn (PLATFORM_COMMISSION_RATE).
+  commission_rate               Decimal?  @db.Decimal(5, 4)
+  estimated_commission_amount   Decimal?  @db.Decimal(12, 2)
+  estimated_seller_payout       Decimal?  @db.Decimal(12, 2)
+  estimated_at                  DateTime? @db.Timestamp(6)
+  commission_amount             Decimal?  @db.Decimal(12, 2)
+  seller_payout                 Decimal?  @db.Decimal(12, 2)
+  settled_at                    DateTime? @db.Timestamp(6)
+  created_at       DateTime       @default(now()) @db.Timestamp(6)
+  updated_at       DateTime       @default(now()) @db.Timestamp(6)
+  order_items      order_items[]
+  users            users             @relation(fields: [buyer_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_buyer")
+  shops            shops             @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_shop")
+  shop_reviews     shop_reviews[]
+  stock_movements  stock_movements[]
+
+  @@index([buyer_user_id, status, created_at], map: "idx_orders_buyer_status_created_at")
+  @@index([shop_id, status, created_at], map: "idx_orders_shop_status_created_at")
+}
+
+model products {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shop_id      String        @db.Uuid
+  season_id    String?       @db.Uuid
+  name         String        @db.VarChar(180)
+  description  String?
+  price        Decimal       @db.Decimal(12, 2)
+  unit         String?       @default("kg") @db.VarChar(20)
+  stock_qty    Decimal?      @default(0) @db.Decimal(10, 2)
+  image_url    String?       @db.VarChar(512)
+  is_active    Boolean       @default(true)
+  created_at   DateTime      @default(now()) @db.Timestamp(6)
+  updated_at   DateTime      @default(now()) @db.Timestamp(6)
+  sale_unit_id String?       @unique @db.Uuid
+  order_items     order_items[]
+  shop_reviews    shop_reviews[]
+  stock_movements stock_movements[]
+  seasons         seasons?          @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_season")
+  shops           shops             @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_shop")
+  sale_unit       sale_units?       @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_products_sale_unit")
+
+  @@index([shop_id, is_active], map: "idx_products_shop_active")
+}
+
+model refresh_tokens {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id    String    @db.Uuid
+  token_hash String    @unique @db.VarChar(255)
+  device_id  String    @db.VarChar(120)
+  expires_at DateTime  @db.Timestamp(6)
+  revoked_at DateTime? @db.Timestamp(6)
+  created_at DateTime  @default(now()) @db.Timestamp(6)
+  users      users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_refresh_tokens_user")
+
+  @@index([user_id, device_id], map: "idx_refresh_tokens_user_device")
+  @@index([user_id, revoked_at], map: "idx_refresh_tokens_user_revoked_at")
+}
+
+model sale_units {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id       String             @db.Uuid
+  code            String             @unique @db.VarChar(80)
+  quantity        Decimal            @db.Decimal(10, 2)
+  unit            String             @default("kg") @db.VarChar(20)
+  qr_token        String             @unique @db.VarChar(120)
+  qr_url          String
+  short_code      String?            @unique @db.VarChar(30)
+  status          sale_unit_status   @default(active)
+  created_at      DateTime           @default(now()) @db.Timestamp(6)
+  seasons         seasons            @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sale_units_season")
+  trace_scans     trace_scans[]
+  product         products?
+  stock_movements stock_movements[]
+
+  @@index([season_id, status], map: "idx_sale_units_season_status")
+}
+
+/// Sổ biến động tồn theo lô (CXV-xxx). Mỗi lần bán/huỷ/điều chỉnh ghi 1 dòng.
+/// qty_kg DƯƠNG = nhập lại kho (cancel/adjust tăng), ÂM = xuất kho (order).
+model stock_movements {
+  id               String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sale_unit_id     String                 @db.Uuid
+  product_id       String?                @db.Uuid
+  order_id         String?                @db.Uuid
+  source           stock_movement_source
+  qty_kg           Decimal                @db.Decimal(14, 3)
+  balance_after_kg Decimal                @db.Decimal(14, 3)
+  note             String?
+  created_at       DateTime               @default(now()) @db.Timestamp(6)
+  sale_unit        sale_units             @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_movements_sale_unit")
+  product          products?              @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_movements_product")
+  order            orders?                @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_stock_movements_order")
+
+  @@index([sale_unit_id, created_at], map: "idx_stock_movements_sale_unit_created")
+  @@index([order_id], map: "idx_stock_movements_order")
+}
+
+model season_anchors {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id       String        @db.Uuid
+  checkpoint_no   Int
+  checkpoint_type String        @default("manual") @db.VarChar(30)
+  is_final        Boolean       @default(false)
+  payload_range   Json?
+  hash_algo       String        @default("SHA-256") @db.VarChar(20)
+  data_hash       String        @db.VarChar(130)
+  chain_network   String?       @default("db_only") @db.VarChar(50)
+  tx_hash         String?       @db.VarChar(120)
+  tx_url          String?
+  status          anchor_status @default(pending)
+  anchored_at     DateTime?     @db.Timestamp(6)
+  anchor_meta     Json?
+  created_at      DateTime      @default(now()) @db.Timestamp(6)
+  seasons         seasons       @relation(fields: [season_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_anchor_season")
+
+  @@unique([season_id, checkpoint_no], map: "uq_season_anchor_checkpoint")
+  @@index([season_id, created_at], map: "idx_season_anchors_season_created_at")
+}
+
+model seasons {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farm_id            String           @db.Uuid
+  code               String           @unique @db.VarChar(80)
+  crop_name          String           @db.VarChar(120)
+  start_date         DateTime         @db.Date
+  harvest_start_date DateTime?        @db.Date
+  harvest_end_date   DateTime?        @db.Date
+  estimated_yield    Decimal?         @db.Decimal(12, 2)
+  actual_yield       Decimal?         @db.Decimal(12, 2)
+  yield_unit         String?          @default("kg") @db.VarChar(20)
+  status             season_status    @default(draft)
+  sealed_at          DateTime?        @db.Timestamp(6)
+  created_by         String           @db.Uuid
+  created_at         DateTime         @default(now()) @db.Timestamp(6)
+  updated_at         DateTime         @default(now()) @db.Timestamp(6)
+  diary_entries      diary_entries[]
+  products           products[]
+  sale_units         sale_units[]
+  season_anchors     season_anchors[]
+  season_care_plans  season_care_plans[]
+  users              users            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_created_by")
+  farms              farms            @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_seasons_farm")
+
+  @@index([farm_id, status], map: "idx_seasons_farm_status")
+}
+
+/// Mẫu kế hoạch chăm sóc theo cây trồng (tái sử dụng cho nhiều mùa vụ cùng crop_key).
+model crop_care_templates {
+  id             String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  crop_key       String                     @unique @db.VarChar(120)
+  crop_name      String                     @db.VarChar(120)
+  source         String                     @default("ai") @db.VarChar(20)
+  created_at     DateTime                   @default(now()) @db.Timestamp(6)
+  updated_at     DateTime                   @default(now()) @db.Timestamp(6)
+  care_steps     crop_care_template_steps[]
+  season_plans   season_care_plans[]
+}
+
+model crop_care_template_steps {
+  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_id String               @db.Uuid
+  step_no     Int
+  title       String               @db.VarChar(180)
+  detail      String
+  day_offset  Int
+  category    String               @db.VarChar(40)
+  created_at  DateTime             @default(now()) @db.Timestamp(6)
+  template    crop_care_templates  @relation(fields: [template_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_crop_care_steps_template")
+
+  @@index([template_id, step_no], map: "idx_crop_care_steps_template_step")
+}
+
+/// Kế hoạch chăm sóc đã gắn cho từng mùa vụ (snapshot từ template tại thời điểm tạo mùa vụ).
+model season_care_plans {
+  id                  String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  season_id           String                    @unique @db.Uuid
+  template_id         String?                   @db.Uuid
+  crop_name           String                    @db.VarChar(120)
+  source              String                    @default("ai") @db.VarChar(20)
+  created_at          DateTime                  @default(now()) @db.Timestamp(6)
+  season              seasons                   @relation(fields: [season_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_season_care_plans_season")
+  template            crop_care_templates?      @relation(fields: [template_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_season_care_plans_template")
+  plan_steps          season_care_plan_steps[]
+}
+
+model season_care_plan_steps {
+  id             String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan_id        String             @db.Uuid
+  step_no        Int
+  title          String             @db.VarChar(180)
+  detail         String
+  day_offset     Int
+  category       String             @db.VarChar(40)
+  scheduled_date DateTime?          @db.Date
+  created_at     DateTime           @default(now()) @db.Timestamp(6)
+  plan           season_care_plans  @relation(fields: [plan_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_season_care_plan_steps_plan")
+
+  @@index([plan_id, step_no], map: "idx_season_care_plan_steps_plan_step")
+  @@index([scheduled_date], map: "idx_season_care_plan_steps_scheduled")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model shop_reviews {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String   @db.Uuid
+  order_id             String   @db.Uuid
+  shop_id              String   @db.Uuid
+  product_id           String   @db.Uuid
+  rating               Int
+  comment              String?
+  is_verified_purchase Boolean  @default(true)
+  review_meta          Json?
+  created_at           DateTime @default(now()) @db.Timestamp(6)
+  updated_at           DateTime @default(now()) @db.Timestamp(6)
+  orders               orders   @relation(fields: [order_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_order")
+  shops                shops    @relation(fields: [shop_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_shop")
+  products             products @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_product")
+  users                users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_reviews_user")
+
+  @@unique([user_id, order_id, product_id], map: "uq_shop_reviews_user_order_product")
+  @@index([shop_id, created_at], map: "idx_shop_reviews_shop_created_at")
+  @@index([product_id, created_at], map: "idx_shop_reviews_product_created_at")
+}
+
+model shops {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farm_id        String         @unique @db.Uuid
+  name           String         @db.VarChar(180)
+  description    String?
+  avatar_url     String?        @db.VarChar(2048)
+  status         String         @default("open") @db.VarChar(20)
+  is_verified    Boolean        @default(false)
+  certifications Json?
+  created_at     DateTime       @default(now()) @db.Timestamp(6)
+  updated_at     DateTime       @default(now()) @db.Timestamp(6)
+  orders         orders[]
+  products       products[]
+  shop_reviews   shop_reviews[]
+  farms          farms          @relation(fields: [farm_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_shops_farm")
+}
+
+model trace_scans {
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sale_unit_id  String     @db.Uuid
+  scanned_at    DateTime   @default(now()) @db.Timestamp(6)
+  ip_address    String?    @db.VarChar(64)
+  user_agent    String?
+  geo_lat       Decimal?   @db.Decimal(10, 7)
+  geo_lng       Decimal?   @db.Decimal(10, 7)
+  result        String     @default("ok") @db.VarChar(20)
+  abnormal_flag Boolean    @default(false)
+  scan_meta     Json?
+  sale_units    sale_units @relation(fields: [sale_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_trace_sale_unit")
+
+  @@index([sale_unit_id, scanned_at], map: "idx_trace_scans_sale_unit_scanned_at")
+}
+
+/// Hội thoại 1-1 giữa hai user. Luôn có participant_1_id < participant_2_id (UUID) — một thread / cặp.
+model chat_conversations {
+  id               String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  participant_1_id String                   @db.Uuid
+  participant_2_id String                   @db.Uuid
+  created_at       DateTime                 @default(now()) @db.Timestamp(6)
+  updated_at       DateTime                 @default(now()) @db.Timestamp(6)
+  participant_1    users                    @relation("chat_participant_1", fields: [participant_1_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p1")
+  participant_2    users                    @relation("chat_participant_2", fields: [participant_2_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_conv_p2")
+  messages         chat_messages[]
+  reads            chat_conversation_reads[]
+
+  @@unique([participant_1_id, participant_2_id], map: "uq_chat_conv_participants")
+  @@index([participant_1_id, updated_at], map: "idx_chat_conv_p1_updated")
+  @@index([participant_2_id, updated_at], map: "idx_chat_conv_p2_updated")
+}
+
+/// Mốc đã đọc cuối của từng user trong từng hội thoại (tin từ đối phương sau mốc này = chưa đọc).
+model chat_conversation_reads {
+  conversation_id String             @db.Uuid
+  user_id         String             @db.Uuid
+  last_read_at    DateTime           @default(now()) @db.Timestamp(6)
+  conversation    chat_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_chat_read_conv")
+  user            users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_chat_read_user")
+
+  @@id([conversation_id, user_id], map: "pk_chat_conversation_reads")
+  @@index([user_id], map: "idx_chat_read_user")
+}
+
+model chat_messages {
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  conversation_id String             @db.Uuid
+  sender_user_id  String             @db.Uuid
+  content         String
+  created_at      DateTime           @default(now()) @db.Timestamp(6)
+  conversation    chat_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_chat_msg_conv")
+  sender          users              @relation(fields: [sender_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chat_msg_sender")
+
+  @@index([conversation_id, created_at], map: "idx_chat_msg_conv_created")
+}
+
+model users {
+  id                                 String                           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  phone                              String                           @unique @db.VarChar(20)
+  email                              String?                          @unique @db.VarChar(255)
+  forum_comments                     forum_comments[]
+  forum_posts                        forum_posts[]
+  password_hash                      String?               @db.VarChar(255)
+  full_name                          String                @db.VarChar(120)
+  avatar_url                         String?               @db.VarChar(2048)
+  /** Zalo user_id (Official Account) — nông dân nhập sau khi đã quan tâm OA để nhận tin nhắn */
+  zalo_user_id                       String?               @db.VarChar(50)
+  /** Telegram chat_id (tin nhắn riêng với bot) — gắn sau khi nông dân /start qua deep link webhook */
+  telegram_chat_id                   String?               @db.VarChar(32)
+  /** Địa chỉ liên hệ / trụ sở (dùng cho HTX; hiển thị khi xét duyệt chứng chỉ nông trại). */
+  contact_address                    String?               @db.VarChar(500)
+  /** Trụ sở / khu vực HTX — tên địa giới (chỉ cooperative; nông dân để null). */
+  province                           String?               @db.VarChar(100)
+  district                           String?               @db.VarChar(100)
+  ward                               String?               @db.VarChar(100)
+  /// Mã provinces.open-api.vn — cùng quy ước với farms.*
+  province_code                      Int?
+  district_code                      Int?
+  ward_code                          Int?
+  /// Tọa độ trụ sở HTX (chỉ cooperative). Tên field giống farms để map FE; farmer để null.
+  latitude                           Decimal?              @db.Decimal(10, 7)
+  longitude                          Decimal?              @db.Decimal(10, 7)
+  role                               user_role             @default(farmer)
+  status                             account_status        @default(active)
+  reset_password_token               String?               @db.VarChar(255)
+  /** true = còn trong flow onboarding (chưa xong); false = đã xong. */
+  is_onboarding                      Boolean               @default(true)
+  created_at                         DateTime              @default(now()) @db.Timestamp(6)
+  updated_at                         DateTime              @default(now()) @db.Timestamp(6)
+  diary_entries                      diary_entries[]
+  cooperative_members_as_cooperative cooperative_members[] @relation("cooperative_user_members")
+  cooperative_members_as_farmer      cooperative_members[] @relation("farmer_user_members")
+  cooperative_members_as_requester   cooperative_members[] @relation("requested_by_members")
+  cooperative_members_as_verifier    cooperative_members[] @relation("verified_by_members")
+  farms                              farms[]
+  orders                             orders[]
+  refresh_tokens                     refresh_tokens[]
+  seasons                            seasons[]
+  shop_reviews                       shop_reviews[]
+  chat_conversations_as_p1           chat_conversations[]  @relation("chat_participant_1")
+  chat_conversations_as_p2           chat_conversations[]  @relation("chat_participant_2")
+  chat_conversation_reads            chat_conversation_reads[]
+  chat_messages                      chat_messages[]
+  user_notifications_received        user_notifications[]  @relation("user_notifications_recipient")
+  user_notifications_sent            user_notifications[]  @relation("user_notifications_actor")
+  cooperative_certificates_owned     cooperative_certificates[]     @relation("coop_cert_owner")
+  cooperative_certificates_revoked   cooperative_certificates[]     @relation("coop_cert_revoker")
+  cooperative_certificate_scope_added cooperative_certificate_scope[] @relation("coop_cert_scope_added_by")
+  farm_certificates_reviewed          farm_certificates[]             @relation("farm_cert_reviewer_user")
+  farm_certificates_reviewer_coop     farm_certificates[]             @relation("farm_cert_reviewer_coop")
+  telegram_link_tokens                telegram_link_tokens[]
+  telegram_diary_sessions             telegram_diary_sessions[]
+  audit_logs_actor                    audit_logs[]                    @relation("audit_logs_actor")
+}
+
+/// Mã một lần (deep link t.me/bot?start=...) để gắn telegram_chat_id cho user đã đăng nhập
+model telegram_link_tokens {
+  token      String   @id @db.VarChar(64)
+  user_id    String   @db.Uuid
+  expires_at DateTime @db.Timestamp(6)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_telegram_link_user")
+  @@index([expires_at], map: "idx_telegram_link_expires")
+}
+
+/// Session hội thoại tạo nhật ký qua Telegram (multi-step wizard).
+model telegram_diary_sessions {
+  chat_id    String   @id @db.VarChar(32)
+  user_id    String   @db.Uuid
+  step       String   @db.VarChar(40)
+  draft_data Json?
+  expires_at DateTime @db.Timestamp(6)
+  updated_at DateTime @default(now()) @db.Timestamp(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_tg_diary_session_user")
+
+  @@index([user_id], map: "idx_tg_diary_session_user")
+  @@index([expires_at], map: "idx_tg_diary_session_expires")
+}
+
+model audit_logs {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actor_user_id String?  @db.Uuid
+  actor_role    user_role?
+  source        String   @default("api") @db.VarChar(20)
+  module        String   @db.VarChar(60)
+  action        String   @db.VarChar(80)
+  entity_type   String?  @db.VarChar(80)
+  entity_id     String?  @db.Uuid
+  status        String   @db.VarChar(20)
+  before_data   Json?
+  after_data    Json?
+  diff_data     Json?
+  request_id    String?  @db.VarChar(80)
+  ip_address    String?  @db.VarChar(64)
+  user_agent    String?
+  path          String?  @db.VarChar(2048)
+  method        String?  @db.VarChar(10)
+  error_code    String?  @db.VarChar(120)
+  error_message String?
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+
+  actor users? @relation("audit_logs_actor", fields: [actor_user_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_audit_logs_actor")
+
+  @@index([created_at(sort: Desc)], map: "idx_audit_logs_created")
+  @@index([module, created_at(sort: Desc)], map: "idx_audit_logs_module_created")
+  @@index([actor_user_id, created_at(sort: Desc)], map: "idx_audit_logs_actor_created")
+  @@index([entity_type, entity_id, created_at(sort: Desc)], map: "idx_audit_logs_entity_created")
+}
+
+model user_notifications {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipient_user_id String            @db.Uuid
+  actor_user_id     String?           @db.Uuid
+  type              notification_type
+  title             String            @db.VarChar(240)
+  body              String
+  entity_type       String?           @db.VarChar(40)
+  entity_id         String?           @db.Uuid
+  dedupe_key        String?           @db.VarChar(200)
+  read_at           DateTime?         @db.Timestamp(6)
+  metadata          Json?
+  created_at        DateTime          @default(now()) @db.Timestamp(6)
+
+  recipient users  @relation("user_notifications_recipient", fields: [recipient_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_notifications_recipient")
+  actor     users? @relation("user_notifications_actor", fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_notifications_actor")
+
+  @@unique([recipient_user_id, dedupe_key], map: "uq_user_notifications_recipient_dedupe")
+  @@index([recipient_user_id, created_at(sort: Desc)], map: "idx_user_notifications_recipient_created")
+}
+
+model cooperative_certificates {
+  id                  String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cooperative_user_id String                          @db.Uuid
+  type                cert_type
+  certificate_no      String?                         @db.VarChar(120)
+  issuer              String?                         @db.VarChar(240)
+  issued_at           DateTime?                       @db.Date
+  expires_at          DateTime?                       @db.Date
+  file_url            String                          @db.VarChar(2048)
+  status              coop_cert_status                @default(active)
+  revoked_by          String?                         @db.Uuid
+  revoked_at          DateTime?                       @db.Timestamp(6)
+  revoke_reason       String?
+  created_at          DateTime                        @default(now()) @db.Timestamp(6)
+  updated_at          DateTime                        @default(now()) @db.Timestamp(6)
+  cooperative         users                           @relation("coop_cert_owner", fields: [cooperative_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_certs_user")
+  revoker             users?                          @relation("coop_cert_revoker", fields: [revoked_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_certs_revoker")
+  scope               cooperative_certificate_scope[]
+
+  @@index([cooperative_user_id, status], map: "idx_coop_certs_user_status")
+  @@index([type, status], map: "idx_coop_certs_type_status")
+}
+
+model cooperative_certificate_scope {
+  id             String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  certificate_id String                  @db.Uuid
+  farm_id        String                  @db.Uuid
+  added_by       String?                 @db.Uuid
+  added_at       DateTime                @default(now()) @db.Timestamp(6)
+  certificate    cooperative_certificates @relation(fields: [certificate_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_coop_cert_scope_cert")
+  farm           farms                   @relation(fields: [farm_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_coop_cert_scope_farm")
+  adder          users?                  @relation("coop_cert_scope_added_by", fields: [added_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_coop_cert_scope_adder")
+
+  @@unique([certificate_id, farm_id], map: "uq_coop_cert_scope")
+  @@index([farm_id], map: "idx_coop_cert_scope_farm")
+}
+
+model farm_certificates {
+  id                      String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  farm_id                 String                   @db.Uuid
+  type                    cert_type
+  certificate_no          String?                  @db.VarChar(120)
+  issuer                  String?                  @db.VarChar(240)
+  issued_at               DateTime?                @db.Date
+  expires_at              DateTime?                @db.Date
+  file_url                String                   @db.VarChar(2048)
+  status                  farm_cert_status         @default(pending)
+  approver_scope          farm_cert_approver_scope
+  reviewer_cooperative_id String?                  @db.Uuid
+  reviewed_by             String?                  @db.Uuid
+  reviewed_at             DateTime?                @db.Timestamp(6)
+  /// Ghi chú của người duyệt / quản trị: đồng ý, từ chối hoặc thu hồi (hiển thị cho nông hộ).
+  reviewer_note           String?                  @db.VarChar(500)
+  created_at              DateTime                 @default(now()) @db.Timestamp(6)
+  updated_at              DateTime                 @default(now()) @db.Timestamp(6)
+  farm                    farms                    @relation(fields: [farm_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_farm_certs_farm")
+  reviewer_cooperative    users?                   @relation("farm_cert_reviewer_coop", fields: [reviewer_cooperative_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farm_certs_reviewer_coop")
+  reviewer_user           users?                   @relation("farm_cert_reviewer_user", fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_farm_certs_reviewer_user")
+
+  @@index([farm_id, status], map: "idx_farm_certs_farm_status")
+  @@index([reviewer_cooperative_id, status], map: "idx_farm_certs_reviewer")
+  @@index([type, status], map: "idx_farm_certs_type_status")
+}
+
+enum cert_type {
+  vietgap
+  globalgap
+  organic
+  other
+}
+
+enum coop_cert_status {
+  active
+  revoked
+  expired
+}
+
+enum farm_cert_status {
+  pending
+  approved
+  rejected
+  revoked
+  expired
+}
+
+enum farm_cert_approver_scope {
+  cooperative
+  admin
+}
+
+enum account_status {
+  active
+  pending
+  suspended
+}
+
+enum anchor_status {
+  pending
+  anchored
+  failed
+}
+
+enum diary_event_type {
+  land_prep
+  sowing
+  fertilizing
+  pesticide
+  irrigation
+  harvesting
+  packing
+  inspection
+  other
+}
+
+enum forum_post_status {
+  active
+  hidden
+  locked
+}
+
+enum order_status {
+  pending
+  confirmed
+  shipping
+  delivered
+  cancelled
+}
+
+enum payment_method {
+  cod
+  vnpay
+  payos
+}
+
+enum payment_status {
+  pending
+  paid
+  failed
+  refunded
+}
+
+enum cooperative_member_status {
+  pending
+  approved
+  rejected
+  removed
+}
+
+enum sale_unit_status {
+  active
+  sold
+  disabled
+}
+
+enum stock_movement_source {
+  order
+  cancel
+  adjust
+}
+
+enum season_status {
+  draft
+  ready_to_anchor
+  anchored
+  amended
+  failed
+}
+
+enum user_role {
+  consumer
+  farmer
+  cooperative
+  admin
+}
+
+enum notification_type {
+  order
+  message
+  review
+  system
+  cooperative
+  forum
+}

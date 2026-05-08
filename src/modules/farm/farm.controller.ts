@@ -1,0 +1,166 @@
+import { Request, Response, NextFunction } from 'express'
+import type { ParamsDictionary } from 'express-serve-static-core'
+import farmService from './farm.service'
+import HTTP_STATUS from '~/constants/httpStatus'
+import USER_MESSAGES from '~/constants/messages'
+import type { CreateFarmRequestBody, GetFarmsQuery, UpdateFarmRequestBody } from './farm.request'
+import type { TokenPayLoad } from '../auth/auth.request'
+
+const mapFarmRow = (farm: {
+  id: string
+  owner_user_id: string
+  name: string
+  area_ha: unknown
+  crop_main: string | null
+  province: string | null
+  district: string | null
+  ward: string | null
+  province_code: number | null
+  district_code: number | null
+  ward_code: number | null
+  address: string | null
+  latitude: unknown
+  longitude: unknown
+  in_cooperative: boolean
+  created_at: Date
+  updated_at: Date
+}) => ({
+  id: farm.id,
+  ownerUserId: farm.owner_user_id,
+  name: farm.name,
+  areaHa: farm.area_ha,
+  cropMain: farm.crop_main,
+  province: farm.province,
+  district: farm.district,
+  ward: farm.ward,
+  provinceCode: farm.province_code,
+  districtCode: farm.district_code,
+  wardCode: farm.ward_code,
+  address: farm.address,
+  latitude: farm.latitude,
+  longitude: farm.longitude,
+  inCooperative: farm.in_cooperative,
+  createdAt: farm.created_at,
+  updatedAt: farm.updated_at
+})
+
+const mapMyFarmRow = (
+  farm: Parameters<typeof mapFarmRow>[0] & {
+    cooperative_members: {
+      status: string
+      cooperative_user: { full_name: string } | null
+    }[]
+  }
+) => {
+  const membership = farm.cooperative_members[0]
+  return {
+    ...mapFarmRow(farm),
+    cooperativeMembershipStatus: membership?.status ?? null,
+    cooperativeName: membership?.cooperative_user?.full_name ?? null
+  }
+}
+
+export const getFarmsController = async (
+  req: Request<ParamsDictionary, unknown, unknown, GetFarmsQuery>,
+  res: Response,
+  next: NextFunction
+) => {
+  const page = req.query.page !== undefined ? Number(req.query.page) : undefined
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
+  const searchTerm =
+    typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
+
+  const { items, meta } = await farmService.getFarms({ page, limit, searchTerm })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_FARMS_SUCCESS,
+    data: {
+      items: items.map(mapFarmRow),
+      meta
+    }
+  })
+}
+
+export const getMyFarmsController = async (
+  req: Request<ParamsDictionary, unknown, unknown, GetFarmsQuery>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const page = req.query.page !== undefined ? Number(req.query.page) : undefined
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : undefined
+  const searchTerm =
+    typeof req.query.searchTerm === 'string' ? req.query.searchTerm : undefined
+
+  const { items, meta } = await farmService.getFarmsByOwnerUserId({
+    ownerUserId: user_id,
+    page,
+    limit,
+    searchTerm
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.GET_MY_FARMS_SUCCESS,
+    data: {
+      items: items.map(mapMyFarmRow),
+      meta
+    }
+  })
+}
+
+export const createFarmController = async (
+  req: Request<ParamsDictionary, unknown, CreateFarmRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const createdFarm = await farmService.createFarm({
+    owner_user_id: user_id,
+    payload: req.body
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.CREATED,
+    message: USER_MESSAGES.CREATE_FARM_SUCCESS,
+    data: mapFarmRow(createdFarm)
+  })
+}
+
+export const updateFarmController = async (
+  req: Request<{ farm_id: string }, unknown, UpdateFarmRequestBody>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  const updatedFarm = await farmService.updateFarm({
+    farm_id: req.params.farm_id,
+    owner_user_id: user_id,
+    payload: req.body
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.UPDATE_FARM_SUCCESS,
+    data: mapFarmRow(updatedFarm)
+  })
+}
+
+export const deleteFarmController = async (
+  req: Request<{ farm_id: string }>,
+  res: Response,
+  next: NextFunction
+) => {
+  const { user_id } = req.decoded_authorization as TokenPayLoad
+  await farmService.deleteFarm({
+    farm_id: req.params.farm_id,
+    owner_user_id: user_id
+  })
+
+  return res.sendResponse({
+    statusCode: HTTP_STATUS.OK,
+    message: USER_MESSAGES.DELETE_FARM_SUCCESS,
+    data: null
+  })
+}
