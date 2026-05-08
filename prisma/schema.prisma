@@ -408,6 +408,28 @@ model shop_reviews {
   @@index([product_id, created_at], map: "idx_shop_reviews_product_created_at")
 }
 
+/// Kết quả phân tích AI tổng hợp nhận xét - do nông dân chủ động kích hoạt
+model review_summaries {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  target_type       String   @db.VarChar(20)
+  target_id         String   @db.Uuid
+  overall_sentiment String   @db.VarChar(20)
+  summary           String
+  positive_points   Json     @default("[]")
+  negative_points   Json     @default("[]")
+  suggestions       Json     @default("[]")
+  action_items      Json     @default("[]")
+  analyzed_count    Int      @default(0)
+  ignored_count     Int      @default(0)
+  average_rating    Decimal? @db.Decimal(3, 2)
+  analyzed_at       DateTime @default(now()) @db.Timestamp(6)
+  created_at        DateTime @default(now()) @db.Timestamp(6)
+  updated_at        DateTime @default(now()) @db.Timestamp(6)
+
+  @@unique([target_type, target_id], map: "uq_review_summaries_target")
+  @@index([target_type, target_id], map: "idx_review_summaries_target")
+}
+
 model shops {
   id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   farm_id        String         @unique @db.Uuid

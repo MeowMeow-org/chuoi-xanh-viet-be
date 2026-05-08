@@ -23,6 +23,8 @@
  *     description: Consumer–farmer chat (REST + Socket.IO on same server, path /socket.io/)
  *   - name: AgriTrend
  *     description: Xu hướng nông nghiệp real-time (cây trồng hot, tín hiệu thị trường, công nghệ, cảnh báo)
+ *   - name: ShopReview
+ *     description: Đánh giá sản phẩm / shop và phân tích AI tổng hợp nhận xét
  */
 
 /**
@@ -2048,6 +2050,317 @@
  *         description: Access token không hợp lệ hoặc thiếu
  *       500:
  *         description: Lỗi AI hoặc không lấy được dữ liệu RSS
+ */
+
+/**
+ * @swagger
+ * /v1/api/review:
+ *   post:
+ *     summary: Tạo đánh giá sản phẩm sau khi đơn đã giao (consumer only, mỗi dòng sản phẩm tối đa 1 đánh giá)
+ *     tags: [ShopReview]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [order_id, product_id, rating]
+ *             properties:
+ *               order_id: { type: string, format: uuid, description: ID đơn hàng đã giao }
+ *               product_id: { type: string, format: uuid, description: ID sản phẩm trong đơn }
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *                 example: 4
+ *               comment: { type: string, nullable: true, maxLength: 2000, example: Sản phẩm tươi ngon, giao hàng nhanh }
+ *     responses:
+ *       201:
+ *         description: Tạo đánh giá thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 201 }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id: { type: string, format: uuid }
+ *                     userId: { type: string, format: uuid }
+ *                     shopId: { type: string, format: uuid }
+ *                     productId: { type: string, format: uuid }
+ *                     rating: { type: integer, example: 4 }
+ *                     comment: { type: string, nullable: true }
+ *                     isVerifiedPurchase: { type: boolean }
+ *                     createdAt: { type: string, format: date-time }
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Chỉ consumer mới được đánh giá
+ *       409:
+ *         description: Đã đánh giá sản phẩm này rồi
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/review/shop/{shop_id}:
+ *   get:
+ *     summary: Danh sách đánh giá theo shop (phân trang + điểm TB; public)
+ *     tags: [ShopReview]
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Danh sách đánh giá thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: string, format: uuid }
+ *                           userId: { type: string, format: uuid }
+ *                           shopId: { type: string, format: uuid }
+ *                           productId: { type: string, format: uuid }
+ *                           rating: { type: integer }
+ *                           comment: { type: string, nullable: true }
+ *                           isVerifiedPurchase: { type: boolean }
+ *                           createdAt: { type: string, format: date-time }
+ *                           reviewer:
+ *                             type: object
+ *                             properties:
+ *                               id: { type: string, format: uuid }
+ *                               fullName: { type: string }
+ *                               avatarUrl: { type: string, nullable: true }
+ *                           product:
+ *                             type: object
+ *                             properties:
+ *                               id: { type: string, format: uuid }
+ *                               name: { type: string }
+ *                               imageUrl: { type: string, nullable: true }
+ *                     meta:
+ *                       type: object
+ *                       properties:
+ *                         page: { type: integer }
+ *                         limit: { type: integer }
+ *                         total: { type: integer }
+ *                         totalPages: { type: integer }
+ *                         averageRating: { type: number, nullable: true, example: 4.3 }
+ *       422:
+ *         description: shop_id không hợp lệ
+ *
+ * /v1/api/review/product/{product_id}:
+ *   get:
+ *     summary: Danh sách đánh giá theo sản phẩm (phân trang + điểm TB; public)
+ *     tags: [ShopReview]
+ *     parameters:
+ *       - in: path
+ *         name: product_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *       - in: query
+ *         name: page
+ *         schema: { type: integer, minimum: 1, default: 1 }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+ *     responses:
+ *       200:
+ *         description: Danh sách đánh giá thành công
+ *       422:
+ *         description: product_id không hợp lệ
+ *
+ * /v1/api/review/{review_id}:
+ *   patch:
+ *     summary: Sửa đánh giá của chính mình (consumer only)
+ *     tags: [ShopReview]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: review_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               rating:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 5
+ *               comment: { type: string, nullable: true, maxLength: 2000 }
+ *     responses:
+ *       200:
+ *         description: Cập nhật đánh giá thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Không phải đánh giá của bạn hoặc không có quyền
+ *       404:
+ *         description: Không tìm thấy đánh giá
+ *       422:
+ *         description: Validation error
+ *
+ * /v1/api/review/product/{product_id}/summary:
+ *   post:
+ *     summary: Farmer kích hoạt phân tích AI cho nhận xét của một sản phẩm (tạo/ghi đè)
+ *     tags: [ShopReview]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: product_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Phân tích AI thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     productId: { type: string, format: uuid }
+ *                     totalReviews: { type: integer }
+ *                     averageRating: { type: number }
+ *                     summary: { type: string, description: Tóm tắt tổng quan bằng tiếng Việt }
+ *                     strengths:
+ *                       type: array
+ *                       items: { type: string }
+ *                     weaknesses:
+ *                       type: array
+ *                       items: { type: string }
+ *                     suggestions:
+ *                       type: array
+ *                       items: { type: string }
+ *                     analyzedAt: { type: string, format: date-time }
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Chỉ farmer mới có quyền / sản phẩm không thuộc shop của bạn
+ *       404:
+ *         description: Không tìm thấy sản phẩm hoặc chưa có đánh giá nào
+ *       422:
+ *         description: product_id không hợp lệ
+ *   get:
+ *     summary: Lấy kết quả phân tích AI đã lưu cho sản phẩm (farmer only)
+ *     tags: [ShopReview]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: product_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Lấy kết quả phân tích thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Chỉ farmer mới có quyền / sản phẩm không thuộc shop của bạn
+ *       404:
+ *         description: Chưa có kết quả phân tích, hãy gọi POST trước
+ *       422:
+ *         description: product_id không hợp lệ
+ *
+ * /v1/api/review/shop/{shop_id}/summary:
+ *   post:
+ *     summary: Farmer kích hoạt phân tích AI cho toàn bộ nhận xét của shop (tạo/ghi đè)
+ *     tags: [ShopReview]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Phân tích AI thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode: { type: integer, example: 200 }
+ *                 message: { type: string }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     shopId: { type: string, format: uuid }
+ *                     totalReviews: { type: integer }
+ *                     averageRating: { type: number }
+ *                     summary: { type: string, description: Tóm tắt tổng quan bằng tiếng Việt }
+ *                     strengths:
+ *                       type: array
+ *                       items: { type: string }
+ *                     weaknesses:
+ *                       type: array
+ *                       items: { type: string }
+ *                     suggestions:
+ *                       type: array
+ *                       items: { type: string }
+ *                     analyzedAt: { type: string, format: date-time }
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Chỉ farmer mới có quyền / shop không thuộc về bạn
+ *       404:
+ *         description: Không tìm thấy shop hoặc chưa có đánh giá nào
+ *       422:
+ *         description: shop_id không hợp lệ
+ *   get:
+ *     summary: Lấy kết quả phân tích AI đã lưu cho shop (farmer only)
+ *     tags: [ShopReview]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: shop_id
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Lấy kết quả phân tích thành công
+ *       401:
+ *         description: Chưa đăng nhập
+ *       403:
+ *         description: Chỉ farmer mới có quyền / shop không thuộc về bạn
+ *       404:
+ *         description: Chưa có kết quả phân tích, hãy gọi POST trước
+ *       422:
+ *         description: shop_id không hợp lệ
  */
 
 export {}
