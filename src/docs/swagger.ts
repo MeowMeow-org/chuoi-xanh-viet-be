@@ -775,6 +775,76 @@
 
 /**
  * @swagger
+ * /v1/api/chatbot/guide:
+ *   post:
+ *     summary: Hướng dẫn sử dụng ứng dụng (RAG từ tài liệu nội bộ)
+ *     description: |
+ *       Trả lời câu hỏi về cách dùng các tính năng của ứng dụng Chuỗi Xanh Việt dựa trên tài liệu hướng dẫn nội bộ (keyword-based RAG).
+ *       Ví dụ: "Làm sao tạo vụ mùa?", "Cách đặt hàng như thế nào?", "Hướng dẫn đăng ký tài khoản"
+ *     tags: [Chatbot]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - message
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 example: Làm sao tạo vụ mùa mới?
+ *               conversationHistory:
+ *                 type: array
+ *                 description: Previous messages for multi-turn conversation
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     role:
+ *                       type: string
+ *                       enum: [user, assistant]
+ *                     content:
+ *                       type: string
+ *     responses:
+ *       200:
+ *         description: Hướng dẫn sử dụng thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: number
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: Hướng dẫn sử dụng
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     reply:
+ *                       type: string
+ *                       description: Câu trả lời hướng dẫn chi tiết
+ *                     matchedSections:
+ *                       type: array
+ *                       description: Các mục tài liệu được dùng để trả lời
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id: { type: string }
+ *                           title: { type: string }
+ *                     usage:
+ *                       type: object
+ *       401:
+ *         description: Access token is invalid, expired, or missing
+ *       422:
+ *         description: Validation error
+ */
+
+/**
+ * @swagger
  * /v1/api/season:
  *   post:
  *     summary: Create season
